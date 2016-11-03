@@ -1,5 +1,45 @@
 from tkinter import *
 from time import gmtime, strftime
+from bluetooth import *
+import threading
+
+class ConnectThread (threading.Thread):
+    def __init__(self, threadID):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+    def run(self):
+        connectBluetooth()
+
+class BluetoothThread (threading.Thread):
+    def __init__(self, threadID, app):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.app = app
+    def run(self):
+        blue(self.app)
+
+#Bluetooth connection
+server_sock = BluetoothSocket(RFCOMM)
+server_sock.bind(("", PORT_ANY))
+server_sock.listen(1)
+
+port = server_sock.getsockname()[1]
+uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
+
+advertise_service(  server_sock, "SampleServer",
+                    service_id=uuid,
+                    service_classes=[uuid, SERIAL_PORT_CLASS],
+                    profiles=[SERIAL_PORT_PROFILE],
+                    #				  protocols = [ OBEX_UUID ]
+                    )
+
+print("Waiting for connection on RFCOMM channel %d" % port)
+
+client_sock = None
+client_info = None
+
+# Queue with commands to send to Dora
+commandQueue = []
 
 root = Tk()
 root.geometry("1280x720")
@@ -18,9 +58,6 @@ class Window(Frame):
         file.add_command(label="Clear robotLog.txt", command=clearRobotLog)
         file.add_command(label="Exit", command=self.close)
         menu.add_cascade(label="File", menu=file)
-
-        self.leftFrame = Frame(master)
-        self.leftFrame.grid(row=0, column=0)
 
         self.mapCanvas = self.initCanvas()
         self.textBox = self.initText()
@@ -82,24 +119,36 @@ class Window(Frame):
     root.bind('<Escape>', close)
 
     def moveRight(self):
+        global commandQueue
+        commandQueue += ["right"]
+
         self.textBox.config(state=NORMAL)
         Window.printToLog(self, text="Right")
         self.textBox.config(state=DISABLED)
         print("Right")
 
     def moveLeft(self):
+        global commandQueue
+        commandQueue += ["left"]
+
         self.textBox.config(state=NORMAL)
         Window.printToLog(self, text="Left")
         self.textBox.config(state=DISABLED)
         print("Left")
 
     def moveForward(self):
+        global commandQueue
+        commandQueue += ["forward"]
+
         self.textBox.config(state=NORMAL)
         Window.printToLog(self, text="Forward")
         self.textBox.config(state=DISABLED)
         print("Forward")
 
     def moveBackward(self):
+        global commandQueue
+        commandQueue += ["backward"]
+
         self.textBox.config(state=NORMAL)
         Window.printToLog(self, text = "Backward")
         self.textBox.config(state=DISABLED)
@@ -118,9 +167,54 @@ class Window(Frame):
 def clearRobotLog():
     open('robotLog.txt', 'w').close()
 
+def connectBluetooth():
+    global client_sock
+    global client_info
+    client_sock, client_info = server_sock.accept()
+    print("Accepted connection on RFCOM channel %d" % port)
+
+
+def blue(app):
+    try:
+        while True:
+            data = client_sock.recv(1024)
+
+            if len(data) > 0:
+                app.printToLog(str(data))
+                print("received [%s]" % data)
+
+            if data == b'!req':
+                if commandQueue:
+                    client_sock.send(commandQueue.pop(0))
+                else:
+                    client_sock.send("none")
+
+
+    except IOError:
+        pass
+
+    print("disconnected")
+
+    client_sock.close()
+    server_sock.close()
+    print("all done")
+
+
 def main():
     app = Window(root)
+
+    connectThread = ConnectThread(1)
+    connectThread.start()
+    connectThread.join()
+
+    blueThread = BluetoothThread(2, app)
+    blueThread.start()
+
+
     root.mainloop()
+    blueThread.join()
+
+
 
 
 if __name__ == '__main__':

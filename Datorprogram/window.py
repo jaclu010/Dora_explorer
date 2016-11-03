@@ -10,6 +10,7 @@ class Window(Frame):
         self.master = master
         self.master.title("Dora The Explorer")
         self.pack(fill=BOTH, expand=1)
+        self.messages = []
 
         menu = Menu(self.master)
         self.master.config(menu=menu)
@@ -19,23 +20,21 @@ class Window(Frame):
         file.add_command(label="Exit", command=self.close)
         menu.add_cascade(label="File", menu=file)
 
-        self.leftFrame = Frame(master)
-        self.leftFrame.grid(row=0, column=0)
-
         self.mapCanvas = self.initCanvas()
         self.textBox = self.initText()
         self.initButtons()
         self.cbSensor, self.cbMovement = self.initCheckboxes()
 
-        if self.cbSensor.grab_status() == 0:
-            print("heeeeel yeaaaah!")
-
     def initCheckboxes(self):
-        cbSensor = Checkbutton(self, text="Show sensor data")
+        self.cbSensorVar = IntVar()
+        cbSensor = Checkbutton(self, text="Show sensor data", variable=self.cbSensorVar,
+                               command=self.cbSensorToggle)
         #cbSensor.deselect()
         cbSensor.place(x=0, y=460)
 
-        cbMovement = Checkbutton(self, text="Show movement data")
+        self.cbMovementVar = IntVar()
+        cbMovement = Checkbutton(self, text="Show movement data", variable=self.cbMovementVar,
+                                 command=self.cbMovementToggle)
         #cbMovement.deselect()
         cbMovement.place(x=130, y=460)
         return cbSensor, cbMovement
@@ -75,6 +74,23 @@ class Window(Frame):
     def addText(self, text):
         self.textBox.insert(END, text)
 
+    def cbSensorToggle(self):
+        if self.cbSensor.getvar(str(self.cbSensorVar)) == "1":
+            print("Sensor Value is 1")
+        elif self.cbSensor.getvar(str(self.cbSensorVar)) == "0":
+            print("Sensor Value is 0")
+
+    def cbMovementToggle(self):
+        if self.cbMovement.getvar(str(self.cbMovementVar)) == "1":
+            print("Movement Value is 1")
+        elif self.cbMovement.getvar(str(self.cbMovementVar)) == "0":
+            self.textBox.config(state=NORMAL)
+            self.textBox.delete("0.0", END)
+            self.textBox.config(state=DISABLED)
+            print("Movement Value is 0")
+
+
+
     def close(self):
         root.withdraw()
         sys.exit()
@@ -82,46 +98,41 @@ class Window(Frame):
     root.bind('<Escape>', close)
 
     def moveRight(self):
-        self.textBox.config(state=NORMAL)
-        Window.printToLog(self, text="Right")
-        self.textBox.config(state=DISABLED)
-        print("Right")
+        self.addToMessages("MOVE", "Right")
 
     def moveLeft(self):
-        self.textBox.config(state=NORMAL)
-        Window.printToLog(self, text="Left")
-        self.textBox.config(state=DISABLED)
-        print("Left")
+        self.addToMessages("MOVE", "Left")
 
     def moveForward(self):
-        self.textBox.config(state=NORMAL)
-        Window.printToLog(self, text="Forward")
-        self.textBox.config(state=DISABLED)
-        print("Forward")
+        self.addToMessages("MOVE", "Forward")
 
     def moveBackward(self):
-        self.textBox.config(state=NORMAL)
-        Window.printToLog(self, text = "Backward")
-        self.textBox.config(state=DISABLED)
-        print("Backward")
+        self.addToMessages("MOVE", "Backward")
 
-    def printToLog(self, text):
+    def printToLog(self):
         self.textBox.config(state=NORMAL)
 
-        string = strftime("%Y-%m-%d %H:%M:%S", gmtime()) +"\t"+text + "\n"
         with open('robotLog.txt', 'a') as file:
-            file.write(string)
+            file.write(self.messages[-1][0] + "\t" + self.messages[-1][1])
 
-        self.textBox.insert("0.0", string)
+        if (self.messages[-1][0] == "MOVE" and  self.cbMovement.getvar(str(self.cbMovementVar)) == "1"):
+            self.textBox.insert("0.0", self.messages[-1][1])
+        elif (self.messages[-1][0] == "SENS"):
+            print()
         self.textBox.config(state=DISABLED)
+
+    def addToMessages(self, type, message):
+        self.messages.append((type, strftime("%H:%M:%S", gmtime()) + "\t" + message + "\n"))
+        self.printToLog()
 
 def clearRobotLog():
     open('robotLog.txt', 'w').close()
 
 def main():
     app = Window(root)
-    root.mainloop()
 
+
+    root.mainloop()
 
 if __name__ == '__main__':
     main()

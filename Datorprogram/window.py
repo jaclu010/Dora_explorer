@@ -3,6 +3,7 @@ import math
 from time import gmtime, strftime
 from bluetooth import *
 import threading
+import ast
 
 
 class ConnectThread(threading.Thread):
@@ -23,7 +24,7 @@ class BluetoothThread(threading.Thread):
     def run(self):
         blue(self.app)
 
-
+connectedLock = threading.Lock()
 messagesLock = threading.Lock()
 newMessageQueue = []
 
@@ -48,10 +49,13 @@ client_info = None
 
 # Queue with commands to send to Dora
 commandQueue = []
+moveState = "stop"
 
 root = Tk()
 root.geometry("1280x720")
 
+mapList = []
+robList = []
 
 class Window(Frame):
     def __init__(self, master=None):
@@ -61,7 +65,7 @@ class Window(Frame):
         self.canvasHeight = 720
         self.mapArray = []
         self.up = False
-        self.mapSize = 32
+        self.mapSize = 25
         self.mapRotation = 0
         self.robRotation = math.pi
         self.robotPos = (1, 6)
@@ -96,18 +100,7 @@ class Window(Frame):
         for y in range(0, 21):
             a = []
             for x in range(0, 21):
-                val = "1"
-                if ((x == 0 or y == 0) or (x == 20 or y == 20)): val = "2"
-                if (x >= 0 and x < 4 and y >= 0 and y < 4): val = "0"
-                if (x == 4 and y <= 4) or (y == 4 and x < 4): val = "2"
-                if (x == 10 and y == 10): val = "2"
-                if (x >= 6 and x < 12 and y >= 17): val = "2"
-                if (x > 6 and x < 11 and y >= 18): val = "0"
-                if (x > 8 and x < 14 and y < 4): val = "0"
-                if (x == 8 and y < 4): val = "2"
-                if (x >= 8 and x < 14 and y == 4): val = "2"
-                if (x == 14 and y < 4): val = "2"
-                if (x >= 10 and x <= 12 and y >= 10 and y <= 12): val = "2"
+                val = "0"
                 a.append(val)
             self.mapArray.append(a)
 
@@ -188,22 +181,22 @@ class Window(Frame):
         global commandQueue
         commandQueue += ["right"]
         # self.robotPos = self.addTuple(self.robotPos, t2)
-        self.robRotation += math.pi / 10
+        #self.robRotation += math.pi / 10
 
     def moveLeft(self):
         self.addToMessages("MOVE", "Left")
         global commandQueue
         commandQueue += ["left"]
         # self.robotPos = self.addTuple(self.robotPos, t2)
-        self.robRotation -= math.pi / 10
+        #self.robRotation -= math.pi / 10
 
     def moveForward(self):
         self.addToMessages("MOVE", "Forward")
         global commandQueue
         commandQueue += ["forward"]
 
-        self.robotPos = (self.robotPos[0] - self.robotSpeed * math.cos(self.robRotation), self.robotPos[1])
-        self.robotPos = (self.robotPos[0], self.robotPos[1] - self.robotSpeed * math.sin(self.robRotation))
+        #self.robotPos = (self.robotPos[0] - self.robotSpeed * math.cos(self.robRotation), self.robotPos[1])
+        #self.robotPos = (self.robotPos[0], self.robotPos[1] - self.robotSpeed * math.sin(self.robRotation))
 
         # self.robotPos = self.addTuple(self.robotPos, t2)
 
@@ -212,8 +205,13 @@ class Window(Frame):
         global commandQueue
         commandQueue += ["backward"]
 
-        self.robotPos = (self.robotPos[0] + self.robotSpeed * math.cos(self.robRotation), self.robotPos[1])
-        self.robotPos = (self.robotPos[0], self.robotPos[1] + self.robotSpeed * math.sin(self.robRotation))
+        #self.robotPos = (self.robotPos[0] + self.robotSpeed * math.cos(self.robRotation), self.robotPos[1])
+        #self.robotPos = (self.robotPos[0], self.robotPos[1] + self.robotSpeed * math.sin(self.robRotation))
+
+    def stop(self):
+        self.addToMessages("MOVE", "Stop")
+        global commandQueue
+        commandQueue += ["stop"]
 
     def printToLog(self):
         self.textBox.config(state=NORMAL)
@@ -233,8 +231,19 @@ class Window(Frame):
         self.printToLog()
 
     def canvUpdate(self):
-        self.mapRotation -= math.pi / 200
-        # self.mapRotation = math.pi / 4
+        global mapList
+        global robList
+        self.canvasOffX = self.canvasWidth / 2 - (self.mapSize * 20) / 2
+        self.canvasOffY = self.canvasHeight / 2 - (self.mapSize * 20) / 2
+
+
+        if mapList:
+            self.mapArray = mapList
+        if robList:
+            self.robRotation = robList[2]
+            self.robotPos = (robList[0], robList[1])
+
+        self.mapRotation -= math.pi / 800
         self.draw2DMap()
         self.mapCanvas.after(10, self.canvUpdate)
 
@@ -268,14 +277,14 @@ class Window(Frame):
                     leftDown = (x * boxWidth + xOffset, y * boxHeight + yOffset + boxHeight)
                     rightDown = (x * boxWidth + xOffset + boxWidth, y * boxHeight + yOffset + boxHeight)
                     offset3d = (0, -self.mapSize)
-                    center = (self.canvasWidth / 2 + xOffset, self.canvasHeight / 2 + yOffset)
-
+                    #center = (self.canvasWidth / 2 + xOffset, self.canvasHeight / 2 + yOffset)
+                    center = ((self.mapSize*20) / 2 + xOffset, (self.mapSize*20) / 2 + yOffset)
                     if (rotation != 0):
                         leftUp = self.rotatePoint(leftUp, center, rotation)
                         rightUp = self.rotatePoint(rightUp, center, rotation)
                         leftDown = self.rotatePoint(leftDown, center, rotation)
                         rightDown = self.rotatePoint(rightDown, center, rotation)
-
+                    self.drawLine(center[0], center[1], center[0] + 1, center[1] + 1, False)
                     ##Current glitch _|
 
                     if curVal == "2":
@@ -296,23 +305,27 @@ class Window(Frame):
     def drawRobot(self):
         robotCenter = (self.robotPos[0] * self.mapSize + self.mapSize / 2 + self.canvasOffX,
                        self.robotPos[1] * self.mapSize + self.mapSize / 2 + self.canvasOffY)
+
         robotWidth = self.mapSize
         robotHeight = self.mapSize / 2
         robotOffset = (0, -self.mapSize / 1.5)
         rOff2 = (0, -self.mapSize / 3)
-        xOffset = 0
-        yOffset = 0
+        xOffset = self.canvasOffX
+        yOffset = self.canvasOffY
         robotRotation = self.mapRotation
-        center = (self.canvasWidth / 2 + self.canvasOffX, self.canvasHeight / 2 + self.canvasOffY)
-        rLeftUp = (robotCenter[0] - robotWidth / 2 + xOffset, robotCenter[1] - robotHeight / 2 + yOffset)
-        rRightUp = (robotCenter[0] + robotWidth / 2 + xOffset, robotCenter[1] - robotHeight / 2 + yOffset)
-        rLeftDown = (robotCenter[0] - robotWidth / 2 + xOffset, robotCenter[1] + robotHeight / 2 + yOffset)
-        rRightDown = (robotCenter[0] + robotWidth / 2 + xOffset, robotCenter[1] + robotHeight / 2 + yOffset)
-        rLeftUpUp = (
-        robotCenter[0] - robotWidth / 2 + xOffset - self.mapSize / 3, robotCenter[1] + robotHeight / 2 + yOffset)
-        rRightUpUp = (
-        robotCenter[0] - robotWidth / 2 + xOffset - self.mapSize / 3, robotCenter[1] - robotHeight / 2 + yOffset)
+        center = ((self.mapSize * 20) / 2 + xOffset, (self.mapSize * 20) / 2 + yOffset)
 
+
+
+        print("robot_" + str(center))
+        rLeftUp = (robotCenter[0] - robotWidth / 2 , robotCenter[1] - robotHeight / 2)
+        rRightUp = (robotCenter[0] + robotWidth / 2, robotCenter[1] - robotHeight / 2)
+        rLeftDown = (robotCenter[0] - robotWidth / 2, robotCenter[1] + robotHeight / 2)
+        rRightDown = (robotCenter[0] + robotWidth / 2, robotCenter[1] + robotHeight / 2)
+        rLeftUpUp = (
+        robotCenter[0] - robotWidth / 2 - self.mapSize / 3, robotCenter[1] + robotHeight / 2)
+        rRightUpUp = (
+        robotCenter[0] - robotWidth / 2 - self.mapSize / 3, robotCenter[1] - robotHeight / 2)
         if (robotRotation != 0):
             rLeftUp = self.rotatePoint(rLeftUp, center, robotRotation)
             rRightUp = self.rotatePoint(rRightUp, center, robotRotation)
@@ -329,7 +342,6 @@ class Window(Frame):
             rRightUpUp = self.rotatePoint(rRightUpUp, robotCenter, self.robRotation)
             rLeftUpUp = self.rotatePoint(rLeftUpUp, robotCenter, self.robRotation)
             robotCenter = self.rotatePoint(robotCenter, robotCenter, self.robRotation)
-
         self.drawLine(robotCenter[0], robotCenter[1], robotCenter[0] + 2, robotCenter[1] + 2, False)
         self.draw3d(rLeftUp, rRightUp, robotOffset)
         self.draw3d(rRightUp, rRightDown, robotOffset)
@@ -390,39 +402,131 @@ def clearRobotLog():
 
 
 def connectBluetooth():
+    connectedLock.acquire()
     global client_sock
     global client_info
     client_sock, client_info = server_sock.accept()
+    connectedLock.release()
     print("Accepted connection on RFCOM channel %d" % port)
 
 
 def blue(app):
+    connectedLock.acquire()
     global newMessageQueue
-    mapString = ""
-    receivingMap = False
-    isReq = False
+    global mapList
+    global robList
+    data = ""
     try:
         while True:
-            data = client_sock.recv(4096)
+            data += str(client_sock.recv(4096))[2:-1]
 
+            if len(data) > 0:
+                print("received: " + data)
+
+            while data.find('#') != -1:
+                # Take out current cmd
+                cmd = data[:data.find('#')]
+
+                # Strip current cmd from data
+                data = data[data.find('#')+1:]
+
+                if "!req" not in cmd:
+                    messagesLock.acquire()
+
+                    if "sens" in cmd:
+                        newMessageQueue += [("SENS", cmd)]
+                    elif "move" in cmd:
+                        newMessageQueue += [("MOVE", cmd)]
+                    elif "rob" in cmd:
+                        newMessageQueue += [("ROB", cmd)]
+
+                        # Strip [rob] and split to list
+                        cmd = cmd[5:]
+                        robList = ast.literal_eval(cmd)
+                        print("ROB LIST !!!!!! : " + str(robList))
+
+                    elif "map" in cmd:
+                        # We have the whole map
+                        newMessageQueue += [("MAP", cmd)]
+
+                        cmd = cmd[5:]
+                        l = ast.literal_eval(cmd)
+                        l = [i.strip() for i in l]
+                        mapList = []
+                        for y in range(0, 21):
+                            l2 = []
+                            for x in range(0, 21):
+                                l2.append(l[y * 21 + x])
+                            mapList.append(l2)
+
+                    messagesLock.release()
+                    root.event_generate("<<AddMessage>>")
+
+                else:   # !req
+                    if commandQueue:
+                        client_sock.send(commandQueue.pop(0))
+                    else:
+                        client_sock.send("none")
+
+
+
+
+            """
             if len(data) > 0 and data != b'!req':
                 messagesLock.acquire()
                 if data[1:5] == b'sens':
                     newMessageQueue += [("SENS", str(data))]
+                    if data[-4:] == b'!req':
+                        isReq = True
+
                 elif data[1:5] == b'move':
                     newMessageQueue += [("MOVE", str(data))]
+                    if data[-4:] == b'!req':
+                        isReq = True
+
+                elif data[1:4] == b'rob':
+                    robString = str(data)
+                    newMessageQueue += [("ROB", robString)]
+
+                    if data[-4:] == b'!req':
+                        robString = robString[:-4]
+                        isReq = True
+
+                    robString = robString[7:-1]
+
+                    robList = ast.literal_eval(robString)
+
+                    print("ROB LIST !!!!!! : " + str(robList))
+
                 elif data[1:4] == b'map':
-                    mapString += str(data)
+                    mapString = str(data)
                     receivingMap = True
-                if receivingMap:
+
+                elif receivingMap:
+                    print("HELLLO CJC" + str(data))
                     mapString += str(data)
                     if b'[map_end]' in data:
+                        # We have the whole map
+                        # Trim junk from the end of the transmission
+                        mapString = mapString[:mapString.find('[map_end]')+len("[map_end]")]
+
                         receivingMap = False
                         newMessageQueue += [("MAP", mapString)]
-                        mapString = ""
 
-                        if data[-9:] != b'[map_end]':
+                        if data[-4:] == b'!req':
+                            # We have also received a !req
                             isReq = True
+
+                        mapString = mapString[7:-9]
+
+                        l = ast.literal_eval(mapString)
+                        l = [i.strip() for i in l]
+                        mapList = []
+                        for y in range (0,21):
+                            l2 = []
+                            for x in range (0,21):
+                                l2.append(l[y*21 + x])
+                            mapList.append(l2)
 
                 messagesLock.release()
                 print("received [%s]" % data)
@@ -434,6 +538,7 @@ def blue(app):
                     client_sock.send(commandQueue.pop(0))
                 else:
                     client_sock.send("none")
+            """
 
     except IOError:
         pass
@@ -441,6 +546,7 @@ def blue(app):
     print("disconnected")
     client_sock.close()
     server_sock.close()
+    connectedLock.release()
     print("all done")
 
 
@@ -454,17 +560,40 @@ def main():
             app.addToMessages(newMessageQueue[0][0], newMessageQueue[0][1])
             newMessageQueue.pop(0)
         messagesLock.release()
-
     root.bind('<<AddMessage>>', handleMessageQueue)
+
+    def keyDown(e):
+        global moveState
+        if e.char == 'w' and moveState != "forward":
+            moveState = "forward"
+            app.moveForward()
+        if e.char == 'a' and moveState != "left":
+            moveState = "left"
+            app.moveLeft()
+        if e.char == 's' and moveState != "backward":
+            moveState = "backward"
+            app.moveBackward()
+        if e.char == 'd' and moveState != "right":
+            moveState = "right"
+            app.moveRight()
+
+    def keyRelease(e):
+        global moveState
+        moveState = "stop"
+        app.stop()
+
+
+    root.bind('<KeyPress>', keyDown)
+    root.bind('<KeyRelease>', keyRelease)
 
     connectThread = ConnectThread(1)
     connectThread.start()
-    connectThread.join()
 
     blueThread = BluetoothThread(2, app)
     blueThread.start()
 
     root.mainloop()
+    connectThread.join()
     blueThread.join()
 
 

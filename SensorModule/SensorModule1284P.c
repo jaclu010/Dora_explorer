@@ -185,6 +185,100 @@ void StopSignal_Gyro(void) {
 	PORTB |= (1 << PORTB4);
 	
 }
+
+void Read_Gyro()
+{
+	unsigned answerHigh = 0xFF;
+	unsigned answerLow = 0xFF;
+	
+	StartSignal_Gyro();
+		
+	//first instruction
+	unsigned output = 0x94;
+	SPI_MasterTransmit(output);
+	_delay_us(126);
+	output = 0x00;
+	SPI_MasterTransmit(output);
+	_delay_us(126);
+	answerHigh = SPDR;		
+
+	SPI_MasterTransmit(output);
+	_delay_us(126);
+	answerLow = SPDR;		
+		
+	answerHigh &= 0x80;
+		
+	StopSignal_Gyro();
+		
+	if(answerHigh == 0) {
+						
+		StartSignal_Gyro();
+
+		//second instruction
+		output = 0x94;
+		SPI_MasterTransmit(output);
+		_delay_us(126);
+		output = 0x00;
+		SPI_MasterTransmit(output);
+		_delay_us(126);
+		answerHigh = SPDR;
+			
+		SPI_MasterTransmit(output);
+		_delay_us(126);
+		answerLow = SPDR;
+			
+		StopSignal_Gyro();
+			
+		answerHigh &= 0x80;
+			
+		if (answerHigh == 0) {									
+				
+			StartSignal_Gyro();
+
+			//third instruction
+			output = 0x80;
+			SPI_MasterTransmit(output);
+			_delay_us(126);
+			output = 0x00;
+			SPI_MasterTransmit(output);
+			_delay_us(126);
+			answerHigh = SPDR;
+			SPI_MasterTransmit(output);
+			_delay_us(126);
+			answerLow = SPDR;
+			StopSignal_Gyro();
+
+			unsigned checkEOC = answerHigh & 0x20;
+			unsigned checkAcc = answerHigh & 0x80;
+								
+			if (checkEOC == 0x20) {
+					
+				if(checkAcc == 0) {
+						
+					answerHigh &= 0x0F;
+						
+					unsigned sendLow = answerHigh & 0x01;
+					sendLow = (answerHigh << 7);
+					unsigned test = (answerLow >> 1);
+					test &= 0x7F;
+					sendLow = sendLow | test;
+					unsigned sendHigh = (answerHigh >> 1);
+												
+					UART_Transmit(START_GYRO);
+					_delay_us(300);
+					UART_Transmit(sendHigh);
+					_delay_us(300);
+					UART_Transmit(sendLow);						
+						
+				}
+					
+			}										
+				
+		}
+			
+	}
+}
+
 /*
 int main(void) {
 	
@@ -208,7 +302,7 @@ int main(void) {
 		_delay_ms(1000);
 		//unsigned char data = FireFly_Receive();
 		//UART_Transmit(data);		
-		//UART_Transmit('ö');
+		//UART_Transmit('Ã¶');
 	}	
 }
 */
@@ -225,119 +319,12 @@ int main(void)
 	_delay_ms(1000);
 	DDRB |= (1 << DDB0);
 
-	unsigned answerHigh = 0xFF;
-	unsigned answerLow = 0xFF;
+
 	
 	while(1) {
 		
-		/*
-		UART_Transmit(START_LASER);
-		_delay_us(300);
-		Simulated_Laser();
-		_delay_ms(1000);*/			
-		
-		_delay_ms(20);
-		StartSignal_Gyro();
-		_delay_us(200);
-		
-		//first instruction
-		unsigned output = 0x94;
-		SPI_MasterTransmit(output);
-		_delay_us(200);
-		output = 0x00;
-		SPI_MasterTransmit(output);
-		_delay_us(200);
-		answerHigh = SPDR;		
-
-		SPI_MasterTransmit(output);
-		_delay_us(200);
-		answerLow = SPDR;		
-		
-		answerHigh &= 0x80;
-		
-		StopSignal_Gyro();
-		_delay_us(200);
-		
-		if(answerHigh == 0) {
-			
-			
-			StartSignal_Gyro();
-			_delay_us(200);
-			//second instruction
-			output = 0x94;
-			SPI_MasterTransmit(output);
-			_delay_us(200);
-			output = 0x00;
-			SPI_MasterTransmit(output);
-			_delay_us(200);
-			answerHigh = SPDR;
-			
-			SPI_MasterTransmit(output);
-			_delay_us(200);
-			answerLow = SPDR;
-			
-			StopSignal_Gyro();
-			_delay_us(200);
-			
-			answerHigh &= 0x80;
-			
-			if (answerHigh == 0) {	
-								
-				//third instruction
-				StartSignal_Gyro();
-				_delay_us(200);
-				
-				output = 0x80;
-				SPI_MasterTransmit(output);
-				_delay_us(200);
-				output = 0x00;
-				SPI_MasterTransmit(output);
-				_delay_us(200);
-				answerHigh = SPDR;
-				SPI_MasterTransmit(output);
-				_delay_us(200);
-				answerLow = SPDR;
-				StopSignal_Gyro();
-				_delay_us(200);
-
-
-				unsigned checkEOC = answerHigh & 0x20;
-				unsigned checkAcc = answerHigh & 0x80;
-				
-				
-				if (checkEOC == 0x20) {
-					
-					if(checkAcc == 0) {
-						
-						answerHigh &= 0x0F;
-						
-						unsigned sendLow = answerHigh & 0x01;
-						sendLow = (answerHigh << 7);
-						unsigned test = (answerLow >> 1);
-						test &= 0x7F;
-						sendLow = sendLow | test;
-						unsigned sendHigh = (answerHigh >> 1);
-												
-						UART_Transmit(START_GYRO);
-						_delay_us(300);
-						UART_Transmit(sendHigh);
-						_delay_us(300);
-						UART_Transmit(sendLow);						
-						
-						PORTB |= (1 << PORTB0);
-						_delay_ms(200);
-						PORTB &= (0 << PORTB0);
-						_delay_ms(200);
-						
-					}
-					
-				}				
-			
-				_delay_us(500);							
-				
-			}
-			
-		}
+		Read_Gyro();
+	
 
 	}
 	

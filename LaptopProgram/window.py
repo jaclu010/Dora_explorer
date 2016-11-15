@@ -5,12 +5,11 @@ from bluetooth import *
 import threading
 import ast
 import copy
-app = None
+
 
 class ConnectThread(threading.Thread):
-    def __init__(self, threadID):
+    def __init__(self):
         threading.Thread.__init__(self)
-        self.threadID = threadID
 
     def run(self):
         if btConnected:
@@ -18,21 +17,18 @@ class ConnectThread(threading.Thread):
 
 
 class BluetoothThread(threading.Thread):
-    def __init__(self, threadID):
+    def __init__(self):
         threading.Thread.__init__(self)
-        self.threadID = threadID
 
     def run(self):
         if btConnected:
             blue()
 
-connectThread = ConnectThread(1)
-blueThread = BluetoothThread(2)
 
-def exitApp():
-    connectThread.join()
-    blueThread.join()
+connectThread = ConnectThread()
+blueThread = BluetoothThread()
 
+# Bluetooth concurrency
 btConnected = False
 connectedLock = threading.Lock()
 messagesLock = threading.Lock()
@@ -52,8 +48,6 @@ try:
                       profiles=[SERIAL_PORT_PROFILE],
                       #                     protocols = [ OBEX_UUID ]
                       )
-
-
 except:
     print("A Bluetooth connection could not be established")
 else:
@@ -66,6 +60,8 @@ client_info = None
 # Queue with commands to send to Dora
 commandQueue = []
 moveState = "stop"
+
+# Mouse button 1 states
 m1Down = False
 m1DownPos = (0,0)
 m1UpPos = m1DownPos
@@ -73,9 +69,11 @@ m1UpPos = m1DownPos
 root = Tk()
 root.geometry("1280x720")
 
+# Lists with data from Dora
 mapList = []
 robList = []
 laserList = []
+
 
 class Window(Frame):
     def __init__(self, master=None):
@@ -88,13 +86,13 @@ class Window(Frame):
         self.mDown = False
         self.mPrevDown = m1Down
 
-
         self.up = False
         self.mapSize = 25
         self.mapRotation = math.pi / 4
         self.robRotation = math.pi
         self.robotPos = (10, 10)
         self.robotSpeed = 0.5
+
         self.master = master
         self.master.title("Dora The Explorer")
         self.pack(fill=BOTH, expand=1)
@@ -134,12 +132,10 @@ class Window(Frame):
         self.cbSensorVar = IntVar()
         cbSensor = Checkbutton(self, text="Show sensor data", variable=self.cbSensorVar,
                                command=self.cbSensorToggle)
-        # cbSensor.deselect()
         cbSensor.place(x=0, y=460)
         self.cbMovementVar = IntVar()
         cbMovement = Checkbutton(self, text="Show movement data", variable=self.cbMovementVar,
                                  command=self.cbMovementToggle)
-        # cbMovement.deselect()
         cbMovement.place(x=130, y=460)
         return cbSensor, cbMovement
 
@@ -205,7 +201,6 @@ class Window(Frame):
     def close(self):
         root.withdraw()
         sys.exit()
-        exitApp()
 
     root.bind('<Escape>', close)
 
@@ -251,18 +246,18 @@ class Window(Frame):
         commandQueue += ["stop"]
 
     def printToLog(self):
-        self.textBox.config(state=NORMAL)
-
         with open('robotLog.txt', 'a') as file:
             file.write(self.messages[-1][0] + "\t" + self.messages[-1][1])
 
-        if (self.messages[-1][0] == "MOVE" and self.cbMovement.getvar(str(self.cbMovementVar)) == "1"):
+        self.textBox.config(state=NORMAL)
+
+        if self.messages[-1][0] == "MOVE" and self.cbMovement.getvar(str(self.cbMovementVar)) == "1":
             self.textBox.insert("0.0", self.messages[-1][1])
-        elif (self.messages[-1][0] == "SENS" and self.cbSensor.getvar(str(self.cbSensorVar)) == "1"):
+        elif self.messages[-1][0] == "SENS" and self.cbSensor.getvar(str(self.cbSensorVar)) == "1":
             self.textBox.insert("0.0", self.messages[-1][1])
-        elif (self.messages[-1][0] == "LASER" and self.cbSensor.getvar(str(self.cbSensorVar)) == "1"):
+        elif self.messages[-1][0] == "LASER" and self.cbSensor.getvar(str(self.cbSensorVar)) == "1":
             self.textBox.insert("0.0", self.messages[-1][1])
-        elif (self.messages[-1][0] == "GYRO" and self.cbSensor.getvar(str(self.cbSensorVar)) == "1"):
+        elif self.messages[-1][0] == "GYRO" and self.cbSensor.getvar(str(self.cbSensorVar)) == "1":
             self.textBox.insert("0.0", self.messages[-1][1])
 
         self.textBox.config(state=DISABLED)
@@ -277,21 +272,15 @@ class Window(Frame):
         self.canvasOffY = self.canvasHeight / 2 - (self.mapSize * 20) / 2
         self.mDown = m1Down
 
-
-        if (self.mDown):
-            #print(m1DownPos)
-            #print (m1UpPos)
+        if self.mDown:
             a = (m1DownPos[0] - m1UpPos[0])
             a = a/10000.0
-            #print(a)
-            #print (m1DownPos[0] - m1UpPos[1])
             self.mapRotation += math.degrees(a)
 
         self.mPrevDown = self.mDown
 
         if mapList:
             self.mapArray = mapList
-            #print(mapList)
         #if robList:
         #    self.robRotation = robList[2]
         #    self.robotPos = (robList[0], robList[1])
@@ -312,7 +301,7 @@ class Window(Frame):
         if ezDraw:
             for y in range(0, 21):
                 for x in range(0, 21):
-                    if (self.getMapValue(x, y) == "2"):
+                    if self.getMapValue(x, y) == "2":
                         self.drawBox(x * boxWidth + xOffset, y * boxHeight + yOffset, boxWidth, boxHeight, True)
         else:
             # Now draw with lines
@@ -324,7 +313,7 @@ class Window(Frame):
                     rightVal = self.getMapValue(x + 1, y)
                     leftVal = self.getMapValue(x - 1, y)
 
-                    # Tuples with cords to box cornor
+                    # Tuples with coords to box corner
                     leftUp = (x * boxWidth + xOffset, y * boxHeight + yOffset)
                     rightUp = (x * boxWidth + xOffset + boxWidth, y * boxHeight + yOffset)
                     leftDown = (x * boxWidth + xOffset, y * boxHeight + yOffset + boxHeight)
@@ -332,7 +321,8 @@ class Window(Frame):
                     offset3d = (0, -self.mapSize)
                     #center = (self.canvasWidth / 2 + xOffset, self.canvasHeight / 2 + yOffset)
                     center = ((self.mapSize*20) / 2 + xOffset, (self.mapSize*20) / 2 + yOffset)
-                    if (rotation != 0):
+
+                    if rotation != 0:
                         leftUp = self.rotatePoint(leftUp, center, rotation)
                         rightUp = self.rotatePoint(rightUp, center, rotation)
                         leftDown = self.rotatePoint(leftDown, center, rotation)
@@ -356,9 +346,10 @@ class Window(Frame):
         return (t1[0] + t2[0], t1[1] + t2[1])
 
     def drawRobot(self):
+        global laserList
+
         robotCenter = (self.robotPos[0] * self.mapSize + self.mapSize / 2 + self.canvasOffX,
                        self.robotPos[1] * self.mapSize + self.mapSize / 2 + self.canvasOffY)
-        global laserList
 
         robotWidth = self.mapSize
         robotHeight = self.mapSize / 2
@@ -368,8 +359,6 @@ class Window(Frame):
         yOffset = self.canvasOffY
         robotRotation = self.mapRotation
         center = ((self.mapSize * 20) / 2 + xOffset, (self.mapSize * 20) / 2 + yOffset)
-        oldRobotCenter = robotCenter
-        pList = []
 
         rLeftUp = (robotCenter[0] - robotWidth / 2 , robotCenter[1] - robotHeight / 2)
         rRightUp = (robotCenter[0] + robotWidth / 2, robotCenter[1] - robotHeight / 2)
@@ -379,7 +368,8 @@ class Window(Frame):
         robotCenter[0] - robotWidth / 2 - self.mapSize / 3, robotCenter[1] + robotHeight / 2)
         rRightUpUp = (
         robotCenter[0] - robotWidth / 2 - self.mapSize / 3, robotCenter[1] - robotHeight / 2)
-        if (robotRotation != 0):
+
+        if robotRotation != 0:
             rLeftUp = self.rotatePoint(rLeftUp, center, robotRotation)
             rRightUp = self.rotatePoint(rRightUp, center, robotRotation)
             rLeftDown = self.rotatePoint(rLeftDown, center, robotRotation)
@@ -387,7 +377,8 @@ class Window(Frame):
             rLeftUpUp = self.rotatePoint(rLeftUpUp, center, robotRotation)
             rRightUpUp = self.rotatePoint(rRightUpUp, center, robotRotation)
             robotCenter = self.rotatePoint(robotCenter, center, robotRotation)
-        if (self.robRotation != 0):
+
+        if self.robRotation != 0:
             rLeftUp = self.rotatePoint(rLeftUp, robotCenter, self.robRotation)
             rRightUp = self.rotatePoint(rRightUp, robotCenter, self.robRotation)
             rLeftDown = self.rotatePoint(rLeftDown, robotCenter, self.robRotation)
@@ -395,6 +386,7 @@ class Window(Frame):
             rRightUpUp = self.rotatePoint(rRightUpUp, robotCenter, self.robRotation)
             rLeftUpUp = self.rotatePoint(rLeftUpUp, robotCenter, self.robRotation)
             robotCenter = self.rotatePoint(robotCenter, robotCenter, self.robRotation)
+
         self.drawLine(robotCenter[0], robotCenter[1], robotCenter[0] + 2, robotCenter[1] + 2, False)
         self.draw3d(rLeftUp, rRightUp, robotOffset)
         self.draw3d(rRightUp, rRightDown, robotOffset)
@@ -404,11 +396,10 @@ class Window(Frame):
         self.draw3d(rLeftUpUp, rRightUpUp, rOff2)
         self.draw3d(rRightUpUp, rLeftUp, rOff2)
         self.draw3d(rLeftUp, rLeftDown, rOff2)
-        #print()
+
         tempLaser = copy.deepcopy(laserList)
         for i in range(len(tempLaser)):
             step = 2 * math.pi / 100
-            #print(step)
             p = (robotCenter[0] + tempLaser[i] * math.cos(step*i + self.robRotation + robotRotation), robotCenter[1] + tempLaser[i] * math.sin(step*i + self.robRotation + robotRotation))
             #p = self.rotatePoint(p, center, robotRotation)
             #p = self.rotatePoint(p, oldRobotCenter, self.robRotation)
@@ -432,14 +423,15 @@ class Window(Frame):
         return ans
 
     def getMapValue(self, x, y):
-        if (x >= 0 and x < 21 and y >= 0 and y < 21): return self.mapArray[y][x]
+        if 0 <= x < 21 and 0 <= y < 21:
+            return self.mapArray[y][x]
         return None
 
     def drawLine(self, x1, y1, x2, y2, thick):
         line = self.mapCanvas.create_line(x1, y1, x2, y2)
         self.canvasList.append(line)
 
-        if (thick):
+        if thick:
             line1 = self.mapCanvas.create_line(x1 - 1, y1 - 1, x2 - 1, y2 - 1)
             self.canvasList.append(line1)
             line2 = self.mapCanvas.create_line(x1 + 1, y1 + 1, x2 + 1, y2 + 1)
@@ -463,12 +455,14 @@ class Window(Frame):
 def clearRobotLog():
     open('robotLog.txt', 'w').close()
 
+
 def connectBluetooth():
     connectedLock.acquire()
     global client_sock, client_info
     client_sock, client_info = server_sock.accept()
     connectedLock.release()
     print("Accepted connection on RFCOM channel %d" % port)
+
 
 def blue():
     connectedLock.acquire()
@@ -483,10 +477,11 @@ def blue():
 
             while data.find('#') != -1:
                 # Take out current cmd
-                cmd = data[:data.find('#')]
+                separatorPos = data.find('#')
+                cmd = data[:separatorPos]
 
                 # Strip current cmd from data
-                data = data[data.find('#')+1:]
+                data = data[separatorPos+1:]
 
                 if "!req" not in cmd:
                     messagesLock.acquire()
@@ -498,6 +493,7 @@ def blue():
                     elif "laser" in cmd:
                         newMessageQueue += [("LASER", cmd)]
 
+                        # Strip [laser] and parse as list
                         cmd = cmd[7:]
                         laserList = ast.literal_eval(cmd)
                     elif "move" in cmd:
@@ -508,28 +504,25 @@ def blue():
                         # Strip [rob] and split to list
                         cmd = cmd[5:]
                         robList = ast.literal_eval(cmd)
-
                     elif "map" in cmd:
                         # We have the whole map
                         newMessageQueue += [("MAP", cmd)]
 
                         cmd = cmd[5:]
-                        #print(cmd)
                         l = ast.literal_eval(cmd)
-                        #l = [i.strip() for i in l]
+
                         mapList = []
                         for y in range(0, 21):
                             l2 = []
                             for x in range(0, 21):
                                 l2.append(l[y * 21 + x])
                             mapList.append(l2)
-                        print(mapList)
+
                     messagesLock.release()
                     root.event_generate("<<AddMessage>>")
 
-                else:   # !req
+                else:   # !req received
                     if commandQueue:
-                        print(commandQueue[0])
                         client_sock.send(commandQueue.pop(0))
                     else:
                         client_sock.send("none")
@@ -544,8 +537,7 @@ def blue():
 
 
 def main():
-    global app, connectThread, blueThread
-
+    global connectThread, blueThread
     app = Window(root)
 
     def handleMessageQueue(self):
@@ -581,6 +573,7 @@ def main():
         m1UpPos = m1DownPos
         m1DownPos = (e.x, e.y)
         m1Down= True
+
     def mUp(e):
         global m1Down
         m1Down = False
@@ -590,12 +583,16 @@ def main():
     root.bind('<B1-Motion>', mDown)
     root.bind('<ButtonRelease-1>', mUp)
 
+    connectThread.daemon = True
+    blueThread.daemon = True
+
     connectThread.start()
     blueThread.start()
 
     root.mainloop()
-    exitApp()
 
+    connectThread.join()
+    blueThread.join()
 
 if __name__ == '__main__':
     main()

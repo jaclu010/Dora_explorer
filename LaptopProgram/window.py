@@ -4,7 +4,8 @@ from time import gmtime, strftime
 from bluetooth import *
 import threading
 import ast
-
+import copy
+app = None
 
 class ConnectThread(threading.Thread):
     def __init__(self, threadID):
@@ -12,37 +13,52 @@ class ConnectThread(threading.Thread):
         self.threadID = threadID
 
     def run(self):
-        connectBluetooth()
+        if btConnected:
+            connectBluetooth()
 
 
 class BluetoothThread(threading.Thread):
-    def __init__(self, threadID, app):
+    def __init__(self, threadID):
         threading.Thread.__init__(self)
         self.threadID = threadID
-        self.app = app
 
     def run(self):
-        blue(self.app)
+        if btConnected:
+            blue()
 
+connectThread = ConnectThread(1)
+blueThread = BluetoothThread(2)
+
+def exitApp():
+    connectThread.join()
+    blueThread.join()
+
+btConnected = False
 connectedLock = threading.Lock()
 messagesLock = threading.Lock()
 newMessageQueue = []
 
 # Bluetooth connection
 server_sock = BluetoothSocket(RFCOMM)
-server_sock.bind(("", PORT_ANY))
-server_sock.listen(1)
+try:
+    server_sock.bind(("", PORT_ANY))
+    server_sock.listen(1)
 
-port = server_sock.getsockname()[1]
-uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
-advertise_service(server_sock, "SampleServer",
-                  service_id=uuid,
-                  service_classes=[uuid, SERIAL_PORT_CLASS],
-                  profiles=[SERIAL_PORT_PROFILE],
-                  #                  protocols = [ OBEX_UUID ]
-                  )
+    port = server_sock.getsockname()[1]
+    uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
+    advertise_service(server_sock, "DoraServer",
+                      service_id=uuid,
+                      service_classes=[uuid, SERIAL_PORT_CLASS],
+                      profiles=[SERIAL_PORT_PROFILE],
+                      #                     protocols = [ OBEX_UUID ]
+                      )
 
-print("Waiting for connection on RFCOMM channel %d" % port)
+
+except:
+    print("A Bluetooth connection could not be established")
+else:
+    print("Waiting for connection on RFCOMM channel %d" % port)
+    btConnected = True
 
 client_sock = None
 client_info = None
@@ -50,12 +66,16 @@ client_info = None
 # Queue with commands to send to Dora
 commandQueue = []
 moveState = "stop"
+m1Down = False
+m1DownPos = (0,0)
+m1UpPos = m1DownPos
 
 root = Tk()
 root.geometry("1280x720")
 
 mapList = []
 robList = []
+laserList = []
 
 class Window(Frame):
     def __init__(self, master=None):
@@ -64,11 +84,16 @@ class Window(Frame):
         self.canvasWidth = 780
         self.canvasHeight = 720
         self.mapArray = []
+
+        self.mDown = False
+        self.mPrevDown = m1Down
+
+
         self.up = False
         self.mapSize = 25
-        self.mapRotation = 0
+        self.mapRotation = math.pi / 4
         self.robRotation = math.pi
-        self.robotPos = (1, 6)
+        self.robotPos = (10, 10)
         self.robotSpeed = 0.5
         self.master = master
         self.master.title("Dora The Explorer")
@@ -90,6 +115,7 @@ class Window(Frame):
         self.textBox = self.initText()
         self.initButtons()
         self.cbSensor, self.cbMovement = self.initCheckboxes()
+        self.spinbox = self.initSpinbox()
 
         self.canvUpdate()
 
@@ -152,6 +178,12 @@ class Window(Frame):
         buttonForward.place(x=200, y=510)
         buttonBack.place(x=200, y=buttonY)
 
+    def initSpinbox(self):
+        spinbox = Spinbox(self, from_=0, to=255)
+        spinbox.place(x=10, y=500)
+
+        return spinbox
+
     def addText(self, text):
         self.textBox.insert(END, text)
 
@@ -173,27 +205,31 @@ class Window(Frame):
     def close(self):
         root.withdraw()
         sys.exit()
+        exitApp()
 
     root.bind('<Escape>', close)
 
     def moveRight(self):
         self.addToMessages("MOVE", "Right")
         global commandQueue
-        commandQueue += ["right"]
+        commandQueue = ["right"]
+        commandQueue += ["speed " + self.spinbox.get()]
         # self.robotPos = self.addTuple(self.robotPos, t2)
         #self.robRotation += math.pi / 10
 
     def moveLeft(self):
         self.addToMessages("MOVE", "Left")
         global commandQueue
-        commandQueue += ["left"]
+        commandQueue = ["left"]
+        commandQueue += ["speed " + self.spinbox.get()]
         # self.robotPos = self.addTuple(self.robotPos, t2)
         #self.robRotation -= math.pi / 10
 
     def moveForward(self):
         self.addToMessages("MOVE", "Forward")
         global commandQueue
-        commandQueue += ["forward"]
+        commandQueue = ["forward"]
+        commandQueue += ["speed " + self.spinbox.get()]
 
         #self.robotPos = (self.robotPos[0] - self.robotSpeed * math.cos(self.robRotation), self.robotPos[1])
         #self.robotPos = (self.robotPos[0], self.robotPos[1] - self.robotSpeed * math.sin(self.robRotation))
@@ -203,7 +239,8 @@ class Window(Frame):
     def moveBackward(self):
         self.addToMessages("MOVE", "Backward")
         global commandQueue
-        commandQueue += ["backward"]
+        commandQueue = ["backward"]
+        commandQueue += ["speed " + self.spinbox.get()]
 
         #self.robotPos = (self.robotPos[0] + self.robotSpeed * math.cos(self.robRotation), self.robotPos[1])
         #self.robotPos = (self.robotPos[0], self.robotPos[1] + self.robotSpeed * math.sin(self.robRotation))
@@ -223,6 +260,10 @@ class Window(Frame):
             self.textBox.insert("0.0", self.messages[-1][1])
         elif (self.messages[-1][0] == "SENS" and self.cbSensor.getvar(str(self.cbSensorVar)) == "1"):
             self.textBox.insert("0.0", self.messages[-1][1])
+        elif (self.messages[-1][0] == "LASER" and self.cbSensor.getvar(str(self.cbSensorVar)) == "1"):
+            self.textBox.insert("0.0", self.messages[-1][1])
+        elif (self.messages[-1][0] == "GYRO" and self.cbSensor.getvar(str(self.cbSensorVar)) == "1"):
+            self.textBox.insert("0.0", self.messages[-1][1])
 
         self.textBox.config(state=DISABLED)
 
@@ -231,19 +272,31 @@ class Window(Frame):
         self.printToLog()
 
     def canvUpdate(self):
-        global mapList
-        global robList
+        global mapList, robList, m1Down, m1UpPos, m1DownPos
         self.canvasOffX = self.canvasWidth / 2 - (self.mapSize * 20) / 2
         self.canvasOffY = self.canvasHeight / 2 - (self.mapSize * 20) / 2
+        self.mDown = m1Down
 
+
+        if (self.mDown):
+            #print(m1DownPos)
+            #print (m1UpPos)
+            a = (m1DownPos[0] - m1UpPos[0])
+            a = a/10000.0
+            #print(a)
+            #print (m1DownPos[0] - m1UpPos[1])
+            self.mapRotation += math.degrees(a)
+
+        self.mPrevDown = self.mDown
 
         if mapList:
             self.mapArray = mapList
-        if robList:
-            self.robRotation = robList[2]
-            self.robotPos = (robList[0], robList[1])
+            #print(mapList)
+        #if robList:
+        #    self.robRotation = robList[2]
+        #    self.robotPos = (robList[0], robList[1])
 
-        self.mapRotation -= math.pi / 800
+        #self.mapRotation -= math.pi / 800
         self.draw2DMap()
         self.mapCanvas.after(10, self.canvUpdate)
 
@@ -305,6 +358,7 @@ class Window(Frame):
     def drawRobot(self):
         robotCenter = (self.robotPos[0] * self.mapSize + self.mapSize / 2 + self.canvasOffX,
                        self.robotPos[1] * self.mapSize + self.mapSize / 2 + self.canvasOffY)
+        global laserList
 
         robotWidth = self.mapSize
         robotHeight = self.mapSize / 2
@@ -314,10 +368,9 @@ class Window(Frame):
         yOffset = self.canvasOffY
         robotRotation = self.mapRotation
         center = ((self.mapSize * 20) / 2 + xOffset, (self.mapSize * 20) / 2 + yOffset)
+        oldRobotCenter = robotCenter
+        pList = []
 
-
-
-        print("robot_" + str(center))
         rLeftUp = (robotCenter[0] - robotWidth / 2 , robotCenter[1] - robotHeight / 2)
         rRightUp = (robotCenter[0] + robotWidth / 2, robotCenter[1] - robotHeight / 2)
         rLeftDown = (robotCenter[0] - robotWidth / 2, robotCenter[1] + robotHeight / 2)
@@ -351,6 +404,16 @@ class Window(Frame):
         self.draw3d(rLeftUpUp, rRightUpUp, rOff2)
         self.draw3d(rRightUpUp, rLeftUp, rOff2)
         self.draw3d(rLeftUp, rLeftDown, rOff2)
+        #print()
+        tempLaser = copy.deepcopy(laserList)
+        for i in range(len(tempLaser)):
+            step = 2 * math.pi / 100
+            #print(step)
+            p = (robotCenter[0] + tempLaser[i] * math.cos(step*i + self.robRotation + robotRotation), robotCenter[1] + tempLaser[i] * math.sin(step*i + self.robRotation + robotRotation))
+            #p = self.rotatePoint(p, center, robotRotation)
+            #p = self.rotatePoint(p, oldRobotCenter, self.robRotation)
+            self.mapCanvas.create_line(robotCenter[0], robotCenter[1], p[0], p[1])
+            #self.drawLine(40, 40, p[0], p[1], False)
 
     def draw3d(self, p1, p2, offset):
         # self.drawLine(p1[0], p1[1], p1[0] + offset[0], p1[1] - offset[1], False)
@@ -400,28 +463,23 @@ class Window(Frame):
 def clearRobotLog():
     open('robotLog.txt', 'w').close()
 
-
 def connectBluetooth():
     connectedLock.acquire()
-    global client_sock
-    global client_info
+    global client_sock, client_info
     client_sock, client_info = server_sock.accept()
     connectedLock.release()
     print("Accepted connection on RFCOM channel %d" % port)
 
-
-def blue(app):
+def blue():
     connectedLock.acquire()
-    global newMessageQueue
-    global mapList
-    global robList
+    global newMessageQueue, mapList, robList, laserList
     data = ""
     try:
         while True:
             data += str(client_sock.recv(4096))[2:-1]
 
-            if len(data) > 0:
-                print("received: " + data)
+            #if len(data) > 0:
+            #    print("received: " + data)
 
             while data.find('#') != -1:
                 # Take out current cmd
@@ -435,6 +493,13 @@ def blue(app):
 
                     if "sens" in cmd:
                         newMessageQueue += [("SENS", cmd)]
+                    elif "gyro" in cmd:
+                        newMessageQueue += [("GYRO", cmd)]
+                    elif "laser" in cmd:
+                        newMessageQueue += [("LASER", cmd)]
+
+                        cmd = cmd[7:]
+                        laserList = ast.literal_eval(cmd)
                     elif "move" in cmd:
                         newMessageQueue += [("MOVE", cmd)]
                     elif "rob" in cmd:
@@ -443,103 +508,31 @@ def blue(app):
                         # Strip [rob] and split to list
                         cmd = cmd[5:]
                         robList = ast.literal_eval(cmd)
-                        print("ROB LIST !!!!!! : " + str(robList))
 
                     elif "map" in cmd:
                         # We have the whole map
                         newMessageQueue += [("MAP", cmd)]
 
                         cmd = cmd[5:]
+                        #print(cmd)
                         l = ast.literal_eval(cmd)
-                        l = [i.strip() for i in l]
+                        #l = [i.strip() for i in l]
                         mapList = []
                         for y in range(0, 21):
                             l2 = []
                             for x in range(0, 21):
                                 l2.append(l[y * 21 + x])
                             mapList.append(l2)
-
+                        print(mapList)
                     messagesLock.release()
                     root.event_generate("<<AddMessage>>")
 
                 else:   # !req
                     if commandQueue:
+                        print(commandQueue[0])
                         client_sock.send(commandQueue.pop(0))
                     else:
                         client_sock.send("none")
-
-
-
-
-            """
-            if len(data) > 0 and data != b'!req':
-                messagesLock.acquire()
-                if data[1:5] == b'sens':
-                    newMessageQueue += [("SENS", str(data))]
-                    if data[-4:] == b'!req':
-                        isReq = True
-
-                elif data[1:5] == b'move':
-                    newMessageQueue += [("MOVE", str(data))]
-                    if data[-4:] == b'!req':
-                        isReq = True
-
-                elif data[1:4] == b'rob':
-                    robString = str(data)
-                    newMessageQueue += [("ROB", robString)]
-
-                    if data[-4:] == b'!req':
-                        robString = robString[:-4]
-                        isReq = True
-
-                    robString = robString[7:-1]
-
-                    robList = ast.literal_eval(robString)
-
-                    print("ROB LIST !!!!!! : " + str(robList))
-
-                elif data[1:4] == b'map':
-                    mapString = str(data)
-                    receivingMap = True
-
-                elif receivingMap:
-                    print("HELLLO CJC" + str(data))
-                    mapString += str(data)
-                    if b'[map_end]' in data:
-                        # We have the whole map
-                        # Trim junk from the end of the transmission
-                        mapString = mapString[:mapString.find('[map_end]')+len("[map_end]")]
-
-                        receivingMap = False
-                        newMessageQueue += [("MAP", mapString)]
-
-                        if data[-4:] == b'!req':
-                            # We have also received a !req
-                            isReq = True
-
-                        mapString = mapString[7:-9]
-
-                        l = ast.literal_eval(mapString)
-                        l = [i.strip() for i in l]
-                        mapList = []
-                        for y in range (0,21):
-                            l2 = []
-                            for x in range (0,21):
-                                l2.append(l[y*21 + x])
-                            mapList.append(l2)
-
-                messagesLock.release()
-                print("received [%s]" % data)
-                root.event_generate("<<AddMessage>>")
-
-            if data == b'!req' or isReq:
-                isReq = False
-                if commandQueue:
-                    client_sock.send(commandQueue.pop(0))
-                else:
-                    client_sock.send("none")
-            """
-
     except IOError:
         pass
 
@@ -551,11 +544,12 @@ def blue(app):
 
 
 def main():
+    global app, connectThread, blueThread
+
     app = Window(root)
 
     def handleMessageQueue(self):
         messagesLock.acquire()
-        print("Queue: " + str(newMessageQueue))
         if newMessageQueue:
             app.addToMessages(newMessageQueue[0][0], newMessageQueue[0][1])
             newMessageQueue.pop(0)
@@ -582,19 +576,25 @@ def main():
         moveState = "stop"
         app.stop()
 
+    def mDown(e):
+        global m1Down, m1DownPos, m1UpPos
+        m1UpPos = m1DownPos
+        m1DownPos = (e.x, e.y)
+        m1Down= True
+    def mUp(e):
+        global m1Down
+        m1Down = False
 
     root.bind('<KeyPress>', keyDown)
     root.bind('<KeyRelease>', keyRelease)
+    root.bind('<B1-Motion>', mDown)
+    root.bind('<ButtonRelease-1>', mUp)
 
-    connectThread = ConnectThread(1)
     connectThread.start()
-
-    blueThread = BluetoothThread(2, app)
     blueThread.start()
 
     root.mainloop()
-    connectThread.join()
-    blueThread.join()
+    exitApp()
 
 
 if __name__ == '__main__':

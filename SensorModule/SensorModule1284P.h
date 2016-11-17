@@ -1,5 +1,7 @@
 #pragma once
 
+#define F_CPU 14745600
+
 #include <avr/io.h>
 #include <util/delay.h>
 #include <stdlib.h>
@@ -11,8 +13,6 @@
 #define NUM_SENSOR 0x06;
 
 #define STOP_LASER 0xFF
-
-#define F_CPU 14745600
 	
 typedef enum {IR_ONE, IR_TWO, IR_THREE, IR_FOUR, IR_FIVE, IR_SIX, IR_SEND} irState;
 	
@@ -28,4 +28,3 @@ unsigned char irArray[6] = {0};
 unsigned laserArray[520] = {0};
 unsigned counter = 0;
 unsigned sendHigh, sendLow;
-

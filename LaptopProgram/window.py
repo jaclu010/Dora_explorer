@@ -193,6 +193,7 @@ class Window(Frame):
         buttonTowerSpeed.place(x=95, y=buttonY)
 
     def setSpeed(self, side):
+        global commandQueue
         if side == 0:  # both
             ans = simpledialog.askinteger("Speeds", "Enter speed for both motor pairs:")
             if ans is not None and 0 <= ans <= 255:

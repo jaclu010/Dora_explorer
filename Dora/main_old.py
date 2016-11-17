@@ -329,14 +329,14 @@ def sensor_serial(tid):
                             bORD = ord(b)
                             c = serUSB0.read(1)
                             cORD = ord(c)
-                            value = int(bORD) * 256 + int(cORD)
+                            value = (int(bORD) * 256 + int(cORD))
                             #print("Len : " + str(len(last_laser_value)) + ", sent Len : " + str(value) + ", laserDIFF : " + str(aORD))
                         else:
                             b2 = serUSB0.read(1)
                             b2ORD = ord(b2)
                             val1 = b1ORD
                             val2 = b2ORD
-                            laser_value.append(int(val1) * 256 + int(val2))
+                            laser_value.append(int(val1) * 256 + int(val2) - 18)
                         serial_state = 0
                     elif (serial_state == 3):
                         #gyro_state
@@ -376,10 +376,9 @@ def main_slam(tid):
     last_time_stamp = 0
     while running:
         #this code lines DORA perpendiculare to the wall using it's ir-sensors
-        a = int(sensor_value[4]) - int(sensor_value[5])
-        b = last_gyro_value/gyro_fault
         
-        print(a)
+        
+        #print(a)
         """
         if (last_gyro_time != last_time_stamp):
             last_time_stamp = last_gyro_time
@@ -400,13 +399,7 @@ def main_slam(tid):
         #gyro_reduced_noise = last_gyro_value /
         #print(last_gyro_value)
         
-        if (math.fabs(a) >= failure):
-            if (a >= failure):
-                movement_dir = "right"
-            elif (a <= -failure):
-                movement_dir = "left"
-        else:
-            movement_dir = "stop"
+        
            
 def bluetooth_loop(tid):
     print("Thread" + str(tid) + " main loop initialized")
@@ -428,8 +421,12 @@ def bluetooth_loop(tid):
     global map_prev
     global map
     global condition
+    failure = 5
     inter = 0
     printDebug = False
+
+    correct_wall = True
+    
     while running:
         #print("BLUETOOTH")
         #old = time.time() # time.time.time.time.time
@@ -446,6 +443,8 @@ def bluetooth_loop(tid):
             print("Laser CURRENT curr : " + str(last_laser_value))
             print("laser size : " + str(len(last_laser_value)))
 
+        #print(last_laser_value)
+            
         if (forward_down):
             robot_pos = move_in_dir(robot_pos, speed, robot_rot)            
         if (backward_down):
@@ -454,10 +453,7 @@ def bluetooth_loop(tid):
             robot_rot -= robot_rot_speed
         if (right_down):
             robot_rot += robot_rot_speed
-
-
             
-
         if (bluetooth_online):
             map_string = str(map)
             map_string = map_string.translate(None, " ")
@@ -465,8 +461,8 @@ def bluetooth_loop(tid):
             map_string = map_string.translate(None, "]")
             map_string = "[" + map_string + "]"
             #Every other iteration of main loop, send request to laptop for instructions.
+            print (int(sensor_value[4]), int(sensor_value[5]))
             if (req):
-                
                 req = False
                 #if(True):
                 sock.send("!req#")
@@ -475,12 +471,30 @@ def bluetooth_loop(tid):
                 condition.acquire()
                 if (data2 != b"none"):
                     print(data2)                    
-                    if (data2 == b"forward" and not forward_down):
+                    if (data2 == b"forward"):
                         forward_down = True
-                        movement_dir = "forward"
-                    elif (data2 == b"backward" and not backward_down):
+                        #movement_dir = "forward"
+                        
+                        a = int(sensor_value[4]) - int(sensor_value[5])
+                        if (math.fabs(a) >= failure):
+                            if (a >= failure):
+                                movement_dir = "right"
+                            elif (a <= -failure):
+                                movement_dir = "left"
+                        else:
+                            movement_dir = "forward"
+                            
+                    elif (data2 == b"backward"):
                         backward_down = True
-                        movement_dir = "backward"
+                        a = int(sensor_value[4]) - int(sensor_value[5])
+                        if (math.fabs(a) >= failure):
+                            if (a >= failure):
+                                movement_dir = "right"
+                            elif (a <= -failure):
+                                movement_dir = "left"
+                        else:
+                            movement_dir = "backward"
+                            
                     elif (data2 == b"left" and not left_down):
                         left_down = True
                         movement_dir = "left"
@@ -548,8 +562,8 @@ def bluetooth_loop(tid):
 
     
 
-#t1.start()
+t1.start()
 t2.start()
 t3.start()
-main_slam(90)
+#main_slam(90)
 #slam_thread.start()

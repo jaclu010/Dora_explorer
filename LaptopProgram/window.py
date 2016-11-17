@@ -399,7 +399,7 @@ class Window(Frame):
 
         tempLaser = copy.deepcopy(laserList)
         for i in range(len(tempLaser)):
-            step = 2 * math.pi / 100
+            step = -2 * math.pi / len(tempLaser)
             p = (robotCenter[0] + tempLaser[i] * math.cos(step*i + self.robRotation + robotRotation), robotCenter[1] + tempLaser[i] * math.sin(step*i + self.robRotation + robotRotation))
             #p = self.rotatePoint(p, center, robotRotation)
             #p = self.rotatePoint(p, oldRobotCenter, self.robRotation)
@@ -523,8 +523,10 @@ def blue():
 
                 else:   # !req received
                     if commandQueue:
+                        print(commandQueue[0])
                         client_sock.send(commandQueue.pop(0))
                     else:
+                        print("none")
                         client_sock.send("none")
     except IOError:
         pass

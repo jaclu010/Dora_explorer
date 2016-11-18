@@ -99,20 +99,21 @@ void Send_IR() {
 	UART_Transmit(irArray[4]);
 	UART_Transmit(irArray[5]);
 	
-	sensor = NONE;
-	
 }
 
 void Read_IR() {
 	
 	if(ir != IR_SEND) {
+		irArray[ir] = ADCH;
 		if(ADCH > 22)
 			irArray[ir] = ADCH;
 		else
 			irArray[ir] = 0;
+			
 	}
 	
 	ADMUX &= 0xF8;
+	
 	switch (ir)
 	{
 		case IR_ONE:
@@ -174,30 +175,9 @@ void Read_Gyro()
 	unsigned answerHigh;
 	unsigned answerLow;
 	
-	switch(gyro) {
+	switch(gyro) {		
 		
 		case GYRO_ONE:
-			//first instruction
-			output = 0x94;
-			SPI_MasterTransmit(output);
-			
-			output = 0x00;
-			SPI_MasterTransmit(output);
-			answerHigh = SPDR;
-
-			SPI_MasterTransmit(output);
-			answerLow = SPDR;
-			
-			answerHigh &= 0x80;
-			
-			StopSignal_Gyro();
-			
-			if(answerHigh == 0)
-				gyro = GYRO_TWO;
-		
-		break;
-		
-		case GYRO_TWO:
 
 			StartSignal_Gyro();
 
@@ -217,13 +197,11 @@ void Read_Gyro()
 			answerHigh &= 0x80;
 			
 			if(answerHigh == 0)
-				gyro = GYRO_THREE;
-			else
-				gyro = GYRO_ONE;
+				gyro = GYRO_TWO;
 		
 		break;
 		
-		case GYRO_THREE:
+		case GYRO_TWO:
 		
 			StartSignal_Gyro();
 
@@ -271,23 +249,31 @@ void Read_Gyro()
 			UART_Transmit(START_GYRO);
 			UART_Transmit(sendHigh);
 			UART_Transmit(sendLow);
-
-			sensor = IR_GO;
+			
 			gyro = GYRO_ONE;
 		break;
 		
+		case GYRO_INIT:		
+			output = 0x94;
+			SPI_MasterTransmit(output);
+			
+			output = 0x00;
+			SPI_MasterTransmit(output);
+			answerHigh = SPDR;
+
+			SPI_MasterTransmit(output);
+			answerLow = SPDR;
+			
+			StopSignal_Gyro();
+			
+			gyro = GYRO_ONE;
+		break;		
 		default:
 		break;
 		
 	}
 	
 }
-
-/************************************************************************/
-/*	Fancy																*/
-/*						                                       Comment  */
-/************************************************************************/
-
 
 
 void Read_Laser() {
@@ -331,7 +317,7 @@ void Read_Laser() {
 		UART_Transmit(low);
 		counter++;
 		if(sensor == NONE)
-			sensor = GYRO_GO;
+			sensor = IR_GO;
 	}
 
 }
@@ -346,18 +332,18 @@ int main(void)
 	AD_Init();
 	_delay_ms(100);
 	SPI_MasterInit();
-	DDRB |= (1 << DDB0);
+	
+	//DDRB |= (1 << DDB0); Används nog inte?
 	
 	
 	while(1) {		
 		
-		Read_Laser();
+		//Read_Laser();
 		
-		if(sensor == IR_GO)
-			Read_IR();			
-		
-		if(sensor == GYRO_GO)
-			Read_Gyro();
+		//if(sensor == IR_GO)
+		Read_IR();			
+		//if(sensor == GYRO_GO)
+			//Read_Gyro();
 
 
 	}			

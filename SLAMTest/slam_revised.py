@@ -1,34 +1,39 @@
 import math
 import time
+
 from tkinter import *
-#from scipy.optimize import curve_fit
-#import numpy as np
+
+# from scipy.optimize import curve_fit
+import numpy as np
 
 with open("slamfixed2.txt", "r") as f:
     a = f.readlines()
 read_list = []
 for e in a:
     e = e[:-1]
-    e = e.replace(",","")
+    e = e.replace(",", "")
     e = e.replace("[", "")
     e = e.replace("]", "")
     inner = e.split()
     inner2 = []
     for char in inner:
         inner2.append(int(float(char)))
-    #inner = list(map(int(float), inner))
+    # inner = list(map(int(float), inner))
     read_list.append(inner2)
+
 
 def clearCanvas(canvas):
     canvas.delete(ALL)
 
+
 def pointlength(p1, p2):
-    #returns the length between to points
-    return (math.sqrt( ((p1[0] - p2[0]) * (p1[0] - p2[0])) + (p1[1] - p2[1])*(p1[1] - p2[1]) ) )
+    # returns the length between to points
+    return (math.sqrt(((p1[0] - p2[0]) * (p1[0] - p2[0])) + (p1[1] - p2[1]) * (p1[1] - p2[1])))
+
 
 # Function definition for SciPy
 def f(x, A, B):
-    return A*x+B
+    return A * x + B
 
 
 root = Tk()
@@ -88,13 +93,15 @@ read = read_list[3]
 
 curr_index = 0
 automode = False
+
+
 def test():
     global curr_index
     global automode
     if (automode):
         clearCanvas(c)
         clearCanvas(c2)
-        curr_index+= 1
+        curr_index += 1
     else:
         while 1:
             ins = input("Write f to step forward, or b to step backwards. Write a to enter Automode\n")
@@ -103,7 +110,7 @@ def test():
                 clearCanvas(c2)
                 curr_index += 1
                 break
-            elif(ins == "b"):
+            elif (ins == "b"):
                 clearCanvas(c)
                 clearCanvas(c2)
                 curr_index -= 1
@@ -112,13 +119,12 @@ def test():
                 automode = True
                 break
 
-   
     if (curr_index >= len(read_list)):
         curr_index = 0
     elif (curr_index < 0):
         curr_index = len(read_list) - 1
 
-    read = read_list[curr_index]    
+    read = read_list[curr_index]
 
     size = len(read)
     step = 0.0
@@ -126,7 +132,7 @@ def test():
     step = 360 / size
     res = []
     angle = 0
-    
+
     # Convert to angles
     for i in range(size):
         angle = (i * step) - corr
@@ -154,8 +160,6 @@ def test():
         if abs(y) > biggestY:
             biggestY = abs(y)
 
-
-
     # Calculate delta values
     delta = []
     dx = 0
@@ -169,7 +173,7 @@ def test():
             dx = sin_cos[i][0] - sin_cos[i - 1][0]
             dy = sin_cos[i][1] - sin_cos[i - 1][1]
         delta.append((dx, dy))
-    
+
     # Calculate delta of delta values
     double_delta = []
     ddx = 0
@@ -203,8 +207,8 @@ def test():
             changeY += double_delta[i - 3][1]
             changeX += double_delta[i - 4][0]
             changeY += double_delta[i - 4][1]
-            #changeX /= 5
-            #changeY /= 5
+            # changeX /= 5
+            # changeY /= 5
         deltaMean.append((changeX, changeY))
 
     # print(str(i) + ' ' + str(changeX))
@@ -220,7 +224,6 @@ def test():
         c.create_line(cell_size * i, 0, i * cell_size, width)
         c.create_oval(195, 195, 205, 205, fill='black')
 
-
     # Give each point values
     # ----------------------
     # Green - the first reading
@@ -232,7 +235,7 @@ def test():
     d_delta_covar = 1.9
 
     for i in range(size):
-        #print(str(sin_cos[i][0]) + "   \t   " + str(deltaMean[i]) + "  \t  " + str(double_delta[i]) + "  \t  " + str(res[i]))
+        # print(str(sin_cos[i][0]) + "   \t   " + str(deltaMean[i]) + "  \t  " + str(double_delta[i]) + "  \t  " + str(res[i]))
         x = sin_cos[i][0]
         y = sin_cos[i][1]
         if i == 0:
@@ -250,7 +253,7 @@ def test():
             d = 1
         if read[i] < 2 or read[i] > 10000:
             c.create_oval(x + 198, y + 198, x + 202, y + 202, fill='purple')
-            d = 3 #Invalid measures
+            d = 3  # Invalid measures
         dots[i] = d
 
     good_readings = []
@@ -272,8 +275,9 @@ def test():
         i += cnt + 1
 
     # Merge first and last element if they are next to each other
-    if len(good_readings) > 0 and good_readings[-1][1] == size-1 and good_readings[0][0] == 0:
-        good_readings[0] = (good_readings[-1][0]-size, good_readings[0][1], good_readings[-1][2] + good_readings[0][2])
+    if len(good_readings) > 0 and good_readings[-1][1] == size - 1 and good_readings[0][0] == 0:
+        good_readings[0] = (
+        good_readings[-1][0] - size, good_readings[0][1], good_readings[-1][2] + good_readings[0][2])
         good_readings.pop()
 
     # Calculate lines
@@ -287,15 +291,15 @@ def test():
         valY = 0
         d_distX = 0
         d_distY = 0
-        #_x = []
-        #_y = []
+        # _x = []
+        # _y = []
         for j in range(good_readings[i][0], good_readings[i][1], 1):
             valX += delta[j][0]
             valY += delta[j][1]
             d_distX += sin_cos[j][0]
             d_distY += sin_cos[j][1]
-            #_x.append(sin_cos[j][0])
-            #_y.append(sin_cos[j][1])
+            # _x.append(sin_cos[j][0])
+            # _y.append(sin_cos[j][1])
 
         valX /= d_nr
         valY /= d_nr
@@ -303,10 +307,10 @@ def test():
         d_distY /= d_nr
         lines.append((valX, valY, d_distX, d_distY, good_readings[i][2]))
 
-        #x = np.array(_x)
-        #y = np.array(_y)
-        #A, B = curve_fit(f, x, y)[0]
-        #ls_res.append((A, B))
+        # x = np.array(_x)
+        # y = np.array(_y)
+        # A, B = curve_fit(f, x, y)[0]
+        # ls_res.append((A, B))
     # Draw lines
     vectors_x = []
     vectors_y = []
@@ -319,26 +323,26 @@ def test():
             # print(i,x0,x1)
             c.create_line(x0, 0, x1, height, fill='blue')
             # close_to.append((int(base*round(float(lines[i][2])/base)), 0))
-            #angles.append(math.degrees(math.acos(lines[i][0])))
-            vectors_x.append((x0,0,x1,height))
+            # angles.append(math.degrees(math.acos(lines[i][0])))
+            vectors_x.append((x0, 0, x1, height))
         else:
             y0 = int(round(200 + lines[i][3] - lines[i][1] * lines[i][3] * (-math.copysign(1, lines[i][0]))))
             y1 = int(round(200 + lines[i][3] + lines[i][1] * lines[i][3] * (-math.copysign(1, lines[i][0]))))
             # print(i, y0,y1)
             c.create_line(0, y0, width, y1, fill='blue')
-            #print(lines[i][1])
+            # print(lines[i][1])
             if (math.fabs(lines[i][1]) <= 1):
                 angles.append(math.degrees(math.asin(lines[i][1])))
             else:
                 angles.append(None)
             # close_to.append((int(base * round(float(lines[i][3]) / base)),1))
-            vectors_y.append((0,y0,height,y1))
+            vectors_y.append((0, y0, height, y1))
     # for i in range(num_vectors):
 
-    #print(vectors_x)
-    #print(vectors_y)
-    #intersection lines
-    #print(lines[0])
+    # print(vectors_x)
+    # print(vectors_y)
+    # intersection lines
+    # print(lines[0])
 
     """
     fix_origo = 200
@@ -371,71 +375,133 @@ def test():
             y3 = w[1]
             y4 = w[3]
 
-            px = ((x1*y2-y1*x2)*(x3-x4)-(x1-x2)*(x3*y4-y3*x4))/((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
-            py = ((x1*y2-y1*x2)*(y3-y4)-(y1-y2)*(x3*y4-y3*x4))/((x1-x2)*(y3-y4)-(y1-y2)*(x3-x4))
+            px = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / (
+            (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
+            py = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / (
+            (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
 
             intersections.append((px, py))
 
     used = []
-    #Res contains the final normalized points
-    res = []
+    # Res contains the final normalized points - res is used in the first for loop, changed to dot_averaging
+    dot_averaging = []
     val = 40
-    #Filter out points near each other
+    # Filter out points near each other
     for v in intersections:
         if (not v in used):
             i = 1
-            newv = (v[0],v[1])
+            newv = (v[0], v[1])
             for w in intersections:
-                if (math.fabs(v[0] - w[0]) <= val and math.fabs(v[1] - w[1]) <= val):
+                if math.fabs(v[0] - w[0]) <= val and math.fabs(v[1] - w[1]) <= val:
                     newv = (newv[0] + w[0], newv[1] + w[1])
                     i += 1
                     used.append(w)
             newv = (newv[0] / i, newv[1] / i)
-            res.append(newv)
+            dot_averaging.append(newv)
             used.append(v)
-    #Draw all nomalized points
-    for d in res:  
-        c.create_oval(int(d[0])-5, int(d[1])-5, int(d[0])+5, int(d[1])+5, fill='maroon')
+    # Draw all nomalized points
+    for d in dot_averaging:
+        c.create_oval(int(d[0]) - 5, int(d[1]) - 5, int(d[0]) + 5, int(d[1]) + 5, fill='maroon')
 
-    #print(res)
-    #pointlength
+    """
+    # print(res)
+    # pointlength
 
-    #bad sorting yes
-    
+    # bad sorting yes
+
     sortedres = []
 
-    #This algorithm sorts the intersecting-vertecis using a highly unefficient "shortest-path". This works for a small amout of vertex
-    #This is used when draw a polygon between the points
-    if (len(res) > 0):
-        sortedres.append(res.pop(0))
-        while (len(res) > 0):
+    # This algorithm sorts the intersecting-vertecis using a highly unefficient "shortest-path". This works for a small amout of vertex
+    # This is used when draw a polygon between the points
+    if (len(dot_averaging) > 0):
+        sortedres.append(dot_averaging.pop(0))
+        while (len(dot_averaging) > 0):
             besti = 0
-            bestl = pointlength(sortedres[len(sortedres)-1], res[0])
-            for i in range(1,len(res)):
-                nl = pointlength(sortedres[len(sortedres)-1], res[i])
+            bestl = pointlength(sortedres[len(sortedres) - 1], dot_averaging[0])
+            for i in range(1, len(dot_averaging)):
+                nl = pointlength(sortedres[len(sortedres) - 1], dot_averaging[i])
                 if (nl < bestl):
                     besti = i
                     bestl = nl
-            sortedres.append(res.pop(besti))
+            sortedres.append(dot_averaging.pop(besti))
 
-
-    
-
-
-    #Draw polygon from all normalized points
+    # Draw polygon from all normalized points
     for i in range(len(sortedres)):
-        nexti = i+1
+        nexti = i + 1
         if (nexti >= len(sortedres)): nexti = 0
         c2.create_line(sortedres[i][0], sortedres[i][1], sortedres[nexti][0], sortedres[nexti][1])
-    
+    """
+
+    # Stupid algorithm above, of course it's made by Johan..
+    # This is the real deal:
+    # Draw a line between all mean dots
+    # Calculate hit percent of dots on every line
+    all_lines = []
+    closest_points = []
+
+    for i in range(len(dot_averaging)):
+        for j in range(i, len(dot_averaging), 1):
+            if dot_averaging[i] != dot_averaging[j]:
+                all_lines.append((dot_averaging[i][0], dot_averaging[i][1], dot_averaging[j][0], dot_averaging[j][1]))
+                c2.create_line(dot_averaging[i][0], dot_averaging[i][1], dot_averaging[j][0], dot_averaging[j][1], fill='red')
+
+    for l in all_lines:
+        closest_1 = 0
+        closest_2 = 0
+        hypot_a = 100
+        hypot_b = 100
+
+        for i in range(size):
+            d_x1 = abs(l[0]-200 - sin_cos[i][0])
+            d_y1 = abs(l[1]-200 - sin_cos[i][1])
+            d_x2 = abs(l[2]-200 - sin_cos[i][0])
+            d_y2 = abs(l[3]-200 - sin_cos[i][1])
+
+            hypot_1 = math.sqrt(d_x1*d_x1 + d_y1*d_y1)
+            hypot_2 = math.sqrt(d_x2*d_x2 + d_y2*d_y2)
+
+            #print(i, d_x1, d_y1, d_x2, d_y2)
+            if hypot_1 < hypot_a:
+                hypot_a = hypot_1
+                closest_1 = i
+
+            if hypot_2 < hypot_b:
+                hypot_b = hypot_2
+                closest_2 = i
+        closest_points.append((closest_1, closest_2))
+
+    print(all_lines)
+    print(closest_points)
+    line_score = []
+
+    for i in range(len(all_lines)):
+        score = 0
+        x1 = all_lines[i][0]-200
+        y1 = all_lines[i][1]-200
+        x2 = all_lines[i][2]-200
+        y2 = all_lines[i][3]-200
+
+        for j in range(closest_points[i][0], closest_points[i][1], 1):
+            x0 = sin_cos[j][0]
+            y0 = sin_cos[j][1]
+
+            dist = abs((y2-y1*x0 - (x2-x1)*y0 + x2*y1 - y2*y1)) / math.sqrt((y2-y1)*(y2-y1) + (x2-x1)*(x2-x1))
+            #print(i, dist)
+            if dist < 20:
+                score += 1
+
+        line_score.append(score)
+    print(line_score)
+
+
 
     """
     nr = 0
     g = 0
-    
+
     while g < n:
         nr = 0
-        e = g +1 
+        e = g +1
         while e < n and math.fabs(intersections[g][0] - intersections[e][0]) < 20 and math.fabs(intersections[g][0] - intersections[e][0]) < 20:
             nr += 1
             e += 1
@@ -448,7 +514,7 @@ def test():
     for i in range(n):
         if i == n-1
             if math.fabs(intersections[-1][0] - intersections[e][0]) < 20 and math.fabs(intersections[g][0] - intersections[e][0]) < 20:
-    
+
     new_intersections = []
 
     print(inters_)
@@ -495,7 +561,7 @@ def test():
             avg_angle = sum_angle / score
 
 
-    
+
     fix_origo = 200
     for i in range(num_vectors):
         x0 = 0
@@ -548,7 +614,7 @@ def test():
         y0 = fix_origo + (x0*least_sq[i][0]) + least_sq[i][1]
         y1 = fix_origo + (y0*least_sq[i][0]) + least_sq[i][1]
         c.create_line(x0, y0, x1, y1, fill='green')
-    
+
     print(lines)
     print(good_readings)
     #print(close_to)
@@ -559,13 +625,15 @@ def test():
     print(angle_deviation)
     print(avg_angle)
     """
-    #print(least_sq)
-    #print(math.degrees(np.arctan(ls_res[0][0])))
+    # print(least_sq)
+    # print(math.degrees(np.arctan(ls_res[0][0])))
     # if(i > 20 and i < 50):
     #	change += doubledelta[i][0]
     # print(change)
 
 
-    root.after(10,test)
+    root.after(10, test)
+
+
 root.after(1, test)
 root.mainloop()

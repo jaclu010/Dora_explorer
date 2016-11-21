@@ -1,6 +1,12 @@
 import math
 
 from tkinter import *
+from scipy.optimize import curve_fit
+import numpy as np
+
+
+def f(x, A, B):
+    return A*x+B
 
 root = Tk()
 root.title("SLAM DUNKKK")
@@ -55,14 +61,14 @@ read3 = [192, 200, 206, 213, 217, 233, 235, 246, 259, 269, 287, 295, 727, 717, 7
          133, 139, 142, 148, 151, 153, 158, 169, 172, 177, 184, 187, 196, 205, 211, 221, 230, 249, 257, 288, 298, 729,
          727, 730, 740, 753]
 
-# def slamDunk(read=[]):
+
 size = len(read)
 step = 0.0
 corr = 7.0  # degrees
 step = 360 / size
 res = []
 angle = 0
-
+print(size)
 for i in range(size):
     angle = (i * step) - corr
     if (angle < 0):
@@ -70,15 +76,19 @@ for i in range(size):
     # print(angle)
     res.append((read[i], angle))
 
-# print(res)
-sincos = []
+curr = res[0][1]
+while curr > 180:
+    res.append(res.pop(0))
+    curr = res[0][1]
+
+sin_cos = []
 biggestX = 0
 biggestY = 0
 
 for j in range(size):
     x = math.cos(math.radians(res[j][1])) * res[j][0]
     y = -math.sin(math.radians(res[j][1])) * res[j][0]
-    sincos.append((x, y))
+    sin_cos.append((x, y))
     if abs(x) > biggestX:
         biggestX = abs(x)
     if abs(y) > biggestY:
@@ -90,13 +100,13 @@ dy = 0
 
 for i in range(size):
     if i == 0:
-        dx = sincos[i][0] - sincos[size - 1][0]
-        dy = sincos[i][1] - sincos[size - 1][1]
+        dx = sin_cos[i][0] - sin_cos[size - 1][0]
+        dy = sin_cos[i][1] - sin_cos[size - 1][1]
     else:
-        dx = sincos[i][0] - sincos[i - 1][0]
-        dy = sincos[i][1] - sincos[i - 1][1]
+        dx = sin_cos[i][0] - sin_cos[i - 1][0]
+        dy = sin_cos[i][1] - sin_cos[i - 1][1]
     delta.append((dx, dy))
-doubledelta = []
+double_delta = []
 
 ddx = 0
 ddy = 0
@@ -108,7 +118,7 @@ for i in range(size):
     else:
         ddx = delta[i][0] - delta[i - 1][0]
         ddy = delta[i][1] - delta[i - 1][1]
-    doubledelta.append((ddx, ddy))
+    double_delta.append((ddx, ddy))
 
 changeX = 0.0
 changeY = 0.0
@@ -118,16 +128,16 @@ for i in range(size):
     changeX = 0.0
     changeY = 0.0
     if i > 5:
-        changeX += doubledelta[i][0]
-        changeY += doubledelta[i][1]
-        changeX += doubledelta[i - 1][0]
-        changeY += doubledelta[i - 1][1]
-        changeX += doubledelta[i - 2][0]
-        changeY += doubledelta[i - 2][1]
-        changeX += doubledelta[i - 3][0]
-        changeY += doubledelta[i - 3][1]
-        changeX += doubledelta[i - 4][0]
-        changeY += doubledelta[i - 4][1]
+        changeX += double_delta[i][0]
+        changeY += double_delta[i][1]
+        changeX += double_delta[i - 1][0]
+        changeY += double_delta[i - 1][1]
+        changeX += double_delta[i - 2][0]
+        changeY += double_delta[i - 2][1]
+        changeX += double_delta[i - 3][0]
+        changeY += double_delta[i - 3][1]
+        changeX += double_delta[i - 4][0]
+        changeY += double_delta[i - 4][1]
         #changeX /= 5
         #changeY /= 5
     deltaMean.append((changeX, changeY))
@@ -143,29 +153,25 @@ for i in range(cell_size):
     c.create_line(cell_size * i, 0, i * cell_size, width)
     c.create_line(cell_size * i, 0, i * cell_size, width)
     c.create_oval(195, 195, 205, 205, fill='black')
-    c2.create_line(0, i * cell_size, height, i * cell_size)
-    c2.create_line(0, i * cell_size, height, i * cell_size)
-    c2.create_line(cell_size * i, 0, i * cell_size, width)
-    c2.create_line(cell_size * i, 0, i * cell_size, width)
-    c2.create_oval(195, 195, 205, 205, fill='black')
+
 
 dots = [None] * size
 
 for i in range(size):
     #print(str(sincos[i][0]) + "   \t   " + str(deltaMean[i]) + "  \t  " + str(doubledelta[i]) + "  \t  " + str(res[i]))
-    x = sincos[i][0]
-    y = sincos[i][1]
-    """if i == 0:
+    x = sin_cos[i][0]
+    y = sin_cos[i][1]
+    if i == 0:
         c.create_oval(x + 195, y + 195, x + 205, y + 205, fill='green')
-    elif i < 5:
+    elif i > 5 and i < 20:
         c.create_oval(x + 195, y + 195, x + 205, y + 205, fill='red')
-    else:"""
-    c.create_oval(x + 195, y + 195, x + 205, y + 205)
+    else:
+        c.create_oval(x + 195, y + 195, x + 205, y + 205)
     d = 0
     if abs(deltaMean[i][0]) > 1.7 and abs(deltaMean[i][1] > 1.7):
-        c.create_oval(x + 185, y + 185, x + 215, y + 215, fill='yellow')
+        c.create_oval(x + 195, y + 195, x + 205, y + 205, fill='yellow')
         d = 2
-    if abs(doubledelta[i][0]) > 1.4 and abs(doubledelta[i][1]) > 1.4:
+    if abs(double_delta[i][0]) > 1.4 and abs(double_delta[i][1]) > 1.4:
         c.create_oval(x + 195, y + 195, x + 205, y + 205, fill='orange')
         d = 1
     dots[i] = d
@@ -175,29 +181,25 @@ cnt = 0
 i = 0
 
 while i < size:
-    #print(i)
     cnt = 0
-    d = dots[i]
-    e = i + 1
+    e = i
     while e < size and dots[e] == 0:
         cnt += 1
         e += 1
 
-    if cnt > 7:
-        good_readings.append((i, cnt + i - 1, cnt))
+    if cnt > 5:
+        good_readings.append((i, cnt + i - 1, cnt - 1))
 
-    if cnt > 0:
-        i += cnt
-    else:
-        i += 1
+    i += cnt + 1
 
-if good_readings[-1][1] == size-1:
-    good_readings[0] = (good_readings[-1][0], good_readings[0][1], good_readings[-1][2] + good_readings[1][2])
+if good_readings[-1][1] == size-1 and good_readings[0][0] == 0:
+    good_readings[0] = (good_readings[-1][0]-size, good_readings[0][1], good_readings[-1][2] + good_readings[0][2])
     good_readings.pop()
 
 print(good_readings)
 num_vectors = len(good_readings)
 lines = []
+ls_res = []
 
 for i in range(num_vectors):
     d_nr = good_readings[i][2]
@@ -205,33 +207,93 @@ for i in range(num_vectors):
     valY = 0
     d_distX = 0
     d_distY = 0
+    _x = []
+    _y = []
     for j in range(good_readings[i][0], good_readings[i][1], 1):
         valX += delta[j][0]
         valY += delta[j][1]
-        d_distX += sincos[j][0]
-        d_distY += sincos[j][1]
+        d_distX += sin_cos[j][0]
+        d_distY += sin_cos[j][1]
+        _x.append(sin_cos[j][0])
+        _y.append(sin_cos[j][1])
+
     valX /= d_nr
     valY /= d_nr
     d_distX /= d_nr
     d_distY /= d_nr
     lines.append((valX, valY, d_distX, d_distY, good_readings[i][2]))
 
+    x = np.array(_x)
+    y = np.array(_y)
+    A, B = curve_fit(f, x, y)[0]
+    ls_res.append((A, B))
+
 close_to = []
+angles = []
 
 for i in range(num_vectors):
     if abs(lines[i][0]) < abs(lines[i][1]):
-        x0 = int(round(200 + lines[i][2] + lines[i][0] * lines[i][2]))
-        x1 = int(round(200 + lines[i][2] - lines[i][0] * lines[i][2]))
+        x0 = int(round(200 + lines[i][2] + lines[i][0] * lines[i][2] * (-math.copysign(1, lines[i][1]))))
+        x1 = int(round(200 + lines[i][2] - lines[i][0] * lines[i][2] * (-math.copysign(1, lines[i][1]))))
         # print(i,x0,x1)
         c.create_line(x0, 0, x1, height, fill='blue')
         # close_to.append((int(base*round(float(lines[i][2])/base)), 0))
+        angles.append(math.degrees(math.acos(lines[i][0])))
     else:
-        y0 = int(round(200 + lines[i][3] - lines[i][1] * lines[i][3]))
-        y1 = int(round(200 + lines[i][3] + lines[i][1] * lines[i][3]))
+        y0 = int(round(200 + lines[i][3] - lines[i][1] * lines[i][3] * (-math.copysign(1, lines[i][0]))))
+        y1 = int(round(200 + lines[i][3] + lines[i][1] * lines[i][3] * (-math.copysign(1, lines[i][0]))))
         # print(i, y0,y1)
         c.create_line(0, y0, width, y1, fill='blue')
+        angles.append(math.degrees(math.asin(lines[i][1])))
         # close_to.append((int(base * round(float(lines[i][3]) / base)),1))
 # for i in range(num_vectors):
+
+angle_deviation = []
+
+for i in range(num_vectors):
+    if angles[i] > 0:
+        angle_deviation.append((angles[i] % 90, angles[i] // 90))
+    else:
+        angle_deviation.append((angles[i] % -90, angles[i] // -90))
+
+
+rob_rot = 0
+
+score = 0
+filtered_angles = []
+sum_angle = 0
+avg_angle = 0
+
+for i in range(num_vectors):
+    temp_list = []
+    cnt = 0
+
+    for j in range(num_vectors):
+        if abs(abs(angle_deviation[j][0]) - abs(angle_deviation[i][0])) < 10:
+            cnt += 1
+            sum_angle += angle_deviation[j][0]
+
+    if cnt > score:
+        score = cnt
+        avg_angle = sum_angle / score
+
+
+
+fix_origo = 200
+for i in range(num_vectors):
+    x0 = 0
+    x1 = 400
+    y0 = fix_origo + (x0*ls_res[i][0]) + ls_res[i][1]
+    y1 = fix_origo + (x1*ls_res[i][0]) + ls_res[i][1]
+    c.create_line(x0, y0, x1, y1, fill='red')
+"""
+for i in range(cell_size):
+    c2.create_line(0, i * cell_size, height, i * cell_size)
+    c2.create_line(0, i * cell_size, height, i * cell_size)
+    c2.create_line(cell_size * i, 0, i * cell_size, width)
+    c2.create_line(cell_size * i, 0, i * cell_size, width)
+    c2.create_oval(195, 195, 205, 205, fill='black')
+
 
 base = 5
 least_sq = []
@@ -249,49 +311,39 @@ for i in range(num_vectors):
     dot_cnt = good_readings[i][2]
 
     for j in range(good_readings[i][0], good_readings[i][1], 1):
-        sumX += sincos[j][0]
-        sumXX += math.pow(sincos[j][0], 2)
-        sumY += sincos[j][1]
-        sumYY += math.pow(sincos[j][1], 2)
-        sumYX += sincos[j][0]*sincos[j][1]
+        sumX += sin_cos[j][0]
+        sumXX += math.pow(sin_cos[j][0], 2)
+        sumY += sin_cos[j][1]
+        sumYX += sin_cos[j][0]*sin_cos[j][1]
 
-    a = (dot_cnt*sumYX-sumX*sumY)/(dot_cnt*sumXX-math.pow(sumX, 2))
-    b = (sumY*sumXX-sumX*sumYX)/(dot_cnt*sumXX-math.pow(sumX, 2))
+    a = (dot_cnt*sumYX-sumX*sumY)/(dot_cnt*sumXX-sumX*sumX)
+    b = (sumY*sumXX-sumX*sumYX)/(dot_cnt*sumXX-sumX*sumX)
 
     mX = sumX / dot_cnt
     mY = sumY / dot_cnt
 
-    least_sq.append((a, b, mX, mY, dot_cnt))
+    least_sq.append((a, b))
 
 
 for i in range(num_vectors):
-    if abs(least_sq[i][1]) > 1:
-        x0 = int(round(200 + least_sq[i][2] + ((200 - least_sq[i][0]) / least_sq[i][1])))
-        x1 = int(round(200 + least_sq[i][2] + ((-200 - least_sq[i][0]) / least_sq[i][1])))
-        print(i,x0,x1)
-        print(((200 - least_sq[i][0]) / least_sq[i][1]) +200 + least_sq[i][2])
-        c.create_line(x0, 0, x1, height, fill='red')
-        # close_to.append((int(base*round(float(lines[i][2])/base)), 0))
-    else:
-        y0 = int(round(200 + least_sq[i][3] - least_sq[i][1] * least_sq[i][3]))
-        y1 = int(round(200 + least_sq[i][3] + least_sq[i][1] * least_sq[i][3]))
-        # print(i, y0,y1)
-        c.create_line(0, y0, width, y1, fill='red')
-        # close_to.append((int(base * round(float(lines[i][3]) / base)),1))
-# for i in range(num_vectors):
-"""
-for i in range(num_vectors):
-    if close_to[i][1] == 0:
-        c.create_line(200+close_to[i][0], 0, 200+close_to[i][0], 400, fill='red')
-    else:
-        c.create_line(0, 200+close_to[i][0], 400, 200+close_to[i][0], fill='red')
+    x0 = 0
+    x1 = 400
+    y0 = fix_origo + (x0*least_sq[i][0]) + least_sq[i][1]
+    y1 = fix_origo + (y0*least_sq[i][0]) + least_sq[i][1]
+    c.create_line(x0, y0, x1, y1, fill='green')
 """
 print(lines)
 print(good_readings)
-print(close_to)
+#print(close_to)
 print(biggestX, biggestY)
 print(size)
-print(least_sq)
+#print(least_sq)
+print(angles)
+print(angle_deviation)
+print(avg_angle)
+print(ls_res)
+#print(least_sq)
+print(math.degrees(np.arctan(ls_res[0][0])))
 # if(i > 20 and i < 50):
 #	change += doubledelta[i][0]
 # print(change)

@@ -197,19 +197,19 @@ class Window(Frame):
         if side == 0:  # both
             ans = simpledialog.askinteger("Speeds", "Enter speed for both motor pairs:")
             if ans is not None and 0 <= ans <= 255:
-                commandQueue = ["speed " + str(ans)]
+                commandQueue = ["speed_both_" + str(ans)]
         elif side == 1:  # left
             ans = simpledialog.askinteger("Left Speed", "Enter speed for left motor pair:")
             if ans is not None and 0 <= ans <= 255:
-                commandQueue = ["left_speed " + str(ans)]
+                commandQueue = ["speed_left_" + str(ans)]
         elif side == 2:  # right
             ans = simpledialog.askinteger("Right Speed", "Enter speed for right motor pair:")
             if ans is not None and 0 <= ans <= 255:
-                commandQueue = ["right_speed " + str(ans)]
+                commandQueue = ["speed_right_" + str(ans)]
         elif side == 3:  # tower
             ans = simpledialog.askinteger("Laser Tower Speed", "Enter speed for the laser tower motor:")
             if ans is not None and 0 <= ans <= 255:
-                commandQueue = ["tower_speed " + str(ans)]
+                commandQueue = ["speed_tower_" + str(ans)]
 
     def addText(self, text):
         self.textBox.insert(END, text)
@@ -238,14 +238,14 @@ class Window(Frame):
     def moveRight(self):
         self.addToMessages("MOVE", "Right")
         global commandQueue
-        commandQueue = ["right"]
+        commandQueue = ["turn_right"]
         # self.robotPos = self.addTuple(self.robotPos, t2)
         # self.robRotation += math.pi / 10
 
     def moveLeft(self):
         self.addToMessages("MOVE", "Left")
         global commandQueue
-        commandQueue = ["left"]
+        commandQueue = ["turn_left"]
         # self.robotPos = self.addTuple(self.robotPos, t2)
         # self.robRotation -= math.pi / 10
 
@@ -593,6 +593,9 @@ def main():
         if e.char == 'd' and moveState != "right":
             moveState = "right"
             app.moveRight()
+        if e.char == 'm':
+            global commandQueue
+            commandQueue = ["manual"]
 
     def keyRelease(e):
         global moveState

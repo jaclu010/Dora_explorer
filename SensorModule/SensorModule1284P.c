@@ -35,7 +35,8 @@ void SPI_MasterInit()
 	/* Set MOSI, SCK and SS as output, all others input */
 	DDRB = (1<<DDB7)|(1<<DDB5)|(1<<DDB4); // pb6(MISO) should be input per default.
 	/* Enable SPI, Master, set clock rate fck/16*/
-	SPCR = (1<<SPE)|(1<<MSTR)|(1<<CPOL)|(1 << CPHA)|(1<<SPR1)|(1<<SPR0);
+	SPCR = (1<<SPE)|(1<<MSTR)|(1<<CPOL)|(1 << CPHA)
+	
 	
 }
 
@@ -99,14 +100,16 @@ void Send_IR() {
 	UART_Transmit(irArray[4]);
 	UART_Transmit(irArray[5]);
 	
+	sensor = GYRO_GO;
+	
 }
 
 void Read_IR() {
 	
 	if(ir != IR_SEND) {
-		irArray[ir] = ADCH;
-		if(ADCH > 22)
-			irArray[ir] = ADCH;
+		if(ADCH > 22){			
+			irArray[ir] = round((-4.935*ADCH + 804.5) / (ADCH + 9.051)); //convert sensor data to cm
+		}
 		else
 			irArray[ir] = 0;
 			
@@ -251,6 +254,7 @@ void Read_Gyro()
 			UART_Transmit(sendLow);
 			
 			gyro = GYRO_ONE;
+			sensor = IR_GO;
 		break;
 		
 		case GYRO_INIT:		
@@ -333,18 +337,15 @@ int main(void)
 	_delay_ms(100);
 	SPI_MasterInit();
 	
-	//DDRB |= (1 << DDB0); Används nog inte?
-	
 	
 	while(1) {		
 		
-		//Read_Laser();
+		Read_Laser();
 		
-		//if(sensor == IR_GO)
-		Read_IR();			
-		//if(sensor == GYRO_GO)
-			//Read_Gyro();
-
+		if(sensor == GYRO_GO)
+			Read_Gyro();
+		else if(sensor == IR_GO)
+			Read_IR();
 
 	}			
 				

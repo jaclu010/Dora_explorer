@@ -5,17 +5,10 @@
  *  Author: nikni459
  */ 
 
-#define F_CPU 14745600
-#define LASER_SPEED 0x04
-#include <avr/io.h>
-#include <util/delay.h>
-#include "i2cmaster.h"
+#include "LaserModule2313.h"
 
-//#include "USI_TWI_Master.h"
-
-#define LASER 0xC4
-
-void FireFly_Init() {
+void FireFly_Init() 
+{
 	unsigned int baud = 15;
 	UBRRH = 0;
 	
@@ -24,10 +17,10 @@ void FireFly_Init() {
 	UCSRB |= (1 << RXEN) | (1 << TXEN); // enables rx and tx
 	
 	UBRRL = baud;
-
 }
 
-void FireFly_Transmit(unsigned int data) {
+void FireFly_Transmit(unsigned int data) 
+{
 	/* Wait for empty transmit buffer */
 	while ( !( UCSRA & (1<<UDRE)) )
 	;
@@ -35,156 +28,132 @@ void FireFly_Transmit(unsigned int data) {
 	UDR = data;
 }
 
-unsigned char FireFly_Recieve()
+void Initiate_Measurement()
 {
-	/* Wait for data to be received */
-	while ( !(UCSRA & (1<<RXC)) )
-	;
-	/* Get and return received data from buffer */
-	return UDR;
+	i2c_start_wait(LASER+I2C_WRITE);
+	i2c_write(0x00);
+	i2c_write(0x04);
+	i2c_stop();
 }
 
-void LIDAR_Init()
-{
+
+void LIDAR_Init(){
+	
 	/* Send Start ack test */
-	unsigned acc = i2c_start(LASER+I2C_WRITE);
+	i2c_start(LASER+I2C_WRITE);
+	
+	if(mode_ == BUSY_WAITING) {
 		
-	/* Set Free Running Mode */
-	i2c_write(0x11);                   
-	i2c_write(0xFF);
-	i2c_stop();
-	
-	/* Set use "MEASURE_DELAY" */
-	i2c_start_wait(LASER+I2C_WRITE);
-	i2c_write(0x04);
-	i2c_write(0x28);
-	i2c_stop();
-	
-	/* Set new Free Running delay */
-	i2c_start_wait(LASER+I2C_WRITE);
-	i2c_write(0x45);
-	i2c_write(LASER_SPEED);		// <- Actual delay
-	i2c_stop();
+		/* Set mode to higher speed when lower range */
+		i2c_start_wait(LASER+I2C_WRITE);
+		i2c_write(0x04);
+		i2c_write(0x00);
+		i2c_stop();
 				
-	/* Initiate measurements */
-	i2c_start_wait(LASER+I2C_WRITE);                      
-	i2c_write(0x00);                       
-	i2c_write(0x04);
-	i2c_stop();                            
-			
+		/* Set mode to high speed but short range */
+		i2c_start_wait(LASER+I2C_WRITE);
+		i2c_write(0x02);
+		i2c_write(0x1d);
+		i2c_stop();		
+		
+	}
+	
+	else {
+		
+		/* Set Free Running Mode */
+		i2c_write(0x11);
+		i2c_write(0xFF);
+		i2c_stop();
+				
+		/* Set use "MEASURE_DELAY" */
+		i2c_start_wait(LASER+I2C_WRITE);
+		i2c_write(0x04);
+		i2c_write(0x28);
+		i2c_stop();
+				
+		/* Set new Free Running delay */
+		i2c_start_wait(LASER+I2C_WRITE);
+		i2c_write(0x45);
+		i2c_write(LASER_SPEED);		// <- Actual delay
+		i2c_stop();
+		
+	}
+	/* Initiate measurement */
+	Initiate_Measurement();
 }
 
-/*
-void I2C_Send() {
-	unsigned char i2c_buffer[6] = {0};
-	
-	i2c_buffer[0] = 0xC4;
-	i2c_buffer[1] = 0x00;
-	i2c_buffer[2] = 0x04;
-	USI_TWI_Start_Transceiver_With_Data(i2c_buffer, 3);
-	
-	/*unsigned int i = 1;
+void Busy_Wait()
+{
+
+	unsigned i = 1;
 	do {
-		
-		i2c_buffer[0] = 0xC5;
-		i2c_buffer[1] = 0x01;
-		USI_TWI_Start_Transceiver_With_Data(i2c_buffer, 3);
-		i2c_buffer[2] &= 0x01;
-		i = i2c_buffer[2];
-		FireFly_Transmit('a');
-	} while(i == 1);
-
-	_delay_ms(2);
-	i2c_buffer[0] = 0xC4;
-	i2c_buffer[1] = 0x10;
-	USI_TWI_Start_Transceiver_With_Data(i2c_buffer, 2);
-	
-	_delay_ms(1);
-	i2c_buffer[0] = 0xC5;
-	USI_TWI_Start_Transceiver_With_Data(i2c_buffer, 3);	
-	FireFly_Transmit(i2c_buffer[2]);
-}*/
-	
-int main(void) {
-	
-	DDRD |= (1 << DDD4) | (1 << DDD6);
-	
-	
-	PORTD |= (1 << PORTD6);
-	
-	
-	FireFly_Init();
-	_delay_ms(1000);
-	i2c_init();
-	
-	
-	_delay_ms(1000);
-	
-	
-	//unsigned dist;
-	//unsigned read1;
-	//unsigned read2;
-	
-	LIDAR_Init();
-
-			
-	_delay_ms(2);
-
-    while(1)
-    {
-		/* Busy waiting loop */
-		/*
-		unsigned i = 1;
-		do {		
 		i2c_start_wait(LASER+I2C_WRITE);
 		i2c_write(0x01);
 		i2c_stop();
 		
 		i2c_start_wait(LASER+I2C_READ);
 		i = i2c_readNak();
+		i2c_stop();
 		i &= 0x01;
-		} while (i == 1); 
-		*/
+	} while (i == 1);	
+
+}
+
+
+
+
+int main(void) {
+	
+	DDRB |= (1 << DDB1);
+	
+	FireFly_Init();
+	i2c_init();
+
+	_delay_ms(3000);	
+	
+	LIDAR_Init();
+	
+    while(1)
+    {		
+		
+		if(mode_ == FREE_RUNNING)
+			_delay_ms(2);
+		else
+			Busy_Wait();			
+			
 		i2c_start_wait(LASER+I2C_WRITE);
         i2c_write(0x8f);
 		i2c_stop();
 		
-		i2c_start_wait(LASER+I2C_READ);
-        FireFly_Transmit(i2c_readAck());
-		_delay_us(333);
-		FireFly_Transmit(i2c_readNak());
-		_delay_us(333);
+		i2c_start_wait(LASER+I2C_READ);	
+		unsigned first = i2c_readAck();
+		unsigned second = i2c_readNak();
 		i2c_stop();
 		
-		
-		
-		/*
-		if(!(PIND & 0b00001000)) {
-			FireFly_Transmit(0xFF);
-		}
-		else {
-			FireFly_Transmit(0x99);
-		}
-		_delay_us(500);
-		*/
-		
-		//FireFly_Transmit('ö');
-		//_delay_us(333);
-		
-		/*read1 = i2c_readAck();                  
-		read2 = i2c_readNak();
-        i2c_stop();                    
-		
-		FireFly_Transmit(read1);
-		_delay_us(200);
-		FireFly_Transmit(read2);
-		_delay_us(200);
-		FireFly_Transmit('ö');
-		_delay_us(200);*/
-		
-    //}
-		
-		
+		if(mode_ == BUSY_WAITING)
+			Initiate_Measurement();
+			
+		FireFly_Transmit(START_LASER);
+        FireFly_Transmit(first);
+		FireFly_Transmit(second);		
 
+		counter++;
+
+		/* Sense Hall Sensor */ 
+		if (!(PIND & 0b00001000) && (state_ == STATE_RUNNING)){
+			state_ = STATE_HALL;
+			PORTB |= (1 << PORTB1);
+			prevHigh |= (counter >> 8);
+			FireFly_Transmit(START_LASER);
+			FireFly_Transmit(0xFF);
+			FireFly_Transmit(prevHigh);
+			FireFly_Transmit(counter);
+			
+			counter = 0;
+			prevHigh = 0;
+		} else if ((PIND & 0b00001000) && (state_ == STATE_HALL))  {
+			state_ = STATE_RUNNING;
+			PORTB &= (0 << PORTB1);
+		}
     }
 }

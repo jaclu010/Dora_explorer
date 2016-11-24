@@ -10,7 +10,6 @@ from tkinter import *
 offsetX = 200
 offsetY = 200
 
-
 with open("slamfixed2.txt", "r") as f:
     a = f.readlines()
 read_list = []
@@ -47,6 +46,7 @@ def draw_rect(canvas, p1, p2, p3, p4):
     canvas.create_line(p3[0], p3[1], p4[0], p4[1])
     canvas.create_line(p4[0], p4[1], p1[0], p1[1])
 
+
 root = Tk()
 root.title("SLAM DUNKKK")
 width = 400
@@ -74,17 +74,18 @@ read2 = [88, 89, 86, 87, 87, 86, 90, 86, 86, 88, 89, 87, 87, 87, 87, 87, 89, 90,
          81, 85, 86, 88, 86, 89, 95, 94, 94, 94, 93, 94, 96, 99, 101, 97, 98, 97, 96, 94, 94, 93, 91, 92, 93, 90, 91,
          89, 92, 91, 95, 90, 92, 91, 92, 91, 90, 91, 91, 92, 91, 90]
 read3 = [91, 91, 87, 89, 87, 89, 88, 88, 85, 89, 87, 86, 87, 90, 90, 90, 90, 88, 89, 90, 89, 91, 89, 90, 92, 92, 91, 93,
-        91, 92, 93, 93, 92, 92, 92, 93, 94, 95, 97, 97, 98, 102, 101, 100, 102, 97, 97, 94, 93, 94, 93, 91, 88, 92, 89,
-        89, 87, 91, 90, 88, 86, 85, 82, 83, 84, 80, 80, 82, 79, 77, 78, 74, 74, 78, 76, 73, 74, 72, 71, 70, 70, 70, 68,
-        72, 71, 71, 72, 69, 76, 69, 69, 72, 68, 68, 67, 69, 68, 69, 72, 71, 67, 70, 71, 74, 72, 72, 73, 76, 75, 76, 78,
-        81, 77, 78, 77, 77, 78, 83, 86, 89, 84, 86, 87, 84, 87, 90, 87, 87, 89, 91, 91, 93, 93, 92, 99, 98, 99, 99, 100,
-        96, 96, 93, 94, 93, 91, 91, 90, 90, 91, 89, 92, 93, 90, 87, 89, 89, 88, 86, 85, 84, 85, 84, 86, 87, 86, 86, 89,
-        86, 86, 83, 84, 86, 86, 85, 86, 86, 86, 82, 85, 86, 87, 86, 84, 83, 87, 85, 85, 87, 87, 87, 89, 89, 87, 90, 93,
-        91, 93, 91, 92, 94, 92, 92, 94, 92, 93, 93, 95, 96, 95, 97, 96, 94, 93, 91, 87, 90, 88, 88, 89, 88, 86, 88, 81,
-        80, 79, 78, 76, 75, 73, 74, 77, 70, 71, 72, 73, 69, 70, 71, 71, 67, 66, 69, 69, 65, 66, 68, 64, 67, 62, 64, 65,
-        61, 66, 61, 62, 64, 62, 65, 64, 66, 62, 67, 64, 65, 68, 68, 64, 63, 65, 68, 70, 68, 66, 64, 72, 68, 68, 67, 72,
-        71, 70, 71, 71, 75, 76, 76, 76, 77, 79, 78, 78, 80, 85, 82, 81, 88, 88, 91, 88, 85, 87, 89, 91, 90, 90, 94, 96,
-        95, 97, 96, 99, 98, 99, 96, 94, 93, 91, 92, 91, 92, 89, 89, 89, 91, 91, 92, 92, 90, 88, 89, 88]
+         91, 92, 93, 93, 92, 92, 92, 93, 94, 95, 97, 97, 98, 102, 101, 100, 102, 97, 97, 94, 93, 94, 93, 91, 88, 92, 89,
+         89, 87, 91, 90, 88, 86, 85, 82, 83, 84, 80, 80, 82, 79, 77, 78, 74, 74, 78, 76, 73, 74, 72, 71, 70, 70, 70, 68,
+         72, 71, 71, 72, 69, 76, 69, 69, 72, 68, 68, 67, 69, 68, 69, 72, 71, 67, 70, 71, 74, 72, 72, 73, 76, 75, 76, 78,
+         81, 77, 78, 77, 77, 78, 83, 86, 89, 84, 86, 87, 84, 87, 90, 87, 87, 89, 91, 91, 93, 93, 92, 99, 98, 99, 99,
+         100,
+         96, 96, 93, 94, 93, 91, 91, 90, 90, 91, 89, 92, 93, 90, 87, 89, 89, 88, 86, 85, 84, 85, 84, 86, 87, 86, 86, 89,
+         86, 86, 83, 84, 86, 86, 85, 86, 86, 86, 82, 85, 86, 87, 86, 84, 83, 87, 85, 85, 87, 87, 87, 89, 89, 87, 90, 93,
+         91, 93, 91, 92, 94, 92, 92, 94, 92, 93, 93, 95, 96, 95, 97, 96, 94, 93, 91, 87, 90, 88, 88, 89, 88, 86, 88, 81,
+         80, 79, 78, 76, 75, 73, 74, 77, 70, 71, 72, 73, 69, 70, 71, 71, 67, 66, 69, 69, 65, 66, 68, 64, 67, 62, 64, 65,
+         61, 66, 61, 62, 64, 62, 65, 64, 66, 62, 67, 64, 65, 68, 68, 64, 63, 65, 68, 70, 68, 66, 64, 72, 68, 68, 67, 72,
+         71, 70, 71, 71, 75, 76, 76, 76, 77, 79, 78, 78, 80, 85, 82, 81, 88, 88, 91, 88, 85, 87, 89, 91, 90, 90, 94, 96,
+         95, 97, 96, 99, 98, 99, 96, 94, 93, 91, 92, 91, 92, 89, 89, 89, 91, 91, 92, 92, 90, 88, 89, 88]
 read4 = [192, 200, 206, 213, 217, 233, 235, 246, 259, 269, 287, 295, 727, 717, 744, 747, 765, -17, 755, 1188, 1194,
          1187, 1182, 1186, -17, -17, -17, -17, 2082, 1167, 862, 586, 485, 444, 339, 316, 252, 230, 226, 228, 179, 168,
          164, 169, 164, 205, 200, 205, 116, 110, 102, 101, 99, 91, 87, 85, 80, 80, 76, 76, 76, 75, 74, 73, 71, 71, 69,
@@ -155,7 +156,7 @@ def test():
     d_mean_covar = 1.3
     d_delta_covar = 1.4
     good_reading_count = 10
-    angle_deviation_filter = 15
+    angle_deviation_filter = 10
     score_percent_filter = 0.5
     score_filter = 15
     dot_filter_value = 20
@@ -238,7 +239,7 @@ def test():
         c.create_line(0, i * cell_size, height, i * cell_size, dash=1)
         c.create_line(cell_size * i, 0, i * cell_size, width, dash=1)
         c.create_line(cell_size * i, 0, i * cell_size, width, dash=1)
-        c.create_oval(offsetX-5, offsetY-5, offsetX+5, offsetY+5, fill='black')
+        c.create_oval(offsetX - 5, offsetY - 5, offsetX + 5, offsetY + 5, fill='black')
 
     # Give each point values
     # ----------------------
@@ -254,20 +255,20 @@ def test():
         x = sin_cos[i][0]
         y = sin_cos[i][1]
         if i == 0:
-            c.create_oval(x + offsetX-2, y + offsetY-2, x + offsetX+2, y + offsetY+2, fill='green')
+            c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='green')
         elif 5 < i < 20:
-            c.create_oval(x + offsetX-2, y + offsetY-2, x + offsetX+2, y + offsetY+2, fill='red')
+            c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='red')
         else:
-            c.create_oval(x + offsetX-2, y + offsetY-2, x + offsetX+2, y + offsetY+2)
+            c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2)
         d = 0
         if abs(delta_mean[i][0]) > d_mean_covar and abs(delta_mean[i][1] > d_mean_covar):
-            c.create_oval(x + offsetX-2, y + offsetY-2, x + offsetX+2, y + offsetY+2, fill='yellow')
+            c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='yellow')
             d = 2
         if abs(double_delta[i][0]) > d_delta_covar and abs(double_delta[i][1]) > d_delta_covar:
-            c.create_oval(x + offsetX-2, y + offsetY-2, x + offsetX+2, y + offsetY+2, fill='orange')
+            c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='orange')
             d = 1
         if read[i] < 2 or read[i] > 10000:
-            c.create_oval(x + offsetX-2, y + offsetY-2, x + offsetX+2, y + offsetY+2, fill='purple')
+            c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='purple')
             d = 3  # Invalid measures
 
         dots[i] = d
@@ -320,7 +321,7 @@ def test():
         valY /= d_nr
         d_distX /= d_nr
         d_distY /= d_nr
-        normalized = math.sqrt(valX*valX+valY*valY)
+        normalized = math.sqrt(valX * valX + valY * valY)
         valX /= normalized
         valY /= normalized
         lines.append((valX, valY, d_distX, d_distY, good_readings[i][2]))
@@ -363,79 +364,72 @@ def test():
 
     angle_deviation = []
     avg_angle = 0
+    #print("Vector_x: " + str(vectors_x))
+    #print("Vector_y: " + str(vectors_y))
 
     for i in range(len(angles)):
         avg_angle = 0
         if (angles[i][0] != None):
             temp_angle = abs(angles[i][0])
             if 45 < temp_angle < 90:
-                angle_deviation.append((((90-temp_angle) % 90, (90-temp_angle) // 90), angles[i][1], angles[i][2]))
-                avg_angle += (90-temp_angle) % 90
+                angle_deviation.append((((90 - temp_angle) % 90, (90 - temp_angle) // 90), angles[i][1], angles[i][2]))
+                avg_angle += (90 - temp_angle) % 90
             else:
                 angle_deviation.append(((temp_angle % 90, temp_angle // 90), angles[i][1], angles[i][2]))
                 avg_angle += temp_angle % 90
-        else: 
+        else:
             angle_deviation.append(((None, None), angles[i][1], angles[i][2]))
         avg_angle /= len(angles)
 
     print(angles)
-    print(angle_deviation)
+    print("Angle_deviation: " + str(angle_deviation))
     print(avg_angle)
     rob_rot = 0
-
+    filtered_x = []
+    filtered_y = []
 
     for alpha in angle_deviation:
-        if alpha[0][0] == None or abs(alpha[0][0] - avg_angle) > angle_deviation_filter:
+        if abs(alpha[0][0] - avg_angle) < angle_deviation_filter:
             if alpha[2] == 0:
-                c.create_line(vectors_x[alpha[1]][0]+offsetX, vectors_x[alpha[1]][1]+offsetY, vectors_x[alpha[1]][2]+offsetX, vectors_x[alpha[1]][3]+offsetY, fill='red')
+                filtered_x.append(vectors_x[alpha[1]])
+            elif alpha[2] == 1:
+                filtered_y.append(vectors_y[alpha[1]])
+        else:
+            if alpha[2] == 0:
+                c.create_line(vectors_x[alpha[1]][0] + offsetX, vectors_x[alpha[1]][1] + offsetY,
+                              vectors_x[alpha[1]][2] + offsetX, vectors_x[alpha[1]][3] + offsetY, fill='red')
+
+            elif alpha[2] == 1:
+                c.create_line(vectors_y[alpha[1]][0] + offsetX, vectors_y[alpha[1]][1] + offsetY,
+                              vectors_y[alpha[1]][2] + offsetX, vectors_y[alpha[1]][3] + offsetY, fill='red')
+
+    """
+            if alpha[2] == 0:
+
                 vectors_x.pop(alpha[1])
-                print(alpha)
-            else:
-                c.create_line(vectors_y[alpha[1]][0]+offsetX, vectors_y[alpha[1]][1]+offsetY, vectors_y[alpha[1]][2]+offsetX, vectors_y[alpha[1]][3]+offsetY, fill='red')
+                #print(alpha)
+            elif alpha[2] == 1:
+                print(111, alpha[1])
+                c.create_line(vectors_y[alpha[1]][0] + offsetX, vectors_y[alpha[1]][1] + offsetY,
+                              vectors_y[alpha[1]][2] + offsetX, vectors_y[alpha[1]][3] + offsetY, fill='red')
                 vectors_y.pop(alpha[1])
-                print(alpha)
-
+                #print(alpha)
     """
-    filtered_angles = []
-    sum_angle = 0
-    avg_angle = 0
-    angle_score = 0
-    for i in range(num_vectors):
-        temp_list = []
-        cnt = 0
 
-        for j in range(num_vectors):
-            if (angle_deviation[j] != None and angle_deviation[i] != None):
-                if abs(abs(angle_deviation[j][0]) - abs(angle_deviation[i][0])) < 10:
-                    cnt += 1
-                    sum_angle += angle_deviation[j][0]
-
-        if cnt > angle_score:
-            angle_score = cnt
-            avg_angle = sum_angle / angle_score
-    """
-    #print(vectors_x)
-    #print(vectors_y)
+    # print(vectors_x)
+    # print(vectors_y)
     # intersection lines
     # print(lines[0])
 
-    """
-    fix_origo = 200
-    for i in range(num_vectors):
-        dy_dx = lines[i][1]/lines[i][0]
-        m = lines[i][3] - dy_dx*lines[i][2]
-        y0 = fix_origo + m
-        y1 = fix_origo + dy_dx*400 + m
-        c.create_line(0, y0, 400, y1, fill='red')
-    """
     intersections = []
-
-    for v in vectors_x:
+    #print(filtered_x)
+    #print(filtered_y)
+    for v in filtered_x:
         x1 = v[0]
         x2 = v[2]
         y1 = v[1]
         y2 = v[3]
-        for w in vectors_y:
+        for w in filtered_y:
             x3 = w[0]
             x4 = w[2]
             y3 = w[1]
@@ -448,7 +442,7 @@ def test():
 
             intersections.append((px, py))
 
-    #print(intersections)
+    # print(intersections)
 
     used = []
     # Res contains the final normalized points - res is used in the first for loop, changed to dot_averaging
@@ -473,7 +467,6 @@ def test():
         c.create_oval(int(d[0]) - 5 + offsetX, int(d[1]) - 5 + offsetY,
                       int(d[0]) + 5 + offsetX, int(d[1]) + 5 + offsetY, fill='maroon')
 
-
     # This is the real deal:
     # Draw a line between all mean dots
     # Calculate hit percent of dots on every line
@@ -481,13 +474,13 @@ def test():
     closest_points = []
     line_score = []
 
-    #print(dot_averaging)
+    # print(dot_averaging)
 
     for i in range(len(dot_averaging)):
         for j in range(i, len(dot_averaging), 1):
             if dot_averaging[i] != dot_averaging[j]:
                 all_lines.append((dot_averaging[i][0], dot_averaging[i][1], dot_averaging[j][0], dot_averaging[j][1]))
-                #c2.create_line(dot_averaging[i][0], dot_averaging[i][1], dot_averaging[j][0], dot_averaging[j][1], fill='red')
+                # c2.create_line(dot_averaging[i][0], dot_averaging[i][1], dot_averaging[j][0], dot_averaging[j][1], fill='red')
 
     for l in all_lines:
         score = 0
@@ -501,7 +494,7 @@ def test():
         y1 = l[1]
         x2 = l[2]
         y2 = l[3]
-      
+
         for d in range(size):
             x0 = sin_cos[d][0]
             y0 = sin_cos[d][1]
@@ -511,10 +504,11 @@ def test():
             d_x2 = abs(x2 - sin_cos[d][0])
             d_y2 = abs(y2 - sin_cos[d][1])
 
-            hypot_1 = math.sqrt(d_x1*d_x1 + d_y1*d_y1)
-            hypot_2 = math.sqrt(d_x2*d_x2 + d_y2*d_y2)
+            hypot_1 = math.sqrt(d_x1 * d_x1 + d_y1 * d_y1)
+            hypot_2 = math.sqrt(d_x2 * d_x2 + d_y2 * d_y2)
 
-            dist = abs((y2-y1)*x0 - (x2-x1)*y0 + x2*y1 - y2*x1) / math.sqrt((y2-y1)*(y2-y1) + (x2-x1)*(x2-x1))
+            dist = abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) / math.sqrt(
+                (y2 - y1) * (y2 - y1) + (x2 - x1) * (x2 - x1))
 
             if hypot_a == None or hypot_1 < hypot_a:
                 hypot_a = hypot_1
@@ -530,7 +524,7 @@ def test():
             closest_points.append((closest_1, closest_2, l))
             line_score.append(score)
 
-    #print(closest_points)
+    # print(closest_points)
     for i in range(len(closest_points)):
         if closest_points[i][0] > closest_points[i][1]:
             closest_points[i] = (closest_points[i][1], closest_points[i][0], closest_points[i][2])
@@ -540,23 +534,26 @@ def test():
     if line_score:
         line_score.append(line_score.pop(0))
 
-    #print(closest_points)
-    #print(line_score)
+    # print(closest_points)
+    # print(line_score)
     final_score = []
 
     for i in range(len(closest_points)):
-        if i == len(closest_points)-1:
-            final_score.append((line_score[i] / (size-(closest_points[i][0]-closest_points[i][1])), closest_points[i]))
+        if i == len(closest_points) - 1:
+            final_score.append(
+                (line_score[i] / (size - (closest_points[i][0] - closest_points[i][1])), closest_points[i]))
         elif closest_points[i][0] != closest_points[i][1]:
-            final_score.append((line_score[i] / (closest_points[i][1]-closest_points[i][0]), closest_points[i]))
+            final_score.append((line_score[i] / (closest_points[i][1] - closest_points[i][0]), closest_points[i]))
 
     # Draw score vectors
-   
-    c2.create_oval(offsetX-5, offsetY-5, 5+offsetX, 5+offsetY, fill='black')
+
+    c2.create_oval(offsetX - 5, offsetY - 5, 5 + offsetX, 5 + offsetY, fill='black')
     for i in range(len(final_score)):
-        thickness = (final_score[i][0]*100) // 10
+        thickness = (final_score[i][0] * 100) // 10
         if final_score[i][0] > score_percent_filter:
-            c2.create_line(final_score[i][1][2][0] + offsetX, final_score[i][1][2][1] + offsetY, final_score[i][1][2][2] + offsetX, final_score[i][1][2][3] + offsetY, fill='red', width=thickness)
+            c2.create_line(final_score[i][1][2][0] + offsetX, final_score[i][1][2][1] + offsetY,
+                           final_score[i][1][2][2] + offsetX, final_score[i][1][2][3] + offsetY, fill='red',
+                           width=thickness)
 
     filtered_glas = []
 
@@ -564,13 +561,13 @@ def test():
         if fs[0] > score_percent_filter:
             filtered_glas.append(fs)
 
-    #print(filtered_glas)
+    # print(filtered_glas)
     filtered_corners = []
 
     for i in range(len(filtered_glas)):
         d1 = (filtered_glas[i][1][2][0], filtered_glas[i][1][2][1])
         d2 = (filtered_glas[i][1][2][2], filtered_glas[i][1][2][3])
-        for j in range(i+1, len(filtered_glas), 1):
+        for j in range(i + 1, len(filtered_glas), 1):
             e1 = (filtered_glas[j][1][2][0], filtered_glas[j][1][2][1])
             e2 = (filtered_glas[j][1][2][2], filtered_glas[j][1][2][3])
 
@@ -600,21 +597,19 @@ def test():
         v1_ = (v1[0] / v_len1, v1[1] / v_len1)
         v2_ = (v2[0] / v_len2, v2[1] / v_len2)
         val = round(v1_[0] * v2_[0] + v1_[1] * v2_[1])
-        print(val)
         grad = math.degrees(math.acos(val))
 
         if abs(grad - 90) < best_grad:
             best_grad = grad
             best_corner = (grad, dot[0], v1_, v2_, v_len1, v_len2)
 
-
     cell_x = 0
     cell_y = 0
-    #print(best_corner)
+    # print(best_corner)
     if best_corner:
         cell_x = int(best_corner[4] / 40)
         cell_y = int(best_corner[4] / 40)
-        #print(cell_x, cell_y)
+        # print(cell_x, cell_y)
 
     offset_cell = 20
 
@@ -657,7 +652,7 @@ def test():
 
     print(all_lines)
     print(closest_points)
-    
+
 
     for i in range(len(all_lines)):
         score = 0
@@ -680,7 +675,7 @@ def test():
 
 
     """
-    #for closest_points 
+    # for closest_points
 
     """
     nr = 0

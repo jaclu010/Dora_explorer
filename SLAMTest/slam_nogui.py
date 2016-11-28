@@ -1,7 +1,7 @@
 import math
 import time
 
-from tkinter import *
+#from tkinter import *
 
 # from scipy.optimize import curve_fit
 # import numpy as np
@@ -47,14 +47,14 @@ def draw_rect(canvas, p1, p2, p3, p4):
     canvas.create_line(p3[0], p3[1], p4[0], p4[1])
     canvas.create_line(p4[0], p4[1], p1[0], p1[1])
 
-root = Tk()
-root.title("SLAM DUNKKK")
+#root = Tk()
+#root.title("SLAM DUNKKK")
 width = 400
 height = 400
-c = Canvas(root, width=400, height=400)
-c2 = Canvas(root, width=400, height=400)
-c.pack(side=LEFT)
-c2.pack(side=RIGHT)
+#c = Canvas(root, width=400, height=400)
+#c2 = Canvas(root, width=400, height=400)
+#c.pack(side=LEFT)
+#c2.pack(side=RIGHT)
 
 # Old hardcoded readings
 read1 = [68, 66, 66, 66, 67, 67, 67, 69, 70, 72, 72, 76, 79, 83, 83, 88, 92, 95, 95, 102, 100, 100, 95, 94, 91, 91, 90,
@@ -112,20 +112,20 @@ def test():
     global offsetX
     global offsetY
     if (automode):
-        clearCanvas(c)
-        clearCanvas(c2)
+        #clearCanvas(c)
+        #clearCanvas(c2)
         curr_index += 1
     else:
         while 1:
             ins = input("Write f to step forward, or b to step backwards. Write a to enter Automode\n")
             if (ins == "f"):
-                clearCanvas(c)
-                clearCanvas(c2)
+                #clearCanvas(c)
+                #clearCanvas(c2)
                 curr_index += 1
                 break
             elif (ins == "b"):
-                clearCanvas(c)
-                clearCanvas(c2)
+                #clearCanvas(c)
+                #clearCanvas(c2)
                 curr_index -= 1
                 break
             elif (ins == "a"):
@@ -136,8 +136,8 @@ def test():
                 ys = input("write offsetY")
                 offsetX += int(xs)
                 offsetY += int(ys)
-                clearCanvas(c)
-                clearCanvas(c2)
+                #clearCanvas(c)
+                #clearCanvas(c2)
                 break
 
     if (curr_index >= len(read_list)):
@@ -232,14 +232,14 @@ def test():
 
     # Draw grid (just for show)
 
-
+    """
     for i in range(cell_size):
         c.create_line(0, i * cell_size, height, i * cell_size, dash=1)
         c.create_line(0, i * cell_size, height, i * cell_size, dash=1)
         c.create_line(cell_size * i, 0, i * cell_size, width, dash=1)
         c.create_line(cell_size * i, 0, i * cell_size, width, dash=1)
         c.create_oval(offsetX-5, offsetY-5, offsetX+5, offsetY+5, fill='black')
-
+    """
     # Give each point values
     # ----------------------
     # Green - the first reading
@@ -253,21 +253,21 @@ def test():
         # print(str(sin_cos[i][0]) + "   \t   " + str(delta_mean[i]) + "  \t  " + str(double_delta[i]) + "  \t  " + str(res[i]))
         x = sin_cos[i][0]
         y = sin_cos[i][1]
-        if i == 0:
-            c.create_oval(x + offsetX-2, y + offsetY-2, x + offsetX+2, y + offsetY+2, fill='green')
-        elif 5 < i < 20:
-            c.create_oval(x + offsetX-2, y + offsetY-2, x + offsetX+2, y + offsetY+2, fill='red')
-        else:
-            c.create_oval(x + offsetX-2, y + offsetY-2, x + offsetX+2, y + offsetY+2)
+        
+        
+        
+        
+        
+        
         d = 0
         if abs(delta_mean[i][0]) > d_mean_covar and abs(delta_mean[i][1] > d_mean_covar):
-            c.create_oval(x + offsetX-2, y + offsetY-2, x + offsetX+2, y + offsetY+2, fill='yellow')
+            #c.create_oval(x + offsetX-2, y + offsetY-2, x + offsetX+2, y + offsetY+2, fill='yellow')
             d = 2
         if abs(double_delta[i][0]) > d_delta_covar and abs(double_delta[i][1]) > d_delta_covar:
-            c.create_oval(x + offsetX-2, y + offsetY-2, x + offsetX+2, y + offsetY+2, fill='orange')
+            #c.create_oval(x + offsetX-2, y + offsetY-2, x + offsetX+2, y + offsetY+2, fill='orange')
             d = 1
         if read[i] < 2 or read[i] > 10000:
-            c.create_oval(x + offsetX-2, y + offsetY-2, x + offsetX+2, y + offsetY+2, fill='purple')
+            #c.create_oval(x + offsetX-2, y + offsetY-2, x + offsetX+2, y + offsetY+2, fill='purple')
             d = 3  # Invalid measures
 
         dots[i] = d
@@ -343,13 +343,13 @@ def test():
         x1 = lines[i][2] + line_expansion * lines[i][0]
         y0 = lines[i][3] - line_expansion * lines[i][1]
         y1 = lines[i][3] + line_expansion * lines[i][1]
-        c.create_line(x0 + offsetX, y0 + offsetY, x1 + offsetX, y1 + offsetY, fill='blue')
+        #c.create_line(x0 + offsetX, y0 + offsetY, x1 + offsetX, y1 + offsetY, fill='blue')
 
         _x0 = sin_cos[good_readings[i][0]][0]
         _x1 = sin_cos[good_readings[i][1]][0]
         _y0 = sin_cos[good_readings[i][0]][1]
         _y1 = sin_cos[good_readings[i][1]][1]
-        c.create_line(_x0 + offsetX, _y0 + offsetY, _x1 + offsetX, _y1 + offsetY, fill='cyan')
+        #c.create_line(_x0 + offsetX, _y0 + offsetY, _x1 + offsetX, _y1 + offsetY, fill='cyan')
 
         if abs(lines[i][0]) < abs(lines[i][1]):
             vectors_x.append((x0, y0, x1, y1))
@@ -387,11 +387,11 @@ def test():
     for alpha in angle_deviation:
         if alpha[0][0] == None or abs(alpha[0][0] - avg_angle) > angle_deviation_filter:
             if alpha[2] == 0:
-                c.create_line(vectors_x[alpha[1]][0]+offsetX, vectors_x[alpha[1]][1]+offsetY, vectors_x[alpha[1]][2]+offsetX, vectors_x[alpha[1]][3]+offsetY, fill='red')
+                #c.create_line(vectors_x[alpha[1]][0]+offsetX, vectors_x[alpha[1]][1]+offsetY, vectors_x[alpha[1]][2]+offsetX, vectors_x[alpha[1]][3]+offsetY, fill='red')
                 vectors_x.pop(alpha[1])
                 print(alpha)
             else:
-                c.create_line(vectors_y[alpha[1]][0]+offsetX, vectors_y[alpha[1]][1]+offsetY, vectors_y[alpha[1]][2]+offsetX, vectors_y[alpha[1]][3]+offsetY, fill='red')
+                #c.create_line(vectors_y[alpha[1]][0]+offsetX, vectors_y[alpha[1]][1]+offsetY, vectors_y[alpha[1]][2]+offsetX, vectors_y[alpha[1]][3]+offsetY, fill='red')
                 vectors_y.pop(alpha[1])
                 print(alpha)
 
@@ -469,9 +469,9 @@ def test():
             used.append(v)
     # Draw all normalized points
 
-    for d in dot_averaging:
-        c.create_oval(int(d[0]) - 5 + offsetX, int(d[1]) - 5 + offsetY,
-                      int(d[0]) + 5 + offsetX, int(d[1]) + 5 + offsetY, fill='maroon')
+    #for d in dot_averaging:
+    #    c.create_oval(int(d[0]) - 5 + offsetX, int(d[1]) - 5 + offsetY,
+    #                  int(d[0]) + 5 + offsetX, int(d[1]) + 5 + offsetY, fill='maroon')
 
 
     # This is the real deal:
@@ -552,11 +552,11 @@ def test():
 
     # Draw score vectors
    
-    c2.create_oval(offsetX-5, offsetY-5, 5+offsetX, 5+offsetY, fill='black')
+    #c2.create_oval(offsetX-5, offsetY-5, 5+offsetX, 5+offsetY, fill='black')
     for i in range(len(final_score)):
         thickness = (final_score[i][0]*100) // 10
-        if final_score[i][0] > score_percent_filter:
-            c2.create_line(final_score[i][1][2][0] + offsetX, final_score[i][1][2][1] + offsetY, final_score[i][1][2][2] + offsetX, final_score[i][1][2][3] + offsetY, fill='red', width=thickness)
+        #if final_score[i][0] > score_percent_filter:
+
 
     filtered_glas = []
 
@@ -625,7 +625,7 @@ def test():
             p3 = (p2[0] + 40 * best_corner[2][1], p2[1] + 40 * best_corner[2][0])
             p4 = (p1[0] + 40 * best_corner[2][1], p1[1] + 40 * best_corner[2][0])
             # print(p1,p2,p3,p4)
-            draw_rect(c2, p1, p2, p3, p4)
+            #draw_rect(c2, p1, p2, p3, p4)
 
     """
     for l in all_lines:
@@ -819,8 +819,11 @@ def test():
     # print(change)
 
 
-    root.after(10, test)
+    #root.after(10, test)
 
 
-root.after(1, test)
-root.mainloop()
+#root.after(1, test)
+#root.mainloop()
+
+if __name__ == "__main__":
+    test()

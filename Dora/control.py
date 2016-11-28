@@ -8,6 +8,10 @@ backward_sensor = 1
 
 
 class PID():
+    """
+    Kp, Ki and Kd must be >=0
+    """
+
     def __init__(self, setpoint = 0.0, Kp = 0.0, Ki = 0.0, Kd = 0.0):
         # Target value
         self.setpoint = setpoint
@@ -25,8 +29,8 @@ class PID():
         self.min = 0
         self.max = 100
         
-        # If the output should be inverted before being returned
-        self.inverse = False
+        # If the output should be reversed
+        self.reversed = False
         
         # Turn PID control on or off
         self.enabled = True
@@ -60,7 +64,7 @@ class PID():
             
         # Compute the PID output
         with input.get_lock():
-            output = self.Kp * error + self.error_sum + self.Kd * (int(input[forward_sensor]) - int(input[backward_sensor]))
+            output = self.Kp * error + self.error_sum - self.Kd * (int(input[forward_sensor]) - int(input[backward_sensor]))
             
         # Adjust output to be within the bounds
         if output < self.min:
@@ -68,14 +72,27 @@ class PID():
         elif output > self.max:
             output = self.max
             
-        if self.inverse:
+        if self.reversed:
             output = -output
             
         return output
     
+    # Method for settings the max and min values of the output
     def set_output_limits(self, out_min, out_max):
         if out_min > out_max:
             return
         
         self.min = out_min
         self.max = out_max
+
+    # Method for enabling or disabling the PID
+    def enable(self, turn_on):
+        # Check if we are switching the PID on
+        if turn_on and not self.enabled:
+            self.error_sum = 0
+            if self.error_sum < self.min:
+                self.error_sum = self.min
+            elif self.error_sum > self.max:
+                self.error_sum = self.max
+
+        self.enabled = turn_on

@@ -193,7 +193,7 @@ if __name__ == "__main__":
     num_laser_values = Value('i', 0)
     gyro_value = Value('d', 0)
     mode = Value('i', 0) # auto = 1
-    pid = Array('i', 2)
+    pid = Array('d', 2)
     pid[0] = -1  # make sure to not read pid values from array on boot
     
     steering_cmd_man = SimpleQueue()

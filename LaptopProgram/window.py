@@ -554,7 +554,7 @@ def blue():
                         print(commandQueue[0])
                         client_sock.send(commandQueue.pop(0))
                     else:
-                        print("none")
+                        #print("none")
                         client_sock.send("none")
     except IOError:
         pass
@@ -580,7 +580,7 @@ def main():
     root.bind('<<AddMessage>>', handleMessageQueue)
 
     def keyDown(e):
-        global moveState
+        global moveState, commandQueue
         if e.char == 'w' and moveState != "forward":
             moveState = "forward"
             app.moveForward()
@@ -594,8 +594,19 @@ def main():
             moveState = "right"
             app.moveRight()
         if e.char == 'm':
-            global commandQueue
             commandQueue = ["manual"]
+        if e.char == 'p':
+            ans = simpledialog.askfloat("Kp", "Enter proportional constant Kp:")
+            if ans is not None:
+                commandQueue = ["pid_p_" + str(ans)]
+        if e.char == 'i':
+            ans = simpledialog.askfloat("Ki", "Enter integral constant Ki:")
+            if ans is not None:
+                commandQueue = ["pid_i_" + str(ans)]
+        if e.char == 'o':
+            ans = simpledialog.askfloat("Kd", "Enter derivative constant Kd:")
+            if ans is not None:
+                commandQueue = ["pid_d_" + str(ans)]
 
     def keyRelease(e):
         global moveState

@@ -141,13 +141,13 @@ def bluetooth_loop(ir_values, laser_values, gyro_value, steering_cmd_man, mode, 
                         with pid.get_lock():
                             if parts[1] == "p":
                                 pid[0] = 0
-                                pid[1] = int(parts[2])
+                                pid[1] = float(parts[2])
                             elif parts[1] == "i":
                                 pid[0] = 1
-                                pid[1] = int(parts[2])
+                                pid[1] = float(parts[2])
                             elif parts[1] == "d":
                                 pid[0] = 2
-                                pid[1] = int(parts[2])
+                                pid[1] = float(parts[2])
                     elif "speed" in rec_data:
                         steering_cmd_man.put(rec_data)
                         parts = rec_data.split("_")

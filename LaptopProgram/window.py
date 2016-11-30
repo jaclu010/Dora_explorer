@@ -69,6 +69,7 @@ class Window(Frame):
         self.master.config(menu=menu)
         file = Menu(menu)
         file.add_command(label="Clear robotLog.txt", command=clearRobotLog)
+        file.add_command(label="Help", command=self.showHelp)
         file.add_command(label="Exit", command=self.close)
         menu.add_cascade(label="File", menu=file)
         self.mapCanvas = self.initCanvas()
@@ -82,6 +83,15 @@ class Window(Frame):
         self.initButtons()
         self.cbSensor, self.cbMovement, self.cb_sensor_overview = self.initCheckboxes()
         self.canvUpdate()
+
+    def showHelp(self):
+        from tkinter import messagebox
+        helpText = 'Keyboard controls:\n\n\
+W, A, S, D - Drive Dora\n\
+M - Switch between manual and autonomous mode\n\
+P, I, O - Set the constants Kp, Ki and Kd respectively for the PID algorithm\n\
+Esc - Exit the program'
+        messagebox.showinfo("Help", helpText)
 
     def debugInitMapArray(self):
         # mapArray will always have an equal height and width
@@ -624,6 +634,7 @@ def blue():
 
 def main():
     app = Window(root)
+    root.iconbitmap("dora.ico")
 
     def handleMessageQueue(self):
         messagesLock.acquire()

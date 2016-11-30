@@ -16,7 +16,6 @@ class BluetoothThread(threading.Thread):
         blue()
 
 
-
 # Bluetooth concurrency
 blueThread = BluetoothThread()
 messagesLock = threading.Lock()
@@ -107,9 +106,9 @@ class Window(Frame):
         cbMovement.place(x=120, y=460)
 
         self.cb_sensor_overview_var = IntVar()
-        cb_sensor_overview = Checkbutton(self, text="Show sensor overview", variable = self.cb_sensor_overview_var,
-                                         command = self.cb_sensor_overview_toggle)
-        cb_sensor_overview.place(x= 263, y = 460)
+        cb_sensor_overview = Checkbutton(self, text="Show sensor overview", variable=self.cb_sensor_overview_var,
+                                         command=self.cb_sensor_overview_toggle)
+        cb_sensor_overview.place(x=263, y=460)
 
         return cbSensor, cbMovement, cb_sensor_overview
 
@@ -212,55 +211,61 @@ class Window(Frame):
         if self.cb_sensor_overview.getvar(str(self.cb_sensor_overview_var)) == "1":
             print("overview value is 1")
             self.sensor_window = Toplevel(root)
-            self.sensor_window.geometry('500x355') #293x322
+            self.sensor_window.geometry('500x355')  # 293x322
             self.sensor_window.title("Sensor values")
-            self.canvas = Canvas(self.sensor_window, bg="black", width=str(self.canvasWidth), height=str(self.canvasHeight))
+            self.canvas = Canvas(self.sensor_window, bg="black", width=str(self.canvasWidth),
+                                 height=str(self.canvasHeight))
             self.canvas.pack()
             dora_picture = PhotoImage(file="dora.png")
             self.label = Label(self.canvas, image=dora_picture)
             self.label.image = dora_picture
             self.label.pack()
 
-            left_sensorsX=125
-            upper_sensorsY=10
-            right_sensorsX=345
-            lower_sensorsY=210
+            left_sensorsX = 125
+            upper_sensorsY = 10
+            right_sensorsX = 345
+            lower_sensorsY = 210
 
-            self.sens0_value, self.sens1_value, self.sens2_value, self.sens3_value,\
-            self.sens4_value, self.sens5_value = (StringVar(),)*6
+            self.sens0_value, self.sens1_value, self.sens2_value, self.sens3_value, \
+            self.sens4_value, self.sens5_value = (StringVar(),) * 6
 
-            self.sens_value_dict = {0:self.sens0_value, 1:self.sens1_value, 2:self.sens2_value, 3:self.sens3_value,
-                           4:self.sens4_value, 5:self.sens5_value}
+            self.sens_value_dict = {0: self.sens0_value, 1: self.sens1_value, 2: self.sens2_value, 3: self.sens3_value,
+                                    4: self.sens4_value, 5: self.sens5_value}
 
-            self.sensor0,self.sensor1,self.sensor2,self.sensor3,self.sensor4,self.sensor5 = (0,)*6
+            self.sensor0, self.sensor1, self.sensor2, self.sensor3, self.sensor4, self.sensor5 = (0,) * 6
 
             self.sensor_dict = {0: self.sensor0, 1: self.sensor1, 2: self.sensor2, 3: self.sensor3,
-                           4: self.sensor4, 5: self.sensor5}
+                                4: self.sensor4, 5: self.sensor5}
 
             for i in range(6):
                 self.sens_value_dict[i].set("0")
-                temp_label = Label(self.sensor_window, text = self.sens_value_dict[i].get())
+                temp_label = Label(self.sensor_window, text=self.sens_value_dict[i].get())
                 self.sensor_dict[i] = temp_label
 
-            self.sensor_dict[0].place(x=left_sensorsX,y=upper_sensorsY)     #Upper left
-            self.sensor_dict[1].place(x=left_sensorsX, y=lower_sensorsY)    #Lower left
-            self.sensor_dict[2].place(x=right_sensorsX, y=upper_sensorsY)   #Upper right
-            self.sensor_dict[3].place(x=right_sensorsX, y=lower_sensorsY)   #Lower right
-            self.sensor_dict[4].place(x=235, y=5)                           #Up
-            self.sensor_dict[5].place(x=235, y=240)                         #Down
+            self.sensor_dict[0].place(x=left_sensorsX, y=upper_sensorsY)  # Upper left
+            self.sensor_dict[1].place(x=left_sensorsX, y=lower_sensorsY)  # Lower left
+            self.sensor_dict[2].place(x=right_sensorsX, y=upper_sensorsY)  # Upper right
+            self.sensor_dict[3].place(x=right_sensorsX, y=lower_sensorsY)  # Lower right
+            self.sensor_dict[4].place(x=235, y=5)  # Up
+            self.sensor_dict[5].place(x=235, y=240)  # Down
 
             button = Button(self.sensor_window, text="Close", command=self.close_window)
             button.pack()
-
 
         elif self.cb_sensor_overview.getvar(str(self.cb_sensor_overview_var)) == "0":
             self.sensor_window.destroy()
             print("overview value is 0")
 
-    def update_sensor_values(self, messages):
+    def update_sensor_values(self, sensor_values):
+        sensor_mapping = {0: sensor_values[5],
+                         1: sensor_values[4],
+                         2: sensor_values[3],
+                         3: sensor_values[2],
+                         4: sensor_values[0],
+                         5: sensor_values[1]}
         for i in range(6):
-            #If messages contains int, change to str(messages[i])
-            self.sens_value_dict[i].set(messages[i])
+            # If messages contains int, change to str(messages[i])
+            self.sens_value_dict[i].set(sensor_mapping[i])
             self.sensor_dict[i].config(text=self.sens_value_dict[i].get())
 
     def close(self):
@@ -315,8 +320,6 @@ class Window(Frame):
             self.textBox.insert("0.0", self.messages[-1][1])
         elif self.messages[-1][0] == "SENS" and self.cbSensor.getvar(str(self.cbSensorVar)) == "1":
             self.textBox.insert("0.0", self.messages[-1][1])
-            if self.cb_sensor_overview.getvar(str(self.cb_sensor_overview_var)) == "1":
-                self.update_sensor_values(self.messages[-1][1])
 
         elif self.messages[-1][0] == "LASER" and self.cbSensor.getvar(str(self.cbSensorVar)) == "1":
             self.textBox.insert("0.0", self.messages[-1][1])
@@ -326,6 +329,11 @@ class Window(Frame):
         self.textBox.config(state=DISABLED)
 
     def addToMessages(self, type, message):
+        if type == "SENS" and self.cb_sensor_overview.getvar(str(self.cb_sensor_overview_var)) == "1":
+            # Take only the list of values from the message string
+            parts = message.split('[')
+            self.update_sensor_values(ast.literal_eval('[' + parts[2]))
+
         self.messages.append((type, strftime("%H:%M:%S", gmtime()) + "\t" + message + "\n"))
         self.printToLog()
 

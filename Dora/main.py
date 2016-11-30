@@ -1,41 +1,29 @@
+
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 import serial
-from bluetooth import *
 import sys
 import time
 import math
-import threading
 import copy
 import os
-import common
+from common import *
 import global_vars as gv
-import steering
+import steering as st
 import sensor
+import control
+import blueztooth
+from multiprocessing import Process, Value, Array
+from multiprocessing.queues import SimpleQueue
+
+forward_dir = FORWARD
+ir_id = FORWARD_SENSOR_MAPPING
 
 #Debug variables
 speed = 0.5
-map_size = 21
-
-
-#class for threading
-class Thread(threading.Thread):
-    def __init__(self, threadID, typee):
-        threading.Thread.__init__(self)
-        self.threadID = threadID
-        #typee == 0: bluetooth, typee 1 = serial
-        self.typee = typee
-    def run(self):
-        
-        if (self.typee == 0): bluetooth_loop(self.threadID)
-        if (self.typee == 1): sensor.sensor_serial(self.threadID)
-        if (self.typee == 2): steering.steering_serial(self.threadID)
-
-t1 = Thread(1, 0)
-t2 = Thread(2, 1)
-t3 = Thread(3, 2)
 
 #generates an empty map
+map_size = 21
 def gen_empty_map():
     a = []
     for y in range (0,21):        
@@ -94,66 +82,6 @@ robot_pos_rot = None
 if sys.version < '3':
     input  = raw_input
 
-#mac adress to server, per default 7C:7A:91:4A:21:D9 (martins dator)
-ismartincomp = True
-
-addr = None
-if (ismartincomp):
-    addr = "7C:7A:91:4A:21:D9"
-else:
-    #Otherwise get mac-addres from argument
-    if len (sys.argv) < 2:
-        print("no device spec. go search")
-        print("the DoraServer service")
-    else:
-        adr = sys.argv[1]
-        print ("Searching for sServer on %s" % addr)
-
-#Unique id, should be the same as servers
-uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
-
-service_matches = find_service( uuid = uuid, address = addr )
-
-bluetooth_online = True
-
-if len(service_matches) == 0:
-    print("Server could not be found")
-    bluetooth_online = False
-    #sys.exit(0)
-
-#If the bluetooth is online, create a connection to server
-if (bluetooth_online):
-    first_match = service_matches[0]
-    port = first_match["port"]
-    name = first_match["name"]
-    host = first_match["host"]
-
-    print("connecting to \"%s\" on %s" % (name, host))
-    
-    # Create the client socket
-    sock=BluetoothSocket( RFCOMM )
-    sock.connect((host, port))
-
-    print("Pi connected to " + name)
-
-sens = False
-
-num_readings = 360
-
-# state0 = waiting, state1 = reading ir-data, state2 = reading laser-data, state3 = reading gyro_data
-#serial_state = 0
-
-# if the laser-data stopped during runtime, this variable is used to find out which index we should start adding data when continuing
-#cur_laser_index = 0
-
-#gv.last_gyro_time = time.time()
-#last_gyro_value = 0
-#gyro_value = 0
-#gv.sensor_value = [0 for x in range(num_sensors)]
-sensor_value_prev = None
-#laser_value = []
-#last_laser_value = []
-last_laser_value_prev = None
 
 for i in range(300):
     gv.last_laser_value.append(math.sin(i) * ((i+50) % 310) )
@@ -176,124 +104,151 @@ auto_mode = False
 if (auto_mode): req = False
 
 
-def bluetooth_loop(tid):
-    print("Thread" + str(tid) + " main loop initialized")
-    global sock, req
-    global forward_down, backward_down, left_down, right_down
-    global robot_pos#, robot_rot
-    #global sensor_value
-    global last_laser_value_prev, sensor_value_prev, robot_pos_prev, robot_rot_prev
-    global map_prev, map
-    
-    inter = 0
-    printDebug = False
-    
-    while gv.running:
-        #map = set_block(map, inter+1, 0,0)
-        #print(equal2D(map, map_prev))
-        if (printDebug):
-            print("rob_rot" + str(math.degrees(gv.robot_rot)))
-            print("Gyro_Value: " + str(gv.gyro_value))
-            print("sensor" + str(gv.sensor_value))
-            print("Laser CURRENT curr : " + str(gv.last_laser_value))
-            print("laser size : " + str(len(gv.last_laser_value)))
 
-        if (forward_down):
-            robot_pos = move_in_dir(robot_pos, speed, gv.robot_rot)            
-        if (backward_down):
-            robot_pos = move_in_dir(robot_pos, -speed, gv.robot_rot)
-        if (left_down):
-            gv.robot_rot -= gv.robot_rot_speed
-        if (right_down):
-            gv.robot_rot += gv.robot_rot_speed
+#def main_slam():
+
+ #   while gv.running:
+        #gv.condition.acquire()
+        #print(gv.sensor_value)
+  #      print()
+        #gv.movement_dir 
+        #gv.condition.notify()
+        #gv.condition.release()
+
+#t1.start()
+#t2.start()
+#t3.start()
+
+def slam(ir_values, laser_values, mode, steering_cmd_man, pid_cons):
+    st.open_port()
+
+    pid = control.PID(10, 9, 9, 2.24)
+    print("PID: " + str(pid.Kp) + " " + str(pid.Ki) + " " + str(pid.Kd)) 
+    #pid.inverse = True
+    pid.set_output_limits(-150, 150)
+    
+    control.forward_sensor = ir_id[FORWARD_RIGHT]
+    control.backward_sensor = ir_id[BACKWARD_RIGHT]
+
+    st.forward()
+    
+    while True:
+        """
+        if ir_id[FORWARD] <= 15 or ir_id[BACKWARD] <= 15:
+            st.set_speed(0,0)
+        """
+
+        with pid_cons.get_lock():
+            if pid_cons[0] != -1:
+                if pid_cons[0] == 0:
+                    pid.Kp = pid_cons[1]
+                elif pid_cons[0] == 1:
+                    pid.Ki = pid_cons[1]
+                elif pid_cons[0] == 2:
+                    pid.Kd = pid_cons[1]
+                pid_cons[0] = -1
+                print("PID: " + str(pid.Kp) + " " + str(pid.Ki) + " " + str(pid.Kd)) 
+
+        if mode.value: # Auto mode
+            pid.enabled = True
+            turn = pid.compute(ir_values)
+
+            #print("res: " + str(turn) + "   " + str(st.speeds[st.LEFT]) + "   " + str(st.speeds[st.RIGHT]))
+
+            if st.speeds[st.LEFT] != abs(int(st.speeds[st.DEFAULT] - turn)):
+                st.set_speed(mode.value, abs(st.speeds[st.DEFAULT] - turn), "left")
+            if st.speeds[st.RIGHT] != abs(int(st.speeds[st.DEFAULT] + turn)):
+                st.set_speed(mode.value, abs(st.speeds[st.DEFAULT] + turn), "right")
             
-
-        if (bluetooth_online):
-            map_string = str(map)
-            map_string = map_string.translate(None, " ")
-            map_string = map_string.translate(None, "[")
-            map_string = map_string.translate(None, "]")
-            map_string = "[" + map_string + "]"
-            #Every other iteration of main loop, send request to laptop for instructions.
-            if (req):
-                req = False
-                sock.send("!req#")
-                data2 = sock.recv(1024)
-
-                if (len(data2) == 0):
-                    break
+            
+            
+            """
+            if res > 0:
+                if st.speeds[st.LEFT] != st.speeds[st.DEFAULT]:
+                    st.set_speed(mode.value, st.speeds[st.DEFAULT], "left")
+                if st.speeds[st.RIGHT] != int(res):
+                    st.set_speed(mode.value, res, "right")
                 
-                gv.condition.acquire()
-                print(data2)
-                if (data2 != b"none"):
-                    if (data2 == b"forward" and not forward_down):
-                        forward_down = True
-                        gv.movement_dir = "forward"
-                    elif (data2 == b"backward" and not backward_down):
-                        backward_down = True
-                        gv.movement_dir = "backward"
-                    elif (data2 == b"left" and not left_down):
-                        left_down = True
-                        gv.movement_dir = "left"
-                    elif (data2 == b"right" and not right_down):
-                        right_down = True
-                        gv.movement_dir = "right"
-                    elif (data2 == b"stop"):
-                        forward_down = False
-                        backward_down = False
-                        left_down = False
-                        right_down = False
-                        gv.movement_dir = "stop"
-                else:
-                    gv.movement_dir = "none"
-                gv.condition.notify()
-                gv.condition.release()
-                    
-                                                
+            elif res < 0:
+                if st.speeds[st.LEFT] != int(abs(res)):
+                    st.set_speed(mode.value, abs(res), "left")
+                if st.speeds[st.RIGHT] != st.speeds[st.DEFAULT]:
+                    st.set_speed(mode.value, st.speeds[st.DEFAULT], "right")
             else:
-                if (not auto_mode): req = True
+                if st.speeds[st.RIGHT] != st.speeds[st.DEFAULT]:
+                    st.set_speed(mode.value, st.speeds[st.DEFAULT], "right")
+                if st.speeds[st.LEFT] != st.speeds[st.DEFAULT]:
+                    st.set_speed(mode.value, st.speeds[st.DEFAULT], "left")
+            """
+        else:  # Manual mode
+            pid.enabled = False
+            st.steering_serial(steering_cmd_man, mode, ir_values)
+        
+   
 
-                if (sensor_value_prev != gv.sensor_value):
-                    temp_data = "[sens]";
-                    temp_data += str(gv.sensor_value)
-                    temp_data += "#"
-                    sock.send(temp_data)
 
-                #if (last_laser_value_prev != gv.last_laser_value):
-                temp_data = "[laser]"
-                temp_data += str(gv.last_laser_value)
-                temp_data += "#"
-                sock.send(temp_data)
-                    
-                temp_data = "[gyro]"
-                temp_data += str(gv.gyro_value)
-                temp_data += "#"
-                sock.send(temp_data)
+if __name__ == "__main__":  
+    ir_values = Array('i', 6)
+    laser_values = Array('i', 520)
+    num_laser_values = Value('i', 0)
+    gyro_value = Value('d', 0)
+    mode = Value('i', 0) # auto = 1
+    pid = Array('d', 2)
+    pid[0] = -1  # make sure to not read pid values from array on boot
+    
+    steering_cmd_man = SimpleQueue()
+    
+    sensor_process = Process(target=sensor.sensor_serial, args=(ir_values, laser_values, gyro_value, num_laser_values))
+    slam_process = Process(target=slam, args=(ir_values, laser_values, mode, steering_cmd_man, pid))
+    bluetooth_process = Process(target=blueztooth.bluetooth_loop, args=(ir_values, laser_values, gyro_value, steering_cmd_man, mode, pid, num_laser_values))
 
-                #if not (robot_pos_prev == robot_pos and robot_rot_prev == gv.robot_rot):
-                temp_data = "[rob]["
-                temp_data += str(robot_pos[0]) + ","
-                temp_data += str(robot_pos[1]) + ","
-                temp_data += str(gv.robot_rot) + "]"
-                temp_data += "#"
-                sock.send(temp_data)
-
-                if (map_prev != map):
-                    temp_data = "[map]"
-                    temp_data += map_string
-                    temp_data += "#"
-                    sock.send(temp_data)
-
-        #print(equal2D(map, map_prev))
-        last_laser_value_prev = copy.deepcopy(gv.last_laser_value)
-        sensor_value_prev = copy.deepcopy(gv.sensor_value)
-        robot_pos_prev = robot_pos
-        robot_rot_prev = gv.robot_rot
-        map_prev = copy.deepcopy(map)
-    if (bluetooth_online): sock.close()
+    sensor_process.start()
+    slam_process.start()
+    bluetooth_process.start()
+    #steering_process.start()
 
     
-t1.start()
-t2.start()
-t3.start()
 
+    """
+    # Test turning
+    time.sleep(2)
+    st.open_port()
+    st.forward()
+    st.set_speed(0,150)
+    print(ir_values[0])
+    for i in range(len(ir_values)):
+        print(i, ir_values[i])
+
+    print(num_laser_values.value)
+        
+    while True:
+        if ir_values[sensor.FORWARD] <= 20:
+            st.set_speed(0,0)
+            time.sleep(0.1)
+            st.set_speed(0,150)
+            st.left()
+            time.sleep(float(0.63))
+            st.set_speed(0,0)
+            temp = raw_input()
+    """
+    """
+    # Test speeds
+    time.sleep(2)
+    st.open_port()
+    st.set_speed(0,0)
+    st.forward()
+    while True:
+        st.forward()
+        speed = raw_input("Speed: ")
+        dur = raw_input("Time: ")
+        st.set_speed(0, int(speed))
+        time.sleep(float(dur))
+        st.set_speed(0,0)
+        raw_input("Go back")
+        st.backward()
+        st.set_speed(0, int(speed))
+        time.sleep(float(dur))
+        st.set_speed(0,0)
+    """
+    sensor_process.join()
+    #slam_process.join()

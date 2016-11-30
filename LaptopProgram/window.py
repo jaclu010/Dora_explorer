@@ -8,55 +8,22 @@ import ast
 import copy
 
 
-class ConnectThread(threading.Thread):
-    def __init__(self):
-        threading.Thread.__init__(self)
-
-    def run(self):
-        if btConnected:
-            connectBluetooth()
-
-
 class BluetoothThread(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
 
     def run(self):
-        if btConnected:
-            blue()
+        blue()
 
 
-connectThread = ConnectThread()
-blueThread = BluetoothThread()
 
 # Bluetooth concurrency
-btConnected = False
-connectedLock = threading.Lock()
+blueThread = BluetoothThread()
 messagesLock = threading.Lock()
 newMessageQueue = []
 
 # Bluetooth connection
 server_sock = BluetoothSocket(RFCOMM)
-try:
-    server_sock.bind(("", PORT_ANY))
-    server_sock.listen(1)
-
-    port = server_sock.getsockname()[1]
-    uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
-    advertise_service(server_sock, "DoraServer",
-                      service_id=uuid,
-                      service_classes=[uuid, SERIAL_PORT_CLASS],
-                      profiles=[SERIAL_PORT_PROFILE],
-                      #                     protocols = [ OBEX_UUID ]
-                      )
-except:
-    print("A Bluetooth connection could not be established")
-else:
-    print("Waiting for connection on RFCOMM channel %d" % port)
-    btConnected = True
-
-client_sock = None
-client_info = None
 
 # Queue with commands to send to Dora
 commandQueue = []
@@ -553,90 +520,101 @@ def clearRobotLog():
     open('robotLog.txt', 'w').close()
 
 
-def connectBluetooth():
-    connectedLock.acquire()
-    global client_sock, client_info
-    client_sock, client_info = server_sock.accept()
-    connectedLock.release()
-    print("Accepted connection on RFCOM channel %d" % port)
-
-
 def blue():
-    connectedLock.acquire()
-    global newMessageQueue, mapList, robList, laserList
-    data = ""
+    global server_sock, newMessageQueue, mapList, robList, laserList
     try:
-        while True:
-            data += str(client_sock.recv(4096))[2:-1]
+        server_sock.bind(("", PORT_ANY))
+        server_sock.listen(1)
 
-            # if len(data) > 0:
-            #    print("received: " + data)
+        port = server_sock.getsockname()[1]
+        uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
 
-            while data.find('#') != -1:
-                # Take out current cmd
-                separatorPos = data.find('#')
-                cmd = data[:separatorPos]
+        advertise_service(server_sock, "DoraServer",
+                          service_id=uuid,
+                          service_classes=[uuid, SERIAL_PORT_CLASS],
+                          profiles=[SERIAL_PORT_PROFILE],
+                          #                     protocols = [ OBEX_UUID ]
+                          )
+    except:
+        print("A Bluetooth connection could not be established")
+    else:
+        print("Waiting for connection on RFCOMM channel %d" % port)
 
-                # Strip current cmd from data
-                data = data[separatorPos + 1:]
+    while True:
+        client_sock, client_info = server_sock.accept()
+        print("Accepted connection on RFCOMM channel %d" % port)
 
-                if "!req" not in cmd:
-                    messagesLock.acquire()
+        data = ""
+        try:
+            while True:
+                rec = str(client_sock.recv(4096))[2:-1]
 
-                    if "sens" in cmd:
-                        newMessageQueue += [("SENS", cmd)]
-                    elif "gyro" in cmd:
-                        newMessageQueue += [("GYRO", cmd)]
-                    elif "laser" in cmd:
-                        newMessageQueue += [("LASER", cmd)]
+                # Check if connection to client is closed
+                if not rec:
+                    break
 
-                        # Strip [laser] and parse as list
-                        cmd = cmd[7:]
-                        laserList = ast.literal_eval(cmd)
-                    elif "move" in cmd:
-                        newMessageQueue += [("MOVE", cmd)]
-                    elif "rob" in cmd:
-                        newMessageQueue += [("ROB", cmd)]
+                data += rec
 
-                        # Strip [rob] and split to list
-                        cmd = cmd[5:]
-                        robList = ast.literal_eval(cmd)
-                    elif "map" in cmd:
-                        # We have the whole map
-                        newMessageQueue += [("MAP", cmd)]
+                while data.find('#') != -1:
+                    # Take out current cmd
+                    separatorPos = data.find('#')
+                    cmd = data[:separatorPos]
 
-                        cmd = cmd[5:]
-                        l = ast.literal_eval(cmd)
+                    # Strip current cmd from data
+                    data = data[separatorPos + 1:]
 
-                        mapList = []
-                        for y in range(0, 21):
-                            l2 = []
-                            for x in range(0, 21):
-                                l2.append(l[y * 21 + x])
-                            mapList.append(l2)
+                    if "!req" not in cmd:
+                        messagesLock.acquire()
 
-                    messagesLock.release()
-                    root.event_generate("<<AddMessage>>")
+                        if "sens" in cmd:
+                            newMessageQueue += [("SENS", cmd)]
+                        elif "gyro" in cmd:
+                            newMessageQueue += [("GYRO", cmd)]
+                        elif "laser" in cmd:
+                            newMessageQueue += [("LASER", cmd)]
 
-                else:  # !req received
-                    if commandQueue:
-                        print(commandQueue[0])
-                        client_sock.send(commandQueue.pop(0))
-                    else:
-                        print("none")
-                        client_sock.send("none")
-    except IOError:
-        pass
+                            # Strip [laser] and parse as list
+                            cmd = cmd[7:]
+                            laserList = ast.literal_eval(cmd)
+                        elif "move" in cmd:
+                            newMessageQueue += [("MOVE", cmd)]
+                        elif "rob" in cmd:
+                            newMessageQueue += [("ROB", cmd)]
 
-    print("disconnected")
-    client_sock.close()
-    server_sock.close()
-    connectedLock.release()
-    print("all done")
+                            # Strip [rob] and split to list
+                            cmd = cmd[5:]
+                            robList = ast.literal_eval(cmd)
+                        elif "map" in cmd:
+                            # We have the whole map
+                            newMessageQueue += [("MAP", cmd)]
+
+                            cmd = cmd[5:]
+                            l = ast.literal_eval(cmd)
+
+                            mapList = []
+                            for y in range(0, 21):
+                                l2 = []
+                                for x in range(0, 21):
+                                    l2.append(l[y * 21 + x])
+                                mapList.append(l2)
+
+                        messagesLock.release()
+                        root.event_generate("<<AddMessage>>")
+
+                    else:  # !req received
+                        if commandQueue:
+                            print(commandQueue[0])
+                            client_sock.send(commandQueue.pop(0))
+                        else:
+                            client_sock.send("none")
+        except IOError:
+            pass
+
+        print("Client disconnected")
+        client_sock.close()
 
 
 def main():
-    global connectThread, blueThread
     app = Window(root)
 
     def handleMessageQueue(self):
@@ -649,7 +627,7 @@ def main():
     root.bind('<<AddMessage>>', handleMessageQueue)
 
     def keyDown(e):
-        global moveState
+        global moveState, commandQueue
         if e.char == 'w' and moveState != "forward":
             moveState = "forward"
             app.moveForward()
@@ -663,8 +641,19 @@ def main():
             moveState = "right"
             app.moveRight()
         if e.char == 'm':
-            global commandQueue
             commandQueue = ["manual"]
+        if e.char == 'p':
+            ans = simpledialog.askfloat("Kp", "Enter proportional constant Kp:")
+            if ans is not None:
+                commandQueue = ["pid_p_" + str(ans)]
+        if e.char == 'i':
+            ans = simpledialog.askfloat("Ki", "Enter integral constant Ki:")
+            if ans is not None:
+                commandQueue = ["pid_i_" + str(ans)]
+        if e.char == 'o':
+            ans = simpledialog.askfloat("Kd", "Enter derivative constant Kd:")
+            if ans is not None:
+                commandQueue = ["pid_d_" + str(ans)]
 
     def keyRelease(e):
         global moveState
@@ -686,15 +675,12 @@ def main():
     root.bind('<B1-Motion>', mDown)
     root.bind('<ButtonRelease-1>', mUp)
 
-    connectThread.daemon = True
+    global blueThread
     blueThread.daemon = True
-
-    connectThread.start()
     blueThread.start()
 
     root.mainloop()
 
-    connectThread.join()
     blueThread.join()
 
 

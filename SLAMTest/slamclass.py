@@ -6,7 +6,7 @@ from tkinter import *
 # import numpy as np
 offsetX = 200
 offsetY = 200
-with open("slamfixed2.txt", "r") as f:
+with open("slamfixed4.txt", "r") as f:
     a = f.readlines()
 read_list = []
 root = Tk()
@@ -83,11 +83,14 @@ class Laser_Data:
                 # s1,s2,s3 are a binary statement, containing info if two lines is built by same point
                 s1 = (i != j)
                 s2 = (p1 == p3) or (p2 == p4)
+                s2 = (p1 == p4) or (p1 == p3) or (p2 == p4) or (p2 == p3)
                 if (s1 and s2):
                     self.cornor.append((i, j))
                     # s2 = (l1[1][0] == l2[0][0] and l1[1][1] == l2[0][1]) or (l1[0][0] == l2[1][0] and l1[0][1] == l2[1][1])
                     # s3 = (l1[0][0] == l2[0][0] and l1[0][1] == l2[0][1]) or (l1[1][0] == l2[1][0] and l1[1][1] == l2[1][1])
+                    #print((i,j), (p1, p2), (p3,p4))
 
+        #sys.exit(0)
     # returns the point on the cornor between l1 and l2, otherwise None if no cornor
     def get_same_point(self, l1, l2):
         if (l1 == None or l2 == None): return None
@@ -164,8 +167,17 @@ class Laser_Data:
     def get_laser_pos(self, i):
         if (i < self.size()):
             if (i < 0): i = self.size() - 1 + i
-            x = math.cos(self.get_angle(i)) * s.laser.get_value(i)
-            y = -math.sin(self.get_angle(i)) * s.laser.get_value(i)
+            offsd = 0
+            x = math.cos(self.get_angle(i)) * (s.laser.get_value(i) + offsd)
+            y = -math.sin(self.get_angle(i)) * (s.laser.get_value(i) + offsd)
+            return (x, y)
+        return None
+
+    def get_laser_pos2(self, i):
+        if (i < self.size()):
+            if (i < 0): i = self.size() - 1 + i
+            x = math.cos(self.get_angle(i)) * (s.laser.get_value(i))
+            y = -math.sin(self.get_angle(i)) * (s.laser.get_value(i))
             return (x, y)
         return None
 
@@ -309,9 +321,10 @@ class Laser_Data:
         d = 0
         if (abs(self.get_delta_mean(i)[0]) > d_mean_covar and abs(self.get_delta_mean(i)[1]) > d_mean_covar):
             d = 2
+            #print(i, self.get_delta_mean(i))
         if (abs(self.get_delta2(i)[0]) > d_delta_covar and abs(self.get_delta2(i)[1]) > d_delta_covar):
             d = 1
-        if (self.get_true_value(i) < 2 or self.get_true_value(i) > 10000):
+        if (self.get_true_value(i) < 40 or self.get_true_value(i) > 10000):
             d = 3
 
         return d
@@ -323,13 +336,14 @@ class Laser_Data:
         self.lines_score = []
         good_readings = []
         i = 0
+        good_val = 4
         while i < self.size():
             cnt = 0
             e = i
-            while e < self.size() and self.get_dot_value(e) == 0:
+            while e < self.size() and (self.get_dot_value(e) == 0):
                 cnt += 1
                 e += 1
-            if (cnt > 10):
+            if (cnt > good_val):
                 good_readings.append((i, cnt + i - 1, cnt - 1))
             i += cnt + 1
 
@@ -342,6 +356,7 @@ class Laser_Data:
             good_readings[0] = (
                 good_readings[-1][0] - self.size(), good_readings[0][1], good_readings[-1][2] + good_readings[0][2])
             good_readings.pop()
+
         self.goodr = good_readings
         # if len(good_readings) > 0 and good_readings[-1][1] == self.size() - 1 and good_readings[0][0] == 0:
         #    good_readings[0] = (good_readings[-1][0] - self.size(), good_readings[0][1], good_readings[-1][2] + good_readings[0][2])
@@ -386,7 +401,7 @@ class Laser_Data:
                      ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
                 inter.append((px, py))
         used = []
-        val = 50
+        val = 20
         for v in inter:
             if (not v in used):
                 i = 1
@@ -399,6 +414,7 @@ class Laser_Data:
                 newv = (newv[0] / i, newv[1] / i)
                 self.intersections.append(newv)
                 used.append(v)
+        print("Num inter: ", len(self.intersections))
         for d in self.intersections:
             c.create_oval(int(d[0]) - 5 + offsetX, int(d[1]) - 5 + offsetY,
                           int(d[0]) + 5 + offsetX, int(d[1]) + 5 + offsetY, fill='maroon')
@@ -488,14 +504,12 @@ class Laser_Data:
         self.set_cornor()
 
     def draw_dots(self):
-        # Give each point values
-        # ----------------------
-        # Green - the first reading
-        # Red - regular values, to show rotation
-        # Yellow - delta_mean triggered
-        # Orange - Too high delta values
-        # Purple - invalid measurement
         for i in range(self.size()):
+            self.draw_dot(c, i)
+
+    def draw_dot(self,canv, i):
+
+        if (i >= 0 and i < self.size()):
             x = self.get_laser_pos(i)[0]
             y = self.get_laser_pos(i)[1]
             color = "white"
@@ -510,8 +524,7 @@ class Laser_Data:
                 color = "orange"
             elif (self.get_dot_value(i) == 3):
                 color = "purple"
-            c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill=color)
-
+            canv.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill=color)
 
 class Mapping:
     def __init__(self):
@@ -536,7 +549,39 @@ class Mapping:
             return self.grid[y][x]
         return None
 
+    def get_grid_pos(self, offset, pos, size):
 
+        offset = (offset[0]/2, offset[1]/2)
+        new_pos = (int(offset[0] + pos[0]/size), int(offset[1] + pos[1]/size))
+        #news = (new_pos[0]/40, new_pos[1]/40)
+        #print(news)
+
+
+
+
+
+        return new_pos
+
+    def fit_grid2(self):
+        self.init_grid()
+        laser = self.laser
+        for i in range(laser.size()):
+            pos = laser.get_laser_pos2(i)
+            p = self.get_grid_pos((21,21), pos , 40)
+            #c2.create_oval(possy[0]*20 - 2, possy[1]*20 - 2, possy[0]*20 + 2, possy[1]*20 + 2)
+
+
+            #print(possy)
+            self.laser.set_block(self.grid,p[0], p[1], "2")
+
+        size = 20
+        for y in range(len(self.grid)):
+            for x in range(len(self.grid)):
+                color = "white"
+                if (self.get_grid_value(x,y) == "2"): color = "black"
+                c2.create_rectangle(x *size , y* size, x*size + size, y*size + size, fill = color)
+
+        #c2.create_oval()
     # creates a grid from
     def fit_grid(self):
         b_index = 0
@@ -545,7 +590,8 @@ class Mapping:
         corn = laser.cornor
         center = (0, 0)
         self.init_grid()
-
+        #print("num Corn: ", len(corn))
+        print(len(corn))
         for i in range(len(corn)):
             i1 = corn[i][0]
             i2 = corn[i][1]
@@ -553,125 +599,154 @@ class Mapping:
             l2 = laser.lines_score[i2][0]
             v1 = laser.normalize(laser.line_to_vector(l1))
             v2 = laser.normalize(laser.line_to_vector(l2))
-            ang = math.acos(laser.dot(v1, v2))
+            print(print(laser.dot(v1,v2)))
+            ang = math.acos(round(laser.dot(v1, v2), 4))
             rotvalue = 90 - abs(math.degrees(ang))
             if (rotvalue <= 7):
                 if (ang < b_angle):
                     b_angle = ang
                     b_index = i
 
-        #print(b_index, math.degrees(b_angle))
-        best_line = (laser.lines_score[corn[b_index][0]][0], laser.lines_score[corn[b_index][1]][0])
-        #print(best_line)
-        best_vector = (laser.line_to_vector(best_line[0]), laser.line_to_vector(best_line[1]))
-        best_norm_vector = (laser.normalize(best_vector[0]), laser.normalize(best_vector[1]))
-        angle = math.acos(laser.dot(v1, v2))
-        #print(math.degrees(angle))
-        rotated_lines = []
-        rotated_vec = []
-        rotated_center = (0, 0)
-        if (90 - abs(math.degrees(angle)) <= 7):
-            #print("LET'S ROTATE POINTS")
-            #print(best_norm_vector)
-            deg_trans = math.atan(-best_norm_vector[1][1] / best_norm_vector[1][0])
-            #print("bLine", best_line[1])
-            bl = best_line[1]
+        if (len(corn) > 0):
 
-            deg_trans = -math.atan2(bl[0][1] - bl[1][1], bl[0][0] - bl[1][0])
-            #print("deg", math.degrees(deg_trans))
+            best_line = (laser.lines_score[corn[b_index][0]][0], laser.lines_score[corn[b_index][1]][0])
 
-            center_point = laser.get_same_point(best_line[0], best_line[1])
-            if (center_point != None):
-                for i in range(len(laser.lines_score)):
-                    p1 = laser.lines_score[i][0][0]
-                    p2 = laser.lines_score[i][0][1]
-                    rp1 = laser.rotate_point(center_point, p1, deg_trans)
-                    rp2 = laser.rotate_point(center_point, p2, deg_trans)
-                    l = (rp1, rp2)
-                    rotated_lines.append(l)
-                    rotated_vec.append((rp2[0] - rp1[0], (rp2[1] - rp1[1])))
-                rotated_center = laser.rotate_point(center_point, center, deg_trans)
+            #print(best_line)
+            best_vector = (laser.line_to_vector(best_line[0]), laser.line_to_vector(best_line[1]))
+            best_norm_vector = (laser.normalize(best_vector[0]), laser.normalize(best_vector[1]))
+            angle = math.acos(laser.dot(v1, v2))
+            #print(math.degrees(angle))
+            rotated_lines = []
+            rotated_vec = []
+            rotated_center = (0, 0)
+            if (90 - abs(math.degrees(angle)) <= 7):
+                #print("LET'S ROTATE POINTS")
+                #print(best_norm_vector)
+                deg_trans = math.atan(-best_norm_vector[1][1] / best_norm_vector[1][0])
+                #print("bLine", best_line[1])
+                bl = best_line[1]
 
-        #c2.create_oval( center_point[0] - 4 + offsetX,  center_point[1] - 4 + offsetY,  center_point[0] + 4 + offsetX, center_point[1] + 4 + offsetY)
+                deg_trans = -math.atan2(bl[0][1] - bl[1][1], bl[0][0] - bl[1][0])
+                #print("deg", math.degrees(deg_trans))
 
-        for i in range(len(rotated_lines)):
-            l = rotated_lines[i]
-            vec = rotated_vec[i]
-            if (laser.lines_score[i][3] / laser.lines_score[i][4] > 0.5):
-                vvec = laser.line_to_vector(l)
-                l2 = (l[0], rotated_center)
-                uvec = laser.line_to_vector(l2)
-
-                vs = laser.subtract(l[1], l[0])
-                #print(vs)
-                norm = (vec[1], -1*vec[0])
-                n = laser.normalize(norm)
-
-                p1  = l[0]
-                p2 = l[1]
-
-                #p1 = laser.add(p1, norm)
-                #p2 = laser.add(p2, norm)
-
-                p1 = laser.multiply(1/40, p1)
-                p2 = laser.multiply(1/40, p2)
-                #print(p1, p2)
-
-                p1 = (round(p1[0]), round(p1[1]))
-                p2 = (round(p2[0]), round(p2[1]))
-                vss = (round(vs[0] / 40), round(vs[1] / 40))
-                #p1 = laser.add(p2, vss)
+                center_point = laser.get_same_point(best_line[0], best_line[1])
+                if (center_point != None):
+                    for i in range(len(laser.lines_score)):
+                        p1 = laser.lines_score[i][0][0]
+                        p2 = laser.lines_score[i][0][1]
+                        rp1 = laser.rotate_point(center_point, p1, deg_trans)
+                        rp2 = laser.rotate_point(center_point, p2, deg_trans)
+                        l = (rp1, rp2)
+                        rotated_lines.append(l)
+                        rotated_vec.append((rp2[0] - rp1[0], (rp2[1] - rp1[1])))
+                    rotated_center = laser.rotate_point(center_point, center, deg_trans)
 
 
-                dx1 = self.map_center[0] + p1[0]
-                dy1 = self.map_center[1] + p1[1]
-                dx2 = self.map_center[0] + p2[0]
-                dy2 = self.map_center[1] + p2[1]
 
-                if (abs(dx1) > abs(dx2)):
-                    tempx = dx1
-                    dx1 = dx2
-                    dx2 = tempx
 
-                if (abs(dy1) > abs(dy2)):
-                    tempy = dy1
-                    dy1 = dy2
-                    dy2 = tempy
-                print((dx1, dy1), (dx2, dy2))
 
-                print(n)
-                laser.draw_line(self.grid, (dx1, dy1), (dx2, dy2), "2")
-        print("_________")
-        size = 20
-        for y in range(len(self.grid)):
-            for x in range(len(self.grid)):
-                color = "white"
-                if (self.get_grid_value(x,y) == "2"): color = "black"
-                c2.create_rectangle(x *size , y* size, x*size + size, y*size + size, fill = color)
+            """
+            #c2.create_oval( center_point[0] - 4 + offsetX,  center_point[1] - 4 + offsetY,  center_point[0] + 4 + offsetX, center_point[1] + 4 + offsetY)
+            for i in range(len(rotated_lines)):
+                l1 = rotated_lines[i]
+                l2 = laser.lines_score[i]
+                if (l2[3]/l2[4] > 0.5):
+                    draw_line(c2, l2[0][0], l2[0][1], "red")
 
-            #if (laser.lines_score[i][3] / laser.lines_score[i][4] > .5):
-            #    c2.create_line(l[0][0] + offsetX, l[0][1] + offsetY, l[1][0] + offsetX, l[1][1] + offsetY)
+
+
+
+
+            for i in range(len(rotated_lines)):
+                l = rotated_lines[i]
+                vec = rotated_vec[i]
+                if (laser.lines_score[i][3] / laser.lines_score[i][4] > 0.5):
+                    #c2.create_line(l[0][0] + offsetX, l[0][1] + offsetY, l[1][0] + offsetX, l[1][1] + offsetY)
+                    vvec = laser.line_to_vector(l)
+                    l2 = (l[0], rotated_center)
+                    uvec = laser.line_to_vector(l2)
+
+                    vs = laser.subtract(l[1], l[0])
+                    #print(vs)
+                    norm = (vec[1], -1*vec[0])
+                    n = laser.normalize(norm)
+
+                    p1  = l[0]
+                    p2 = l[1]
+
+                    #p1 = laser.add(p1, norm)
+                    #p2 = laser.add(p2, norm)
+
+                    p1 = laser.multiply(1/40, p1)
+                    p2 = laser.multiply(1/40, p2)
+                    #print(p1, p2)
+
+                    p1 = (round(p1[0]), round(p1[1]))
+                    p2 = (round(p2[0]), round(p2[1]))
+                    vss = (round(vs[0] / 40), round(vs[1] / 40))
+                    #p1 = laser.add(p2, vss)
+
+
+                    dx1 = self.map_center[0] + p1[0]
+                    dy1 = self.map_center[1] + p1[1]
+                    dx2 = self.map_center[0] + p2[0]
+                    dy2 = self.map_center[1] + p2[1]
+
+                    if (abs(dx1) > abs(dx2)):
+                        tempx = dx1
+                        dx1 = dx2
+                        dx2 = tempx
+
+                    if (abs(dy1) > abs(dy2)):
+                        tempy = dy1
+                        dy1 = dy2
+                        dy2 = tempy
+                    print((dx1, dy1), (dx2, dy2))
+
+                    print(n)
+                    laser.draw_line(self.grid, (dx1, dy1), (dx2, dy2), "2")
+            """
+            #print("_________")
+
+
+
 
 
         #sys.exit(0)
 
+
     def print_grid(self):
         for g in self.grid:
             print(g)
+
+def draw_line(canv, p1, p2, color):
+    canv.create_line(p1[0] + offsetX, p1[1] + offsetY, p2[0] + offsetX, p2[1] + offsetY, fill = color)
 
 
 s = Mapping()
 s.laser.update_laser(read_list[1])
 las = 1
 
-
+vasd = 0
 def draw():
     global s
+    global vasd
     global las
+
+    clearCanvas(c)
+    clearCanvas(c2)
+
     s.laser.update_laser(read_list[las])
-    las += 1
+    #las += 1
     if (las >= len(read_list)):
         las = 0
+
+    #s.laser.draw_dot(c2, vasd)
+    #vasd += 1
+    #if (vasd >= s.laser.size()):
+    #    vasd = 0
+
+
     # print(s.laser.get_fix_value())
     # sys.exit(0)
     # las += 1
@@ -679,8 +754,7 @@ def draw():
     #    print (s.laser.get_delta_mean(i))
     # print("oh yeah")
     # sys.exit(0)
-    clearCanvas(c)
-    clearCanvas(c2)
+
     s.laser.draw_dots()
     s.laser.draw_lines()
     """

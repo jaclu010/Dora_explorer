@@ -97,9 +97,9 @@ Esc - Exit the program'
         # mapArray will always have an equal height and width
         # 0 == undefined block, #1 == empty block, #2 == wall
         self.canvasList = []
-        for y in range(0, 21):
+        for y in range(0, 31):
             a = []
-            for x in range(0, 21):
+            for x in range(0, 31):
                 val = "0"
                 a.append(val)
             self.mapArray.append(a)
@@ -349,8 +349,8 @@ Esc - Exit the program'
 
     def canvUpdate(self):
         global mapList, robList, m1Down, m1UpPos, m1DownPos
-        self.canvasOffX = self.canvasWidth / 2 - (self.mapSize * 20) / 2
-        self.canvasOffY = self.canvasHeight / 2 - (self.mapSize * 20) / 2
+        self.canvasOffX = 10 #self.canvasWidth / 2 - (self.mapSize * 20) / 2
+        self.canvasOffY = 10 #self.canvasHeight / 2 - (self.mapSize * 20) / 2
         self.mDown = m1Down
 
         if self.mDown:
@@ -375,26 +375,28 @@ Esc - Exit the program'
         xOffset = self.canvasOffX
         yOffset = self.canvasOffY
         boxWidth = boxHeight = self.mapSize
-        ezDraw = False
+        ezDraw = True
         # rotation in rad, rotate around map center
         rotation = self.mapRotation
 
         if ezDraw:
-            for y in range(0, 21):
-                for x in range(0, 21):
-                    if self.getMapValue(x, y) == "2":
+            for y in range(0, 31):
+                for x in range(0, 31):
+                    if self.getMapValue(x, y) == 2:
                         self.drawBox(x * boxWidth + xOffset, y * boxHeight + yOffset, boxWidth, boxHeight, True)
+                    if self.getMapValue(x, y) == 1:
+                        self.drawBox(x * boxWidth + xOffset, y * boxHeight + yOffset, boxWidth, boxHeight, True, "white")
         else:
             # Now draw with lines
-            for y in range(0, 21):
-                for x in range(0, 21):
+            for y in range(0, 31):
+                for x in range(0, 31):
                     curVal = self.getMapValue(x, y)
                     upVal = self.getMapValue(x, y - 1)
                     downVal = self.getMapValue(x, y + 1)
                     rightVal = self.getMapValue(x + 1, y)
                     leftVal = self.getMapValue(x - 1, y)
 
-                    # Tuples with coords to box corner
+                    """# Tuples with coords to box corner
                     leftUp = (x * boxWidth + xOffset, y * boxHeight + yOffset)
                     rightUp = (x * boxWidth + xOffset + boxWidth, y * boxHeight + yOffset)
                     leftDown = (x * boxWidth + xOffset, y * boxHeight + yOffset + boxHeight)
@@ -409,17 +411,17 @@ Esc - Exit the program'
                         leftDown = self.rotatePoint(leftDown, center, rotation)
                         rightDown = self.rotatePoint(rightDown, center, rotation)
                     self.drawLine(center[0], center[1], center[0] + 1, center[1] + 1, False)
-                    ##Current glitch _|
+                    ##Current glitch _|"""
 
-                    if curVal == "2":
+                    if curVal == 2:
                         # Now we should draw shit
-                        if rightVal == "1":
+                        if rightVal == 1:
                             self.draw3d(rightUp, rightDown, offset3d)
-                        if upVal == "1":
+                        if upVal == 1:
                             self.draw3d(leftUp, rightUp, offset3d)
-                        if leftVal == "1":
+                        if leftVal == 1:
                             self.draw3d(leftDown, leftUp, offset3d)
-                        if downVal == "1":
+                        if downVal == 1:
                             self.draw3d(rightDown, leftDown, offset3d)
             self.drawRobot()
 
@@ -505,7 +507,7 @@ Esc - Exit the program'
         return ans
 
     def getMapValue(self, x, y):
-        if 0 <= x < 21 and 0 <= y < 21:
+        if 0 <= x < 31 and 0 <= y < 31:
             return self.mapArray[y][x]
         return None
 
@@ -519,7 +521,7 @@ Esc - Exit the program'
             line2 = self.mapCanvas.create_line(x1 + 1, y1 + 1, x2 + 1, y2 + 1)
             self.canvasList.append(line2)
 
-    def drawBox(self, x, y, w, h, f):
+    def drawBox(self, x, y, w, h, f, color = "blue"):
         # draws a box at x,y with height h and width w. f = boolean. fill if true
         if not f:
             self.drawLine(x, y, x + w, y, False)
@@ -527,7 +529,7 @@ Esc - Exit the program'
             self.drawLine(x + w, y + h, x, y + h, False)
             self.drawLine(x, y + h, x, y, False)
         else:
-            self.mapCanvas.create_rectangle(x, y, x + w, y + h, fill="blue")
+            self.mapCanvas.create_rectangle(x, y, x + w, y + h, fill=color)
 
     def clearCanvas(self):
         self.mapCanvas.delete(ALL)
@@ -610,12 +612,13 @@ def blue():
                             l = ast.literal_eval(cmd)
 
                             mapList = []
-                            for y in range(0, 21):
+                            
+                            for y in range(0, 31):
                                 l2 = []
-                                for x in range(0, 21):
-                                    l2.append(l[y * 21 + x])
+                                for x in range(0, 31):
+                                    l2.append(l[y * 31 + x])
                                 mapList.append(l2)
-
+                        print(str(mapList))
                         messagesLock.release()
                         root.event_generate("<<AddMessage>>")
 

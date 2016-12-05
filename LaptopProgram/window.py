@@ -324,12 +324,12 @@ Esc - Exit the program'
     def move_forward_left(self):
         self.addToMessages("MOVE", "Forward left")
         global commandQueue
-        commandQueue = ["forward left"]
+        commandQueue = ["forward_left"]
 
     def move_forward_right(self):
         self.addToMessages("MOVE", "Forward right")
         global commandQueue
-        commandQueue = ["forward right"]
+        commandQueue = ["forward_right"]
 
     def stop(self):
         self.addToMessages("MOVE", "Stop")
@@ -679,10 +679,10 @@ def main():
             moveState = "right"
             app.moveRight()
         if e.char == 'q' and moveState != "forward left":
-            moveState = "forward left"
+            moveState = "forward_left"
             app.move_forward_left()
         if e.char == 'e' and moveState != "forward right":
-            moveState = "forward right"
+            moveState = "forward_right"
             app.move_forward_right()
         if e.char == 'm':
             commandQueue = ["manual"]

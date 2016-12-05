@@ -15,7 +15,6 @@ class BluetoothThread(threading.Thread):
     def run(self):
         blue()
 
-
 # Bluetooth concurrency
 blue_thread = BluetoothThread()
 messages_lock = threading.Lock()
@@ -33,6 +32,7 @@ m1_down = False
 m1_down_pos = (0, 0)
 m1_up_pos = m1_down_pos
 
+#GUI root window
 root = Tk()
 root.geometry("1280x720")
 
@@ -65,6 +65,8 @@ class Window(Frame):
         self.master.title("Dora The Explorer")
         self.pack(fill=BOTH, expand=1)
         self.messages = []
+
+        #Create dropdown menu
         menu = Menu(self.master)
         self.master.config(menu=menu)
         file = Menu(menu)
@@ -73,6 +75,7 @@ class Window(Frame):
         file.add_command(label="Exit", command=self.close)
         menu.add_cascade(label="File", menu=file)
         self.map_canvas = self.initCanvas()
+
         # All canvasobjects are kept in this list
         self.canvas_list = []
 
@@ -88,10 +91,10 @@ class Window(Frame):
     def show_help(self):
         from tkinter import messagebox
         help_text = 'Keyboard controls:\n\n\
-W, A, S, D - Drive Dora\n\
-M - Switch between manual and autonomous mode\n\
-P, I, O - Set the constants Kp, Ki and Kd respectively for the PID algorithm\n\
-Esc - Exit the program'
+                    W, A, S, D - Drive Dora\n\
+                    M - Switch between manual and autonomous mode\n\
+                    P, I, O - Set the constants Kp, Ki and Kd respectively for the PID algorithm\n\
+                    Esc - Exit the program'
         messagebox.showinfo("Help", help_text)
 
     def debug_init_map_array(self):
@@ -105,6 +108,8 @@ Esc - Exit the program'
                 a.append(val)
             self.map_array.append(a)
 
+    #Initialize checkboxes for displaying a sensor overview and toggling
+    #what to show in the datalog
     def init_checkboxes(self):
         self.cb_sensor_var = IntVar()
         cb_sensor = Checkbutton(self, text="Show sensor data", variable=self.cb_sensor_var)
@@ -122,12 +127,14 @@ Esc - Exit the program'
 
         return cb_sensor, cb_movement, cb_sensor_overview
 
+    #Canvas where the map and the robot's position are drawn
     def initCanvas(self):
         map_canvas = Canvas(self, bg="white", width=str(self.canvas_width), height=str(self.canvas_height))
         map_canvas.place(x=500, y=0)
         self.debug_init_map_array()
         return map_canvas
 
+    #Textbox for showing datalog
     def init_text(self):
         data_text_box = Text(self, state=DISABLED, bg="gray62", width="62", height="30")
         data_text_box.place(x=0, y=0)
@@ -135,6 +142,7 @@ Esc - Exit the program'
         # dataTextBox.window_create(INSERT, window=button)
         return data_text_box
 
+    #Buttons for steering the robot and to change motors' speed
     def init_buttons(self):
         button_height = 5
         button_width = 10
@@ -203,17 +211,19 @@ Esc - Exit the program'
     def add_text(self, text):
         self.text_box.insert(END, text)
 
+    #Called when cb_movement is toggled. Clears the textbox
     def cb_movement_toggle(self):
         if self.cb_movement.getvar(str(self.cb_movement_var)) == "0":
             self.text_box.config(state=NORMAL)
             self.text_box.delete("0.0", END)
             self.text_box.config(state=DISABLED)
-            print("Movement Value is 0")
 
     def close_window(self):
         self.sensor_window.destroy()
         self.cb_sensor_overview_var.set("0")
 
+    #Called when cb_sensor_overview is toggled. Creates a window with updating
+    #sensor values. Is destroyed when disabled
     def cb_sensor_overview_toggle(self):
         if self.cb_sensor_overview.getvar(str(self.cb_sensor_overview_var)) == "1":
             self.sensor_window = Toplevel(root)
@@ -261,6 +271,7 @@ Esc - Exit the program'
         elif self.cb_sensor_overview.getvar(str(self.cb_sensor_overview_var)) == "0":
             self.sensor_window.destroy()
 
+    #Update the sensor values displayed in the sensor overview window
     def update_sensor_values(self, sensor_values):
         sensor_mapping = {0: sensor_values[5],
                          1: sensor_values[4],
@@ -325,6 +336,7 @@ Esc - Exit the program'
         global command_queue
         command_queue += ["stop"]
 
+    #Writes all sensor and movement data to a log file
     def print_to_log(self):
         with open('robotLog.txt', 'a') as file:
             file.write(self.messages[-1][0] + "\t" + self.messages[-1][1])
@@ -712,7 +724,6 @@ def main():
     root.mainloop()
 
     blue_thread.join()
-
 
 if __name__ == '__main__':
     main()

@@ -148,7 +148,11 @@ Esc - Exit the program'
         buttonForward = Button(self, command=self.moveForward, bg=buttonColor, activebackground=buttonActiveColor,
                                text="Forward", width=buttonWidth, height=buttonHeight)
         buttonBack = Button(self, command=self.moveBackward, bg=buttonColor, activebackground=buttonActiveColor,
-                            text="Down", width=buttonWidth, height=buttonHeight)
+                            text="Backward", width=buttonWidth, height=buttonHeight)
+        button_forward_left = Button(self, command=self.move_forward_left, bg=buttonColor, activebackground=buttonActiveColor,
+                             text="Forward \n Left", width=buttonWidth, height=buttonHeight)
+        button_forward_right = Button(self, command=self.move_forward_right, bg=buttonColor, activebackground=buttonActiveColor,
+                             text="Forward \n Right", width=buttonWidth, height=buttonHeight)
 
         buttonBothSpeeds = Button(self, command=lambda: self.setSpeed(0), bg=buttonColor,
                                   activebackground=buttonActiveColor, text="Both Speeds", width=buttonWidth,
@@ -169,6 +173,8 @@ Esc - Exit the program'
         buttonLeft.place(x=195, y=buttonY)
         buttonForward.place(x=280, y=510)
         buttonBack.place(x=280, y=buttonY)
+        button_forward_left.place(x=195,y=510)
+        button_forward_right.place(x=365, y=510)
 
         buttonBothSpeeds.place(x=10, y=buttonY)
         buttonLeftSpeed.place(x=10, y=510)
@@ -314,6 +320,16 @@ Esc - Exit the program'
 
         # self.robotPos = (self.robotPos[0] + self.robotSpeed * math.cos(self.robRotation), self.robotPos[1])
         # self.robotPos = (self.robotPos[0], self.robotPos[1] + self.robotSpeed * math.sin(self.robRotation))
+
+    def move_forward_left(self):
+        self.addToMessages("MOVE", "Forward left")
+        global commandQueue
+        commandQueue = ["forward left"]
+
+    def move_forward_right(self):
+        self.addToMessages("MOVE", "Forward right")
+        global commandQueue
+        commandQueue = ["forward right"]
 
     def stop(self):
         self.addToMessages("MOVE", "Stop")
@@ -662,6 +678,12 @@ def main():
         if e.char == 'd' and moveState != "right":
             moveState = "right"
             app.moveRight()
+        if e.char == 'q' and moveState != "forward left":
+            moveState = "forward left"
+            app.move_forward_left()
+        if e.char == 'e' and moveState != "forward right":
+            moveState = "forward right"
+            app.move_forward_right()
         if e.char == 'm':
             commandQueue = ["manual"]
         if e.char == 'p':

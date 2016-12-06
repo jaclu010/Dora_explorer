@@ -122,7 +122,7 @@ def test():
     min_dist = 40
     d_mean_covar = 11
     d_delta_covar = 1.65
-    two_delta_covar = 30
+    two_delta_covar = 35
     good_reading_count = 3
     angle_deviation_filter = 8
     score_percent_filter = 0.5
@@ -164,6 +164,7 @@ def test():
         dx = x - sin_cos[i - 1][0]
         dy = y - sin_cos[i - 1][1]
         delta.append((dx, dy))
+        dist = math.hypot(x, y)
 
         d_next_i = i + 3
         if d_next_i > size - 2:
@@ -181,7 +182,7 @@ def test():
             angle -= 90
         two_delta.append(abs(angle))
 
-        if abs(angle) < two_delta_covar:
+        if abs(angle) < two_delta_covar and dist >= 30:
             intersections.append((sin_cos[i][0], sin_cos[i][1], i))
 
     # Calculate delta of delta values
@@ -342,8 +343,8 @@ def test():
         _y0 = sin_cos[good_readings[i][0]][1]
         _y1 = sin_cos[good_readings[i][1]][1]
         c.create_line(_x0 + offsetX, _y0 + offsetY, _x1 + offsetX, _y1 + offsetY, fill='cyan')
-        intersections.append((_x0, _y0, good_readings[i][0]))
-        intersections.append((_x1, _y1, good_readings[i][1]))
+        #intersections.append((_x0, _y0, good_readings[i][0]))
+        #intersections.append((_x1, _y1, good_readings[i][1]))
 
         vectors.append((x0, y0, x1, y1))
         angles.append((math.degrees(math.atan2(-lines[i][1], lines[i][0])), i, 0))
@@ -463,8 +464,8 @@ def test():
     for i in range(len(dot_averaging)):
         next_i = i + 1
         if next_i >= len(dot_averaging): next_i = 0
-        c2.create_line(dot_averaging[i][0] + offsetX, dot_averaging[i][1] + offsetY,
-                       dot_averaging[next_i][0] + offsetX, dot_averaging[next_i][1] + offsetY, fill='#ABABAB', width=2)
+        #c2.create_line(dot_averaging[i][0] + offsetX, dot_averaging[i][1] + offsetY,
+                       #dot_averaging[next_i][0] + offsetX, dot_averaging[next_i][1] + offsetY, fill='#ABABAB', width=2)
         if dot_averaging[i][2] > dot_averaging[next_i][2]:
             new_lines.append((dot_averaging[i][0], dot_averaging[i][1],
                               dot_averaging[next_i][0], dot_averaging[next_i][1],
@@ -517,7 +518,7 @@ def test():
             if dist < dot_score_dist:
                 score += 1
 
-        print(score, d_readings, min_score_per_wall, line_len)
+        #print(score, d_readings, min_score_per_wall, line_len)
         #if score > score_filter:
         if line_len > 40 and d_readings < 5:
             closest_points.append((closest_1, closest_2, l))
@@ -537,6 +538,7 @@ def test():
     # Draw score vectors
 
     c2.create_oval(offsetX - 5, offsetY - 5, 5 + offsetX, 5 + offsetY, fill='black')
+    c3.create_oval(offsetX - 5, offsetY - 5, 5 + offsetX, 5 + offsetY, fill='black')
     # print(final_score)
 
     filtered_glas = []
@@ -558,14 +560,14 @@ def test():
 
         if fs[0] > 0:
             filtered_glas.append(fs)
-            c2.create_line(fs[1][2][0] + offsetX, fs[1][2][1] + offsetY,
-                           fs[1][2][2] + offsetX, fs[1][2][3] + offsetY, fill='red',
-                           width=thickness)
+            #c2.create_line(fs[1][2][0] + offsetX, fs[1][2][1] + offsetY,
+                           #fs[1][2][2] + offsetX, fs[1][2][3] + offsetY, fill='red',
+                           #width=thickness)
         else:
             thickness = 1
             color = '#ACACAC'
 
-        c3.create_line(x1n + offsetX, y1n + offsetY, x2n + offsetX, y2n + offsetY, fill=color, width=thickness)
+        c2.create_line(x1n + offsetX, y1n + offsetY, x2n + offsetX, y2n + offsetY, fill=color, width=thickness)
         rotated_lines.append((fs[0], x1n, y1n, x2n, y2n))
 
     nr = 31
@@ -583,8 +585,6 @@ def test():
     starting_point = 0
 
     for i in range(len(rotated_lines)):
-        next_i = i + 1
-        if next_i >= len(rotated_lines): next_i = 0
         dir_x = 0
         dir_y = 0
         dir_x_n = 0
@@ -592,73 +592,95 @@ def test():
 
         dx = rotated_lines[i][3] - rotated_lines[i][1]
         dy = rotated_lines[i][4] - rotated_lines[i][2]
-        dx_n = rotated_lines[next_i][3] - rotated_lines[next_i][1]
-        dy_n = rotated_lines[next_i][4] - rotated_lines[next_i][2]
+        dx_n = rotated_lines[i - 1][3] - rotated_lines[i - 1][1]
+        dy_n = rotated_lines[i - 1][4] - rotated_lines[i - 1][2]
 
-        legnth = math.sqrt(dx * dx + dy * dy)
-        dx /= legnth
-        dy /= legnth
-        legnth_n = math.sqrt(dx_n * dx_n + dy_n * dy_n)
-        dx_n /= legnth_n
-        dy_n /= legnth_n
+        l_len = math.hypot(dx, dy)
+        dx /= l_len
+        dy /= l_len
+        l_len_n = math.hypot(dx_n, dy_n)
+        dx_n /= l_len_n
+        dy_n /= l_len_n
 
         dx_dy = abs(dx) + abs(dy)
         dx_dy_n = abs(dx_n) + abs(dy_n)
 
-        if dx_dy < 1.3:
+        if dx_dy < 1.3 and line_score[i] != -1:
             if abs(dx) > abs(dy):
                 dir_x = round(dx)
             else:
                 dir_y = round(dy)
+        else:
+            dir_x = dx
+            dir_y = dy
 
-        if dx_dy_n < 1.3:
+        if dx_dy_n < 1.3 and line_score[i - 1] != -1:
             if abs(dx) > abs(dy):
-                dir_x = round(dx)
+                dir_x_n = round(dx)
             else:
-                dir_y = round(dy)
+                dir_y_n = round(dy)
+        else:
+            dir_x_n = dx_n
+            dir_y_n = dy_n
 
         if not found_start:
             if dir_x != dir_x_n or dir_y != dir_y_n:
-                starting_point = next_i
+                starting_point = i
                 found_start = True
 
-        straightened_lines.append((dx, dy, dx_dy, legnth))
+        straightened_lines.append((dir_x, dir_y, dx_dy, l_len))
 
-    for nr in range(len(rotated_lines)):
-        i = nr + starting_point
-        if i >= len(rotated_lines):
-            i -= len(rotated_lines)
-        # print(i)
-        dir_x = 0
-        dir_y = 0
-        base = 1
-        rl_score = -1
-
-        next_i = i + 1
-        if next_i >= len(rotated_lines): next_i = 0
-
-        dx_dy = straightened_lines[i][2]
+    # Merge concecutive lines in the same direction
+    merged_lines = []
+    i = 0
+    while i < len(straightened_lines):
+        cnt = 0
+        new_len = straightened_lines[i][3]
         dx = straightened_lines[i][0]
         dy = straightened_lines[i][1]
 
-        # print(dx_dy)
-        if dx_dy < 1.1:
-            rl_score = 0
-        elif dx_dy < 1.2:
-            rl_score = 1
-        elif dx_dy < 1.3:
-            rl_score = 2
+        for j in range(i + 1, len(straightened_lines) + starting_point, 1):
+            k = j
+            if k >= len(straightened_lines): k -= len(straightened_lines)
+            #print(i, k)
+            dx_n = straightened_lines[k][0]
+            dy_n = straightened_lines[k][1]
+            l_len_n = straightened_lines[k][3]
+            if dx == dx_n and dy == dy_n and line_score[k] != -1:
+                new_len += l_len_n
+                cnt += 1
+            else:
+                merged_lines.append((dx, dy, straightened_lines[i][2], new_len))
+                #print(merged_lines[-1])
+                break
+        if cnt > 0:
+            i = k
+        else:
+            i += 1
+
+    for i in range(len(merged_lines)):
+        next_i = i + 1
+        if next_i >= len(merged_lines): next_i = 0
+        rl_score = -1
+
+        dx_dy = merged_lines[i][2]
+        dir_x = merged_lines[i][0]
+        dir_y = merged_lines[i][1]
+        dx_n = merged_lines[next_i][0]
+        dy_n = merged_lines[next_i][1]
+
+        if isinstance(dx, int):
+            if dx_dy < 1.1:
+                rl_score = 0
+            elif dx_dy < 1.2:
+                rl_score = 1
+            elif dx_dy < 1.3:
+                rl_score = 2
 
         # If dx positive and ~1, dir = RIGHT
         # If dy negative and ~1, dir = UP
         # If dx negative and ~1, dir = LEFT
         # If dy positive and ~1, dir = DOWN
-
-        if rl_score != -1:
-            if abs(dx) > abs(dy):
-                dir_x = round(dx)
-            else:
-                dir_y = round(dy)
 
         """
         if rl_score == 0:
@@ -668,25 +690,72 @@ def test():
         elif rl_score == 2:
             base = 5
         """
+        l_len = merged_lines[i][3]
+        if rl_score == 2:
+            l_len *= 0.9
+        elif rl_score == 1:
+            l_len *= 0.95
+
         base = 5
-        legnth_round = int(base * round(float(straightened_lines[i][3]) / base))
+        len_round = int(base * round(float(l_len) / base))
+        nr_cells = len_round / 40
+        print(i, nr_cells)
 
         score = 10 - rl_score * 2
+        cnt = math.ceil(nr_cells)
+        print(cur_y, cur_x)
+
+        if nr_cells > score_percent_filter:
+            if dir_y == 0:
+                if dir_x == -1: # Floor down wall up
+                    for j in range(cnt):
+                        submap[cur_y][cur_x - j] -= 5
+                        submap[cur_y - 1][cur_x - j] += score
+                        if dy_n == -1:
+                            cur_y -= 1
+                            cur_x -= cnt
+                        else:
+                            cur_x -= (cnt - 1)
+
+                elif dir_x == 1: # Floor up wall down
+                    for j in range(cnt):
+                        submap[cur_y][cur_x + j] -= 5
+                        submap[cur_y + 1][cur_x + j] += score
+                        if dy_n == 1:
+                            cur_y += 1
+                            cur_x += cnt
+                        else:
+                            cur_x += (cnt - 1)
+
+            elif dir_x == 0:
+                if dir_y == -1: # Floor down wall up
+                    for j in range(cnt):
+                        submap[cur_y - j][cur_x] -= 5
+                        submap[cur_y - j][cur_x + 1] += score
+                        if dx_n == 1:
+                            cur_y -= cnt
+                            cur_x += 1
+                        else:
+                            cur_y -= (cnt - 1)
+
+                elif dir_y == 1: # Floor right wall left
+                    for j in range(cnt):
+                        submap[cur_y + j][cur_x] -= 5
+                        submap[cur_y + j][cur_x - 1] += score
+                        if dx_n == -1:
+                            cur_y += cnt
+                            cur_x -= 1
+                        else:
+                            cur_y += (cnt - 1)
 
         if rl_score == -1:
             score = -1
 
-        if rl_score < 2:
-            if 30 < legnth_round < 50:
-                submap[cur_y][cur_x] = score
-
-        nr_cells = legnth / 40
-
         # print(cur_x, cur_y)
-        # print(rl_score, legnth_round, nr_cells, legnth, dx, dy, dx_dy)
+        # print(rl_score, len_round, nr_cells, legnth, dx, dy, dx_dy)
 
-        # for i in range(len(submap)):
-        # print(submap[i])
+    for i in range(len(submap)):
+        print(submap[i])
 
     root.after(200, test)
 

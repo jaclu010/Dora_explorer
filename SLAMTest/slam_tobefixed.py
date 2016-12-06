@@ -571,7 +571,7 @@ def test():
         rotated_lines.append((fs[0], x1n, y1n, x2n, y2n))
 
     nr = 31
-    submap = [[-1 for x in range(nr)] for y in range(nr)]
+    submap = [[0 for x in range(nr)] for y in range(nr)]
     straightened_lines = []
     cur_x = 15
     cur_y = 15
@@ -585,15 +585,15 @@ def test():
     starting_point = 0
 
     for i in range(len(rotated_lines)):
-        dir_x = 0
-        dir_y = 0
-        dir_x_n = 0
-        dir_y_n = 0
-
         dx = rotated_lines[i][3] - rotated_lines[i][1]
         dy = rotated_lines[i][4] - rotated_lines[i][2]
         dx_n = rotated_lines[i - 1][3] - rotated_lines[i - 1][1]
         dy_n = rotated_lines[i - 1][4] - rotated_lines[i - 1][2]
+
+        dir_x = dx
+        dir_y = dy
+        dir_x_n = dx_n
+        dir_y_n = dy_n
 
         l_len = math.hypot(dx, dy)
         dx /= l_len
@@ -605,28 +605,31 @@ def test():
         dx_dy = abs(dx) + abs(dy)
         dx_dy_n = abs(dx_n) + abs(dy_n)
 
-        if dx_dy < 1.3 and line_score[i] != -1:
+        if dx_dy < 1.3:
             if abs(dx) > abs(dy):
                 dir_x = round(dx)
+                dir_y = 0
             else:
                 dir_y = round(dy)
-        else:
-            dir_x = dx
-            dir_y = dy
+                dir_x = 0
 
-        if dx_dy_n < 1.3 and line_score[i - 1] != -1:
+        if dx_dy_n < 1.3:
             if abs(dx) > abs(dy):
                 dir_x_n = round(dx)
+                dir_y_n = 0
             else:
                 dir_y_n = round(dy)
-        else:
-            dir_x_n = dx_n
-            dir_y_n = dy_n
+                dir_x_n = 0
 
         if not found_start:
             if dir_x != dir_x_n or dir_y != dir_y_n:
                 starting_point = i
                 found_start = True
+        print(dx, dy)
+        if dx_dy >= 1.3:
+            
+            dir_x = round(dx)
+            dir_y = round(dy)
 
         straightened_lines.append((dir_x, dir_y, dx_dy, l_len))
 
@@ -638,23 +641,39 @@ def test():
         new_len = straightened_lines[i][3]
         dx = straightened_lines[i][0]
         dy = straightened_lines[i][1]
+        line_scr = line_score[i]
 
         for j in range(i + 1, len(straightened_lines) + starting_point, 1):
             k = j
             if k >= len(straightened_lines): k -= len(straightened_lines)
-            #print(i, k)
+            print(i, k)
             dx_n = straightened_lines[k][0]
             dy_n = straightened_lines[k][1]
             l_len_n = straightened_lines[k][3]
-            if dx == dx_n and dy == dy_n and line_score[k] != -1:
-                new_len += l_len_n
-                cnt += 1
+            line_scr_n = line_score[k]
+            if line_scr != -1 and line_scr_n != -1:
+                if dx == dx_n and dy == dy_n and line_scr_n != -1:
+                    new_len += l_len_n
+                    cnt += 1
+                elif line_scr_n != -1:
+                    merged_lines.append((dx, dy, straightened_lines[i][2], new_len, 1))
+                    print(merged_lines[-1])
+                    break
+            elif line_scr == -1:
+                if dx == dx_n and dy == dy_n:
+                    new_len += l_len_n
+                    cnt += 1
+                else:
+                    merged_lines.append((dx, dy, straightened_lines[i][2], new_len, -1))
+                    print(merged_lines[-1])
+                    break
             else:
-                merged_lines.append((dx, dy, straightened_lines[i][2], new_len))
-                #print(merged_lines[-1])
+                merged_lines.append((dx, dy, straightened_lines[i][2], new_len, 1))
+                print(merged_lines[-1])
                 break
+
         if cnt > 0:
-            i = k
+            i += cnt + 1
         else:
             i += 1
 
@@ -668,6 +687,8 @@ def test():
         dir_y = merged_lines[i][1]
         dx_n = merged_lines[next_i][0]
         dy_n = merged_lines[next_i][1]
+        line_scr = merged_lines[i][4]
+        line_scr_n = merged_lines[next_i][4]
 
         if isinstance(dx, int):
             if dx_dy < 1.1:
@@ -682,14 +703,6 @@ def test():
         # If dx negative and ~1, dir = LEFT
         # If dy positive and ~1, dir = DOWN
 
-        """
-        if rl_score == 0:
-            base = 10
-        elif rl_score == 1:
-            base = 10
-        elif rl_score == 2:
-            base = 5
-        """
         l_len = merged_lines[i][3]
         if rl_score == 2:
             l_len *= 0.9
@@ -699,39 +712,94 @@ def test():
         base = 5
         len_round = int(base * round(float(l_len) / base))
         nr_cells = len_round / 40
-        print(i, nr_cells)
+
 
         score = 10 - rl_score * 2
+        if line_scr == -1:
+            score = -1
         cnt = math.ceil(nr_cells)
-        print(cur_y, cur_x)
+        print(i, cur_x, cur_y, nr_cells, cnt, dx_n, dy_n)
+        
 
-        if nr_cells > score_percent_filter:
-            if dir_y == 0:
-                if dir_x == -1: # Floor down wall up
-                    for j in range(cnt):
-                        submap[cur_y][cur_x - j] -= 5
-                        submap[cur_y - 1][cur_x - j] += score
+        #print(cur_x, cur_y)
+        if nr_cells > 0:
+            for j in range(cnt):
+                cnt_x = j * dir_x
+                cnt_y = j * dir_y
+                submap[cur_y + cnt_y][cur_x + cnt_x] += score
+
+            if line_scr != -1:    
+                if dir_y == 0:
+                    if dir_x == -1: # Floor down wall up
                         if dy_n == -1:
-                            cur_y -= 1
-                            cur_x -= cnt
-                        else:
                             cur_x -= (cnt - 1)
-
-                elif dir_x == 1: # Floor up wall down
-                    for j in range(cnt):
-                        submap[cur_y][cur_x + j] -= 5
-                        submap[cur_y + 1][cur_x + j] += score
-                        if dy_n == 1:
-                            cur_y += 1
-                            cur_x += cnt
                         else:
-                            cur_x += (cnt - 1)
+                            cur_x -= cnt
+                            cur_y += 1
 
+                    elif dir_x == 1: # Floor up wall down
+                        if dy_n == 1:
+                            cur_x += (cnt - 1)
+                        else:
+                            cur_x += cnt
+                            cur_y -= 1
+
+                else:
+                    if dir_y == -1: # Floor down wall up
+                        if dx_n == 1:
+                            cur_y -= (cnt - 1)
+                        else:
+                            cur_x -= 1
+                            cur_y -= cnt
+
+                    elif dir_y == 1: # Floor right wall left
+                        if dx_n == -1:
+                            cur_y += (cnt - 1)
+                        else:
+                            cur_x += 1
+                            cur_y += cnt
+
+            else: # line_scr_n == -1
+                if dir_y == 0:
+                    if dir_x == -1:
+                        if dy_n == 0:
+                            if dx_n == -1:
+                                
+                            cur_x -= (cnt - 1)
+                        else:
+                            cur_x -= cnt
+                            cur_y -= 1
+
+                    elif dir_x == 1:
+                        if dy_n == 1:
+                            cur_x += (cnt - 1)
+                        else:
+                            cur_x += cnt
+                            cur_y -= 1
+
+                else:
+                    if dir_y == -1:
+                        if dx_n == 1:
+                            cur_y -= (cnt - 1)
+                        else:
+                            cur_x -= 1
+                            cur_y -= cnt
+
+                    elif dir_y == 1:
+                        if dx_n == -1:
+                            cur_y += (cnt - 1)
+                        else:
+                            cur_x += 1
+                            cur_y += cnt
+                            
+                
+            """
             elif dir_x == 0:
                 if dir_y == -1: # Floor down wall up
                     for j in range(cnt):
-                        submap[cur_y - j][cur_x] -= 5
+                        submap[cur_y - j][cur_x] = 0
                         submap[cur_y - j][cur_x + 1] += score
+                    if line_scr_n != -1:
                         if dx_n == 1:
                             cur_y -= cnt
                             cur_x += 1
@@ -740,22 +808,39 @@ def test():
 
                 elif dir_y == 1: # Floor right wall left
                     for j in range(cnt):
-                        submap[cur_y + j][cur_x] -= 5
+                        submap[cur_y + j][cur_x] = 0
                         submap[cur_y + j][cur_x - 1] += score
+                    if line_scr_n != -1:
                         if dx_n == -1:
                             cur_y += cnt
                             cur_x -= 1
                         else:
                             cur_y += (cnt - 1)
+            """
 
         if rl_score == -1:
             score = -1
 
-        # print(cur_x, cur_y)
-        # print(rl_score, len_round, nr_cells, legnth, dx, dy, dx_dy)
+        #print(cur_x, cur_y)
+        #print(rl_score, len_round, nr_cells, legnth, dx, dy, dx_dy)
 
-    for i in range(len(submap)):
-        print(submap[i])
+    offset_grid = height / nr
+    for i in range(nr):
+        for j in range(nr):
+            score = submap[i][j]
+            if i == 15 and j == 15:
+                color = 'green'
+            elif score == 0:
+                color = 'white'
+            elif score < 0:
+                color = 'gray'
+            else:
+                color = 'yellow'
+
+            c3.create_rectangle(j*offset_grid, i*offset_grid, j*offset_grid + offset_grid, 
+                                i*offset_grid + offset_grid, fill=color, outline='white')
+            c3.create_text(j*offset_grid + offset_grid/2, i*offset_grid + offset_grid/2, 
+                           fill='magenta', text=score)
 
     root.after(200, test)
 

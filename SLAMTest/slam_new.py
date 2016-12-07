@@ -4,12 +4,12 @@ from tkinter import *
 # from scipy.optimize import curve_fit
 # import numpy as np
 
-offsetX = 215
-offsetY = 215
+offsetX = 300
+offsetY = 300
 
 active_gui = True
 
-with open("slamfixed4.txt", "r") as f:
+with open("slamfixed2.txt", "r") as f:
     a = f.readlines()
 
 read_list = []
@@ -66,11 +66,11 @@ def getIndex(item):
 
 root = Tk()
 root.title("Submapping")
-width = 400
-height = 400
-c = Canvas(root, width=400, height=400)
-c2 = Canvas(root, width=400, height=400)
-c3 = Canvas(root, width=300, height=300)
+width = 600
+height = 600
+c = Canvas(root, width=600, height=600)
+c2 = Canvas(root, width=600, height=600)
+c3 = Canvas(root, width=600, height=600)
 c.pack(side=LEFT)
 c3.pack(side=RIGHT)
 c2.pack(side=RIGHT)
@@ -811,7 +811,24 @@ def test():
 
                 #cur_x += dir_x * cnt
                 #cur_y += dir_y * cnt
-
+            if line_scr != -1 and line_scr != -1:
+                if dx_n == dir_y and dy_n == -dir_x:
+                    if dir_x != 0:
+                        cur_x += (cnt - 1) + dir_x
+                        cur_y += dy_n
+                    else:
+                        cur_x += dx_n
+                        cur_y += (cnt - 1) + dir_y
+                else:
+                    if dir_x != 0:
+                        cur_x += (cnt - 1)
+                    else:
+                        cur_y += (cnt - 1)
+            else:
+                print(dir_x, dir_y, a_bad_dx, a_bad_dy, dx_n, dy_n)
+                cur_x += (dir_x * a_bad_dx + dx_n)
+                cur_y += (dir_y * a_bad_dy + dy_n)
+            """
             if line_scr_n != -1 and line_scr != -1:
                 if dir_y == 0:
                     if dir_x == -1:  # Floor down wall up
@@ -842,9 +859,8 @@ def test():
                         else:
                             cur_x += 1
                             cur_y += cnt
-            else:
-                cur_x += (dir_x * a_bad_dx + dx_n)
-                cur_y += (dir_y * a_bad_dy + dy_n)
+            """
+
 
             #print(cur_x, cur_y)
             """

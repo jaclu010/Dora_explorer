@@ -15,222 +15,222 @@ class BluetoothThread(threading.Thread):
     def run(self):
         blue()
 
+
 # Bluetooth concurrency
-blue_thread = BluetoothThread()
-messages_lock = threading.Lock()
-new_message_queue = []
+blueThread = BluetoothThread()
+messagesLock = threading.Lock()
+newMessageQueue = []
 
 # Bluetooth connection
 server_sock = BluetoothSocket(RFCOMM)
 
 # Queue with commands to send to Dora
-command_queue = []
-move_state = "stop"
+commandQueue = []
+moveState = "stop"
 
 # Mouse button 1 states
-m1_down = False
-m1_down_pos = (0, 0)
-m1_up_pos = m1_down_pos
+m1Down = False
+m1DownPos = (0, 0)
+m1UpPos = m1DownPos
 
-#GUI root window
 root = Tk()
 root.geometry("1280x720")
 
 # Lists with data from Dora
-map_list = []
-rob_list = []
-laser_list = []
+mapList = []
+robList = []
+laserList = []
 
-# Initiates all variables and windows concerning the GUI.
+
 class Window(Frame):
     def __init__(self, master=None):
         Frame.__init__(self, master)
 
         self.frame = Frame
-        self.canvas_width = 780
-        self.canvas_height = 720
-        self.map_array = []
+        self.canvasWidth = 780
+        self.canvasHeight = 720
+        self.mapArray = []
 
-        self.m_down = False
-        self.m_prev_down = m1_down
+        self.mDown = False
+        self.mPrevDown = m1Down
 
         self.up = False
-        self.map_size = 25
-        self.map_rotation = math.pi / 4
-        self.rob_rotation = math.pi
-        self.robot_pos = (10, 10)
-        self.robot_speed = 0.5
+        self.mapSize = 25
+        self.mapRotation = math.pi / 4
+        self.robRotation = math.pi
+        self.robotPos = (10, 10)
+        self.robotSpeed = 0.5
 
         self.master = master
         self.master.title("Dora The Explorer")
         self.pack(fill=BOTH, expand=1)
         self.messages = []
-
-        #Create dropdown menu
         menu = Menu(self.master)
         self.master.config(menu=menu)
         file = Menu(menu)
-        file.add_command(label="Clear robotLog.txt", command=clear_robot_log)
-        file.add_command(label="Help", command=self.show_help)
+        file.add_command(label="Clear robotLog.txt", command=clearRobotLog)
+        file.add_command(label="Help", command=self.showHelp)
         file.add_command(label="Exit", command=self.close)
         menu.add_cascade(label="File", menu=file)
-        self.map_canvas = self.initCanvas()
-
+        self.mapCanvas = self.initCanvas()
         # All canvasobjects are kept in this list
-        self.canvas_list = []
+        self.canvasList = []
 
-        self.canvas_off_x = self.map_size
-        self.canvas_off_y = self.map_size
+        self.canvasOffX = self.mapSize
+        self.canvasOffY = self.mapSize
 
-        self.text_box = self.init_text()
-        self.init_buttons()
-        self.cb_sensor, self.cb_movement, self.cb_sensor_overview = self.init_checkboxes()
-        self.canv_update()
+        self.textBox = self.initText()
+        self.initButtons()
+        self.cbSensor, self.cbMovement, self.cb_sensor_overview = self.initCheckboxes()
+        self.canvUpdate()
 
-    # Sets up a help window
-    def show_help(self):
+    def showHelp(self):
         from tkinter import messagebox
-        help_text = 'Keyboard controls:\n\n\
-                    W, A, S, D - Drive Dora\n\
-                    M - Switch between manual and autonomous mode\n\
-                    P, I, O - Set the constants Kp, Ki and Kd respectively for the PID algorithm\n\
-                    Esc - Exit the program'
-        messagebox.showinfo("Help", help_text)
+        helpText = 'Keyboard controls:\n\n\
+W, A, S, D - Drive Dora\n\
+M - Switch between manual and autonomous mode\n\
+P, I, O - Set the constants Kp, Ki and Kd respectively for the PID algorithm\n\
+Esc - Exit the program'
+        messagebox.showinfo("Help", helpText)
 
-    def debug_init_map_array(self):
+    def debugInitMapArray(self):
         # mapArray will always have an equal height and width
         # 0 == undefined block, #1 == empty block, #2 == wall
-        self.canvas_list = []
+        self.canvasList = []
         for y in range(0, 31):
             a = []
             for x in range(0, 31):
-                val = "0"
+                val = 0
                 a.append(val)
-            self.map_array.append(a)
+            self.mapArray.append(a)
 
-    #Initialize checkboxes for displaying a sensor overview and toggling
-    #what to show in the datalog
-    def init_checkboxes(self):
-        self.cb_sensor_var = IntVar()
-        cb_sensor = Checkbutton(self, text="Show sensor data", variable=self.cb_sensor_var)
-        cb_sensor.place(x=0, y=460)
+    def initCheckboxes(self):
+        self.cbSensorVar = IntVar()
+        cbSensor = Checkbutton(self, text="Show sensor data", variable=self.cbSensorVar,
+                               command=self.cbSensorToggle)
+        cbSensor.place(x=0, y=460)
 
-        self.cb_movement_var = IntVar()
-        cb_movement = Checkbutton(self, text="Show movement data", variable=self.cb_movement_var,
-                                  command=self.cb_movement_toggle)
-        cb_movement.place(x=120, y=460)
+        self.cbMovementVar = IntVar()
+        cbMovement = Checkbutton(self, text="Show movement data", variable=self.cbMovementVar,
+                                 command=self.cbMovementToggle)
+        cbMovement.place(x=120, y=460)
 
         self.cb_sensor_overview_var = IntVar()
         cb_sensor_overview = Checkbutton(self, text="Show sensor overview", variable=self.cb_sensor_overview_var,
                                          command=self.cb_sensor_overview_toggle)
         cb_sensor_overview.place(x=263, y=460)
 
-        return cb_sensor, cb_movement, cb_sensor_overview
+        return cbSensor, cbMovement, cb_sensor_overview
 
-    #Canvas where the map and the robot's position are drawn
     def initCanvas(self):
-        map_canvas = Canvas(self, bg="white", width=str(self.canvas_width), height=str(self.canvas_height))
-        map_canvas.place(x=500, y=0)
-        self.debug_init_map_array()
-        return map_canvas
+        mapCanvas = Canvas(self, bg="white", width=str(self.canvasWidth), height=str(self.canvasHeight))
+        mapCanvas.place(x=500, y=0)
+        self.debugInitMapArray()
+        return mapCanvas
 
-    #Textbox for showing datalog
-    def init_text(self):
-        data_text_box = Text(self, state=DISABLED, bg="gray62", width="62", height="30")
-        data_text_box.place(x=0, y=0)
+    def initText(self):
+        dataTextBox = Text(self, state=DISABLED, bg="gray62", width="62", height="30")
+        dataTextBox.place(x=0, y=0)
         # button = Button(dataTextBox, text="Click")
         # dataTextBox.window_create(INSERT, window=button)
-        return data_text_box
+        return dataTextBox
 
-    #Buttons for steering the robot and to change motors' speed
-    def init_buttons(self):
-        button_height = 5
-        button_width = 10
-        button_color = "gray42"
-        button_active_color = "gray58"
+    def initButtons(self):
+        buttonHeight = 5
+        buttonWidth = 10
+        buttonColor = "gray42"
+        buttonActiveColor = "gray58"
 
-        button_right = Button(self, command=self.move_right, bg=button_color, activebackground=button_active_color,
-                              text="Right", width=button_width, height=button_height)
-        button_left = Button(self, command=self.move_left, bg=button_color, activebackground=button_active_color,
-                             text="Left", width=button_width, height=button_height)
-        button_forward = Button(self, command=self.move_forward, bg=button_color, activebackground=button_active_color,
-                                text="Forward", width=button_width, height=button_height)
-        button_back = Button(self, command=self.move_backward, bg=button_color, activebackground=button_active_color,
-                             text="Backward", width=button_width, height=button_height)
-        button_forward_left = Button(self, command=self.move_forward_left, bg=button_color, activebackground=button_active_color,
-                             text="Forward \n Left", width=button_width, height=button_height)
-        button_forward_right = Button(self, command=self.move_forward_right, bg=button_color, activebackground=button_active_color,
-                             text="Forward \n Right", width=button_width, height=button_height)
+        buttonRight = Button(self, command=self.moveRight, bg=buttonColor, activebackground=buttonActiveColor,
+                             text="Right", width=buttonWidth, height=buttonHeight)
+        buttonLeft = Button(self, command=self.moveLeft, bg=buttonColor, activebackground=buttonActiveColor,
+                            text="Left", width=buttonWidth, height=buttonHeight)
+        buttonForward = Button(self, command=self.moveForward, bg=buttonColor, activebackground=buttonActiveColor,
+                               text="Forward", width=buttonWidth, height=buttonHeight)
+        buttonBack = Button(self, command=self.moveBackward, bg=buttonColor, activebackground=buttonActiveColor,
+                            text="Backward", width=buttonWidth, height=buttonHeight)
+        button_forward_left = Button(self, command=self.move_forward_left, bg=buttonColor, activebackground=buttonActiveColor,
+                             text="Forward \n Left", width=buttonWidth, height=buttonHeight)
+        button_forward_right = Button(self, command=self.move_forward_right, bg=buttonColor, activebackground=buttonActiveColor,
+                             text="Forward \n Right", width=buttonWidth, height=buttonHeight)
 
-        button_both_speeds = Button(self, command=lambda: self.set_speed(0), bg=button_color,
-                                    activebackground=button_active_color, text="Both Speeds", width=button_width,
-                                    height=button_height)
-        button_left_speed = Button(self, command=lambda: self.set_speed(1), bg=button_color,
-                                   activebackground=button_active_color,
-                                   text="Left Speed", width=button_width, height=button_height)
-        button_right_speed = Button(self, command=lambda: self.set_speed(2), bg=button_color,
-                                    activebackground=button_active_color,
-                                    text="Right Speed", width=button_width, height=button_height)
-        button_tower_speed = Button(self, command=lambda: self.set_speed(3), bg=button_color,
-                                    activebackground=button_active_color,
-                                    text="Tower Speed", width=button_width, height=button_height)
+        buttonBothSpeeds = Button(self, command=lambda: self.setSpeed(0), bg=buttonColor,
+                                  activebackground=buttonActiveColor, text="Both Speeds", width=buttonWidth,
+                                  height=buttonHeight)
+        buttonLeftSpeed = Button(self, command=lambda: self.setSpeed(1), bg=buttonColor,
+                                 activebackground=buttonActiveColor,
+                                 text="Left Speed", width=buttonWidth, height=buttonHeight)
+        buttonRightSpeed = Button(self, command=lambda: self.setSpeed(2), bg=buttonColor,
+                                  activebackground=buttonActiveColor,
+                                  text="Right Speed", width=buttonWidth, height=buttonHeight)
+        buttonTowerSpeed = Button(self, command=lambda: self.setSpeed(3), bg=buttonColor,
+                                  activebackground=buttonActiveColor,
+                                  text="Tower Speed", width=buttonWidth, height=buttonHeight)
 
-        button_y = 600
+        buttonY = 600
 
-        button_right.place(x=365, y=button_y)
-        button_left.place(x=195, y=button_y)
-        button_forward.place(x=280, y=510)
-        button_back.place(x=280, y=button_y)
+        buttonRight.place(x=365, y=buttonY)
+        buttonLeft.place(x=195, y=buttonY)
+        buttonForward.place(x=280, y=510)
+        buttonBack.place(x=280, y=buttonY)
         button_forward_left.place(x=195,y=510)
         button_forward_right.place(x=365, y=510)
 
-        button_both_speeds.place(x=10, y=button_y)
-        button_left_speed.place(x=10, y=510)
-        button_right_speed.place(x=95, y=510)
-        button_tower_speed.place(x=95, y=button_y)
+        buttonBothSpeeds.place(x=10, y=buttonY)
+        buttonLeftSpeed.place(x=10, y=510)
+        buttonRightSpeed.place(x=95, y=510)
+        buttonTowerSpeed.place(x=95, y=buttonY)
 
-    def set_speed(self, side):
-        global command_queue
+    def setSpeed(self, side):
+        global commandQueue
         if side == 0:  # both
             ans = simpledialog.askinteger("Speeds", "Enter speed for both motor pairs:")
             if ans is not None and 0 <= ans <= 255:
-                command_queue = ["speed_both_" + str(ans)]
+                commandQueue = ["speed_both_" + str(ans)]
         elif side == 1:  # left
             ans = simpledialog.askinteger("Left Speed", "Enter speed for left motor pair:")
             if ans is not None and 0 <= ans <= 255:
-                command_queue = ["speed_left_" + str(ans)]
+                commandQueue = ["speed_left_" + str(ans)]
         elif side == 2:  # right
             ans = simpledialog.askinteger("Right Speed", "Enter speed for right motor pair:")
             if ans is not None and 0 <= ans <= 255:
-                command_queue = ["speed_right_" + str(ans)]
+                commandQueue = ["speed_right_" + str(ans)]
         elif side == 3:  # tower
             ans = simpledialog.askinteger("Laser Tower Speed", "Enter speed for the laser tower motor:")
             if ans is not None and 0 <= ans <= 255:
-                command_queue = ["speed_tower_" + str(ans)]
+                commandQueue = ["speed_tower_" + str(ans)]
 
-    def add_text(self, text):
-        self.text_box.insert(END, text)
+    def addText(self, text):
+        self.textBox.insert(END, text)
 
-    #Called when cb_movement is toggled. Clears the textbox
-    def cb_movement_toggle(self):
-        if self.cb_movement.getvar(str(self.cb_movement_var)) == "0":
-            self.text_box.config(state=NORMAL)
-            self.text_box.delete("0.0", END)
-            self.text_box.config(state=DISABLED)
+    def cbSensorToggle(self):
+        if self.cbSensor.getvar(str(self.cbSensorVar)) == "1":
+
+            print("Sensor Value is 1")
+        elif self.cbSensor.getvar(str(self.cbSensorVar)) == "0":
+            print("Sensor Value is 0")
+
+    def cbMovementToggle(self):
+        if self.cbMovement.getvar(str(self.cbMovementVar)) == "1":
+            print("Movement Value is 1")
+        elif self.cbMovement.getvar(str(self.cbMovementVar)) == "0":
+            self.textBox.config(state=NORMAL)
+            self.textBox.delete("0.0", END)
+            self.textBox.config(state=DISABLED)
+            print("Movement Value is 0")
 
     def close_window(self):
         self.sensor_window.destroy()
         self.cb_sensor_overview_var.set("0")
 
-    #Called when cb_sensor_overview is toggled. Creates a window with updating
-    #sensor values. Is destroyed when disabled
     def cb_sensor_overview_toggle(self):
         if self.cb_sensor_overview.getvar(str(self.cb_sensor_overview_var)) == "1":
+            print("overview value is 1")
             self.sensor_window = Toplevel(root)
             self.sensor_window.geometry('500x355')  # 293x322
             self.sensor_window.title("Sensor values")
-            self.canvas = Canvas(self.sensor_window, bg="black", width=str(self.canvas_width),
-                                 height=str(self.canvas_height))
+            self.canvas = Canvas(self.sensor_window, bg="black", width=str(self.canvasWidth),
+                                 height=str(self.canvasHeight))
             self.canvas.pack()
             dora_picture = PhotoImage(file="dora.png")
             self.label = Label(self.canvas, image=dora_picture)
@@ -270,8 +270,8 @@ class Window(Frame):
 
         elif self.cb_sensor_overview.getvar(str(self.cb_sensor_overview_var)) == "0":
             self.sensor_window.destroy()
+            print("overview value is 0")
 
-    #Update the sensor values displayed in the sensor overview window
     def update_sensor_values(self, sensor_values):
         sensor_mapping = {0: sensor_values[5],
                          1: sensor_values[4],
@@ -290,230 +290,244 @@ class Window(Frame):
 
     root.bind('<Escape>', close)
 
-    def move_right(self):
-        self.add_to_messages("MOVE", "Right")
-        global command_queue
-        command_queue = ["turn_right"]
+    def moveRight(self):
+        self.addToMessages("MOVE", "Right")
+        global commandQueue
+        commandQueue = ["turn_right"]
         # self.robotPos = self.addTuple(self.robotPos, t2)
         # self.robRotation += math.pi / 10
 
-    def move_left(self):
-        self.add_to_messages("MOVE", "Left")
-        global command_queue
-        command_queue = ["turn_left"]
+    def moveLeft(self):
+        self.addToMessages("MOVE", "Left")
+        global commandQueue
+        commandQueue = ["turn_left"]
         # self.robotPos = self.addTuple(self.robotPos, t2)
         # self.robRotation -= math.pi / 10
 
-    def move_forward(self):
-        self.add_to_messages("MOVE", "Forward")
-        global command_queue
-        command_queue = ["forward"]
+    def moveForward(self):
+        self.addToMessages("MOVE", "Forward")
+        global commandQueue
+        commandQueue = ["forward"]
         # self.robotPos = (self.robotPos[0] - self.robotSpeed * math.cos(self.robRotation), self.robotPos[1])
         # self.robotPos = (self.robotPos[0], self.robotPos[1] - self.robotSpeed * math.sin(self.robRotation))
 
         # self.robotPos = self.addTuple(self.robotPos, t2)
 
-    def move_backward(self):
-        self.add_to_messages("MOVE", "Backward")
-        global command_queue
-        command_queue = ["backward"]
+    def moveBackward(self):
+        self.addToMessages("MOVE", "Backward")
+        global commandQueue
+        commandQueue = ["backward"]
 
         # self.robotPos = (self.robotPos[0] + self.robotSpeed * math.cos(self.robRotation), self.robotPos[1])
         # self.robotPos = (self.robotPos[0], self.robotPos[1] + self.robotSpeed * math.sin(self.robRotation))
 
     def move_forward_left(self):
-        self.add_to_messages("MOVE", "Forward left")
-        global command_queue
-        command_queue = ["forward_left"]
+        self.addToMessages("MOVE", "Forward left")
+        global commandQueue
+        commandQueue = ["forward_left"]
 
     def move_forward_right(self):
-        self.add_to_messages("MOVE", "Forward right")
-        global command_queue
-        command_queue = ["forward_right"]
+        self.addToMessages("MOVE", "Forward right")
+        global commandQueue
+        commandQueue = ["forward_right"]
 
     def stop(self):
-        self.add_to_messages("MOVE", "Stop")
-        global command_queue
-        command_queue += ["stop"]
+        self.addToMessages("MOVE", "Stop")
+        global commandQueue
+        commandQueue += ["stop"]
 
-    #Writes all sensor and movement data to a log file
-    def print_to_log(self):
+    def printToLog(self):
         with open('robotLog.txt', 'a') as file:
             file.write(self.messages[-1][0] + "\t" + self.messages[-1][1])
 
-        self.text_box.config(state=NORMAL)
+        self.textBox.config(state=NORMAL)
 
-        if self.messages[-1][0] == "MOVE" and self.cb_movement.getvar(str(self.cb_movement_var)) == "1":
-            self.text_box.insert("0.0", self.messages[-1][1])
-        elif self.messages[-1][0] == "SENS" and self.cb_sensor.getvar(str(self.cb_sensor_var)) == "1":
-            self.text_box.insert("0.0", self.messages[-1][1])
+        if self.messages[-1][0] == "MOVE" and self.cbMovement.getvar(str(self.cbMovementVar)) == "1":
+            self.textBox.insert("0.0", self.messages[-1][1])
+        elif self.messages[-1][0] == "SENS" and self.cbSensor.getvar(str(self.cbSensorVar)) == "1":
+            self.textBox.insert("0.0", self.messages[-1][1])
 
-        elif self.messages[-1][0] == "LASER" and self.cb_sensor.getvar(str(self.cb_sensor_var)) == "1":
-            self.text_box.insert("0.0", self.messages[-1][1])
-        elif self.messages[-1][0] == "GYRO" and self.cb_sensor.getvar(str(self.cb_sensor_var)) == "1":
-            self.text_box.insert("0.0", self.messages[-1][1])
+        elif self.messages[-1][0] == "LASER" and self.cbSensor.getvar(str(self.cbSensorVar)) == "1":
+            self.textBox.insert("0.0", self.messages[-1][1])
+        elif self.messages[-1][0] == "GYRO" and self.cbSensor.getvar(str(self.cbSensorVar)) == "1":
+            self.textBox.insert("0.0", self.messages[-1][1])
 
-        self.text_box.config(state=DISABLED)
+        self.textBox.config(state=DISABLED)
 
-    def add_to_messages(self, type, message):
+    def addToMessages(self, type, message):
         if type == "SENS" and self.cb_sensor_overview.getvar(str(self.cb_sensor_overview_var)) == "1":
             # Take only the list of values from the message string
             parts = message.split('[')
             self.update_sensor_values(ast.literal_eval('[' + parts[2]))
 
         self.messages.append((type, strftime("%H:%M:%S", gmtime()) + "\t" + message + "\n"))
-        self.print_to_log()
+        self.printToLog()
 
-    def canv_update(self):
-        global map_list, rob_list, m1_down, m1_up_pos, m1_down_pos
-        self.canvas_off_x = 10 #self.canvas_width / 2 - (self.map_size * 20) / 2
-        self.canvas_off_y = 10 #self.canvas_height / 2 - (self.map_size * 20) / 2
-        self.m_down = m1_down
+    def canvUpdate(self):
+        global mapList, robList, m1Down, m1UpPos, m1DownPos
+        self.canvasOffX = 10 #self.canvasWidth / 2 - (self.mapSize * 20) / 2
+        self.canvasOffY = 10 #self.canvasHeight / 2 - (self.mapSize * 20) / 2
+        self.mDown = m1Down
 
-        if self.m_down:
-            a = (m1_down_pos[0] - m1_up_pos[0])
+
+        if self.mDown:
+            a = (m1DownPos[0] - m1UpPos[0])
             a = a / 10000.0
-            self.map_rotation += math.degrees(a)
+            self.mapRotation += math.degrees(a)
 
-        self.m_prev_down = self.m_down
+        self.mPrevDown = self.mDown
 
-        if map_list:
-            self.map_array = map_list
-        # if rob_list:
-        #    self.rob_rotation = rob_list[2]
-        #    self.robot_pos = (rob_list[0], rob_list[1])
+        if mapList:
+            self.mapArray = mapList
+        #    self.robRotation = robList[2]
+        #    self.robotPos = (robList[0], robList[1])
 
-        # self.map_rotation -= math.pi / 800
-        self.draw_2dmap()
-        self.map_canvas.after(10, self.canv_update)
+        # self.mapRotation -= math.pi / 800
+        self.draw2DMap()
+        self.mapCanvas.after(10, self.canvUpdate)
 
-    def draw_2dmap(self):
-        self.clear_canvas()
-        x_offset = self.canvas_off_x
-        y_offset = self.canvas_off_y
-        box_width = box_height = self.map_size
-        ez_draw = True
+    def draw2DMap(self):
+        self.clearCanvas()
+        #print("___")
+
+        #for l in self.mapArray:
+        #    print(l)
+
+
+
+        xOffset = self.canvasOffX
+        yOffset = self.canvasOffY
+        boxWidth = boxHeight = self.mapSize
+        ezDraw = False
         # rotation in rad, rotate around map center
-        rotation = self.map_rotation
-
-        if ez_draw:
+        rotation = self.mapRotation
+        if ezDraw:
             for y in range(0, 31):
                 for x in range(0, 31):
-                    if self.get_map_value(x, y) == 2:
-                        self.draw_box(x * box_width + x_offset, y * box_height + y_offset, box_width, box_height, True)
-                    if self.get_map_value(x, y) == 1:
-                        self.draw_box(x * box_width + x_offset, y * box_height + y_offset, box_width, box_height, True, "white")
+                    if self.getMapValue(x, y) == 2:
+                        self.drawBox(x * boxWidth + xOffset, y * boxHeight + yOffset, boxWidth, boxHeight, True)
+                    if self.getMapValue(x, y) == 1:
+                        self.drawBox(x * boxWidth + xOffset, y * boxHeight + yOffset, boxWidth, boxHeight, True, "white")
         else:
-            """# Now draw with lines
+            # Now draw with lines
             for y in range(0, 31):
                 for x in range(0, 31):
-                    cur_val = self.get_map_value(x, y)
-                    up_val = self.get_map_value(x, y - 1)
-                    down_val = self.get_map_value(x, y + 1)
-                    right_val = self.get_map_value(x + 1, y)
-                    left_val = self.get_map_value(x - 1, y)
+                    curVal = str(self.getMapValue(x, y))
+                    upVal = str(self.getMapValue(x, y - 1))
+                    downVal = str(self.getMapValue(x, y + 1))
+                    rightVal = str(self.getMapValue(x + 1, y))
+                    leftVal = str(self.getMapValue(x - 1, y))
+
+                    #if (curVal == "2"): print(curVal)
+                    #print(curVal)
+
+
 
                     # Tuples with coords to box corner
-                    left_up = (x * box_width + x_offset, y * box_height + y_offset)
-                    right_up = (x * box_width + x_offset + box_width, y * box_height + y_offset)
-                    left_down = (x * box_width + x_offset, y * box_height + y_offset + box_height)
-                    right_down = (x * box_width + x_offset + box_width, y * box_height + y_offset + box_height)
-                    offset3d = (0, -self.map_size)
+                    leftUp = (x * boxWidth + xOffset, y * boxHeight + yOffset)
+                    rightUp = (x * boxWidth + xOffset + boxWidth, y * boxHeight + yOffset)
+                    leftDown = (x * boxWidth + xOffset, y * boxHeight + yOffset + boxHeight)
+                    rightDown = (x * boxWidth + xOffset + boxWidth, y * boxHeight + yOffset + boxHeight)
+                    offset3d = (0, -self.mapSize)
                     # center = (self.canvasWidth / 2 + xOffset, self.canvasHeight / 2 + yOffset)
-                    center = ((self.map_size * 20) / 2 + x_offset, (self.map_size * 20) / 2 + y_offset)
+                    center = ((self.mapSize * 20) / 2 + xOffset, (self.mapSize * 20) / 2 + yOffset)
 
                     if rotation != 0:
-                        left_up = self.rotate_point(left_up, center, rotation)
-                        right_up = self.rotate_point(right_up, center, rotation)
-                        left_down = self.rotate_point(left_down, center, rotation)
-                        right_down = self.rotate_point(right_down, center, rotation)
-                    self.draw_line(center[0], center[1], center[0] + 1, center[1] + 1, False)
-                    ##Current glitch _|"""
+                        leftUp = self.rotatePoint(leftUp, center, rotation)
+                        rightUp = self.rotatePoint(rightUp, center, rotation)
+                        leftDown = self.rotatePoint(leftDown, center, rotation)
+                        rightDown = self.rotatePoint(rightDown, center, rotation)
+                    self.drawLine(center[0], center[1], center[0] + 1, center[1] + 1, False)
+                    ##Current glitch _|
 
-            if cur_val == 2:
-                # Now we should draw things
-                if right_val == 1:
-                    self.draw_3d(right_up, right_down, offset3d)
-                if up_val == 1:
-                    self.draw_3d(left_up, right_up, offset3d)
-                if left_val == 1:
-                    self.draw_3d(left_down, left_up, offset3d)
-                if down_val == 1:
-                    self.draw_3d(right_down, left_down, offset3d)
-            self.draw_robot()
+                    if curVal == "2":
+                        # Now we should draw shit
 
-    def add_tuple(self, t1, t2):
+                        if rightVal == "0":
+                            self.draw3d(rightUp, rightDown, offset3d)
+                        if upVal == "0":
+                            self.draw3d(leftUp, rightUp, offset3d)
+                        if leftVal == "0":
+                            self.draw3d(leftDown, leftUp, offset3d)
+                        if downVal == "0":
+                            self.draw3d(rightDown, leftDown, offset3d)
+            self.drawRobot()
+
+    def addTuple(self, t1, t2):
         return (t1[0] + t2[0], t1[1] + t2[1])
 
-    def draw_robot(self):
-        global laser_list
+    def drawRobot(self):
+        global laserList
 
-        robot_center = (self.robot_pos[0] * self.map_size + self.map_size / 2 + self.canvas_off_x,
-                        self.robot_pos[1] * self.map_size + self.map_size / 2 + self.canvas_off_y)
+        robotCenter = (self.robotPos[0] * self.mapSize + self.mapSize / 2 + self.canvasOffX,
+                       self.robotPos[1] * self.mapSize + self.mapSize / 2 + self.canvasOffY)
 
-        robot_width = self.map_size
-        robot_height = self.map_size / 2
-        robot_offset = (0, -self.map_size / 1.5)
-        r_off2 = (0, -self.map_size / 3)
-        x_offset = self.canvas_off_x
-        y_offset = self.canvas_off_y
-        robot_rotation = self.map_rotation
-        center = ((self.map_size * 20) / 2 + x_offset, (self.map_size * 20) / 2 + y_offset)
+        robotWidth = self.mapSize
+        robotHeight = self.mapSize / 2
+        robotOffset = (0, -self.mapSize / 1.5)
+        rOff2 = (0, -self.mapSize / 3)
+        xOffset = self.canvasOffX
+        yOffset = self.canvasOffY
+        robotRotation = self.mapRotation
+        center = ((self.mapSize * 20) / 2 + xOffset, (self.mapSize * 20) / 2 + yOffset)
 
-        r_left_up = (robot_center[0] - robot_width / 2, robot_center[1] - robot_height / 2)
-        r_right_up = (robot_center[0] + robot_width / 2, robot_center[1] - robot_height / 2)
-        r_left_down = (robot_center[0] - robot_width / 2, robot_center[1] + robot_height / 2)
-        r_right_down = (robot_center[0] + robot_width / 2, robot_center[1] + robot_height / 2)
-        r_left_up_up = (robot_center[0] - robot_width / 2 - self.map_size / 3, robot_center[1] + robot_height / 2)
-        r_right_up_up = (robot_center[0] - robot_width / 2 - self.map_size / 3, robot_center[1] - robot_height / 2)
+        rLeftUp = (robotCenter[0] - robotWidth / 2, robotCenter[1] - robotHeight / 2)
+        rRightUp = (robotCenter[0] + robotWidth / 2, robotCenter[1] - robotHeight / 2)
+        rLeftDown = (robotCenter[0] - robotWidth / 2, robotCenter[1] + robotHeight / 2)
+        rRightDown = (robotCenter[0] + robotWidth / 2, robotCenter[1] + robotHeight / 2)
+        rLeftUpUp = (
+            robotCenter[0] - robotWidth / 2 - self.mapSize / 3, robotCenter[1] + robotHeight / 2)
+        rRightUpUp = (
+            robotCenter[0] - robotWidth / 2 - self.mapSize / 3, robotCenter[1] - robotHeight / 2)
 
-        if robot_rotation != 0:
-            r_left_up = self.rotate_point(r_left_up, center, robot_rotation)
-            r_right_up = self.rotate_point(r_right_up, center, robot_rotation)
-            r_left_down = self.rotate_point(r_left_down, center, robot_rotation)
-            r_right_down = self.rotate_point(r_right_down, center, robot_rotation)
-            r_left_up_up = self.rotate_point(r_left_up_up, center, robot_rotation)
-            r_right_up_up = self.rotate_point(r_right_up_up, center, robot_rotation)
-            robot_center = self.rotate_point(robot_center, center, robot_rotation)
+        if robotRotation != 0:
+            rLeftUp = self.rotatePoint(rLeftUp, center, robotRotation)
+            rRightUp = self.rotatePoint(rRightUp, center, robotRotation)
+            rLeftDown = self.rotatePoint(rLeftDown, center, robotRotation)
+            rRightDown = self.rotatePoint(rRightDown, center, robotRotation)
+            rLeftUpUp = self.rotatePoint(rLeftUpUp, center, robotRotation)
+            rRightUpUp = self.rotatePoint(rRightUpUp, center, robotRotation)
+            robotCenter = self.rotatePoint(robotCenter, center, robotRotation)
 
-        if self.rob_rotation != 0:
-            r_left_up = self.rotate_point(r_left_up, robot_center, self.rob_rotation)
-            r_right_up = self.rotate_point(r_right_up, robot_center, self.rob_rotation)
-            r_left_down = self.rotate_point(r_left_down, robot_center, self.rob_rotation)
-            r_right_down = self.rotate_point(r_right_down, robot_center, self.rob_rotation)
-            r_right_up_up = self.rotate_point(r_right_up_up, robot_center, self.rob_rotation)
-            r_left_up_up = self.rotate_point(r_left_up_up, robot_center, self.rob_rotation)
-            robot_center = self.rotate_point(robot_center, robot_center, self.rob_rotation)
+        if self.robRotation != 0:
+            rLeftUp = self.rotatePoint(rLeftUp, robotCenter, self.robRotation)
+            rRightUp = self.rotatePoint(rRightUp, robotCenter, self.robRotation)
+            rLeftDown = self.rotatePoint(rLeftDown, robotCenter, self.robRotation)
+            rRightDown = self.rotatePoint(rRightDown, robotCenter, self.robRotation)
+            rRightUpUp = self.rotatePoint(rRightUpUp, robotCenter, self.robRotation)
+            rLeftUpUp = self.rotatePoint(rLeftUpUp, robotCenter, self.robRotation)
+            robotCenter = self.rotatePoint(robotCenter, robotCenter, self.robRotation)
 
-        self.draw_line(robot_center[0], robot_center[1], robot_center[0] + 2, robot_center[1] + 2, False)
-        self.draw_3d(r_left_up, r_right_up, robot_offset)
-        self.draw_3d(r_right_up, r_right_down, robot_offset)
-        self.draw_3d(r_right_down, r_left_down, robot_offset)
-        self.draw_3d(r_left_down, r_left_up, robot_offset)
-        self.draw_3d(r_left_down, r_left_up_up, r_off2)
-        self.draw_3d(r_left_up_up, r_right_up_up, r_off2)
-        self.draw_3d(r_right_up_up, r_left_up, r_off2)
-        self.draw_3d(r_left_up, r_left_down, r_off2)
+        self.drawLine(robotCenter[0], robotCenter[1], robotCenter[0] + 2, robotCenter[1] + 2, False)
+        self.draw3d(rLeftUp, rRightUp, robotOffset)
+        self.draw3d(rRightUp, rRightDown, robotOffset)
+        self.draw3d(rRightDown, rLeftDown, robotOffset)
+        self.draw3d(rLeftDown, rLeftUp, robotOffset)
+        self.draw3d(rLeftDown, rLeftUpUp, rOff2)
+        self.draw3d(rLeftUpUp, rRightUpUp, rOff2)
+        self.draw3d(rRightUpUp, rLeftUp, rOff2)
+        self.draw3d(rLeftUp, rLeftDown, rOff2)
 
-        temp_laser = copy.deepcopy(laser_list)
-        for i in range(len(temp_laser)):
-            step = -2 * math.pi / len(temp_laser)
-            p = (robot_center[0] + temp_laser[i] * math.cos(step * i + self.rob_rotation + robot_rotation),
-                 robot_center[1] + temp_laser[i] * math.sin(step * i + self.rob_rotation + robot_rotation))
-            # p = self.rotatePoint(p, center, robot_rotation)
+        """d
+        tempLaser = copy.deepcopy(laserList)
+        for i in range(len(tempLaser)):
+            step = -2 * math.pi / len(tempLaser)
+            p = (robotCenter[0] + tempLaser[i] * math.cos(step * i + self.robRotation + robotRotation),
+                 robotCenter[1] + tempLaser[i] * math.sin(step * i + self.robRotation + robotRotation))
+            # p = self.rotatePoint(p, center, robotRotation)
             # p = self.rotatePoint(p, oldRobotCenter, self.robRotation)
-            self.map_canvas.create_line(robot_center[0], robot_center[1], p[0], p[1])
-            # self.draw_line(40, 40, p[0], p[1], False)
+            self.mapCanvas.create_line(robotCenter[0], robotCenter[1], p[0], p[1])
+            # self.drawLine(40, 40, p[0], p[1], False)
+        """
+    def draw3d(self, p1, p2, offset):
+        # self.drawLine(p1[0], p1[1], p1[0] + offset[0], p1[1] - offset[1], False)
+        #print("hello", p1, p2)
+        self.drawLine(p1[0], p1[1], p2[0], p2[1], False)
 
-    def draw_3d(self, p1, p2, offset):
-        # self.draw_line(p1[0], p1[1], p1[0] + offset[0], p1[1] - offset[1], False)
+        self.drawLine(p1[0], p1[1], p1[0] + offset[0], p1[1] + offset[1], False)
+        self.drawLine(p1[0] + offset[0], p1[1] + offset[1], p2[0] + offset[0], p2[1] + offset[1], False)
 
-        self.draw_line(p1[0], p1[1], p2[0], p2[1], False)
-
-        self.draw_line(p1[0], p1[1], p1[0] + offset[0], p1[1] + offset[1], False)
-        self.draw_line(p1[0] + offset[0], p1[1] + offset[1], p2[0] + offset[0], p2[1] + offset[1], False)
-
-    def rotate_point(self, p1, p2, angle):
+    def rotatePoint(self, p1, p2, angle):
         # rotate p1 around p2
         newX = p2[0] + (p1[0] - p2[0]) * math.cos(angle) - (p1[1] - p2[1]) * math.sin(angle)
         newY = p2[1] + (p1[0] - p2[0]) * math.sin(angle) + (p1[1] - p2[1]) * math.cos(angle)
@@ -521,41 +535,42 @@ class Window(Frame):
         ans = (newX, newY)
         return ans
 
-    def get_map_value(self, x, y):
+    def getMapValue(self, x, y):
         if 0 <= x < 31 and 0 <= y < 31:
-            return self.map_array[y][x]
-        return None
+            return self.mapArray[y][x]
+        return 0
 
-    def draw_line(self, x1, y1, x2, y2, thick):
-        line = self.map_canvas.create_line(x1, y1, x2, y2)
-        self.canvas_list.append(line)
+    def drawLine(self, x1, y1, x2, y2, thick):
+        line = self.mapCanvas.create_line(x1, y1, x2, y2)
+        self.canvasList.append(line)
 
         if thick:
-            line1 = self.map_canvas.create_line(x1 - 1, y1 - 1, x2 - 1, y2 - 1)
-            self.canvas_list.append(line1)
-            line2 = self.map_canvas.create_line(x1 + 1, y1 + 1, x2 + 1, y2 + 1)
-            self.canvas_list.append(line2)
+            line1 = self.mapCanvas.create_line(x1 - 1, y1 - 1, x2 - 1, y2 - 1)
+            self.canvasList.append(line1)
+            line2 = self.mapCanvas.create_line(x1 + 1, y1 + 1, x2 + 1, y2 + 1)
+            self.canvasList.append(line2)
 
-    def draw_box(self, x, y, w, h, f, color ="blue"):
+    def drawBox(self, x, y, w, h, f, color = "blue"):
         # draws a box at x,y with height h and width w. f = boolean. fill if true
         if not f:
-            self.draw_line(x, y, x + w, y, False)
-            self.draw_line(x + w, y, x + w, y + h, False)
-            self.draw_line(x + w, y + h, x, y + h, False)
-            self.draw_line(x, y + h, x, y, False)
+            self.drawLine(x, y, x + w, y, False)
+            self.drawLine(x + w, y, x + w, y + h, False)
+            self.drawLine(x + w, y + h, x, y + h, False)
+            self.drawLine(x, y + h, x, y, False)
         else:
-            self.map_canvas.create_rectangle(x, y, x + w, y + h, fill=color)
+            self.mapCanvas.create_rectangle(x, y, x + w, y + h, fill=color)
 
-    def clear_canvas(self):
-        self.map_canvas.delete(ALL)
-        self.canvas_list = []
+    def clearCanvas(self):
+        self.mapCanvas.delete(ALL)
+        self.canvasList = []
 
-def clear_robot_log():
+
+def clearRobotLog():
     open('robotLog.txt', 'w').close()
 
 
 def blue():
-    global server_sock, new_message_queue, map_list, rob_list, laser_list
+    global server_sock, newMessageQueue, mapList, robList, laserList
     try:
         server_sock.bind(("", PORT_ANY))
         server_sock.listen(1)
@@ -591,55 +606,55 @@ def blue():
 
                 while data.find('#') != -1:
                     # Take out current cmd
-                    separator_pos = data.find('#')
-                    cmd = data[:separator_pos]
+                    separatorPos = data.find('#')
+                    cmd = data[:separatorPos]
 
                     # Strip current cmd from data
-                    data = data[separator_pos + 1:]
+                    data = data[separatorPos + 1:]
 
                     if "!req" not in cmd:
-                        messages_lock.acquire()
+                        messagesLock.acquire()
 
                         if "sens" in cmd:
-                            new_message_queue += [("SENS", cmd)]
+                            newMessageQueue += [("SENS", cmd)]
                         elif "gyro" in cmd:
-                            new_message_queue += [("GYRO", cmd)]
+                            newMessageQueue += [("GYRO", cmd)]
                         elif "laser" in cmd:
-                            new_message_queue += [("LASER", cmd)]
+                            newMessageQueue += [("LASER", cmd)]
 
                             # Strip [laser] and parse as list
                             cmd = cmd[7:]
-                            laser_list = ast.literal_eval(cmd)
+                            laserList = ast.literal_eval(cmd)
                         elif "move" in cmd:
-                            new_message_queue += [("MOVE", cmd)]
+                            newMessageQueue += [("MOVE", cmd)]
                         elif "rob" in cmd:
-                            new_message_queue += [("ROB", cmd)]
+                            newMessageQueue += [("ROB", cmd)]
 
                             # Strip [rob] and split to list
                             cmd = cmd[5:]
-                            rob_list = ast.literal_eval(cmd)
+                            robList = ast.literal_eval(cmd)
                         elif "map" in cmd:
                             # We have the whole map
-                            new_message_queue += [("MAP", cmd)]
+                            newMessageQueue += [("MAP", cmd)]
 
                             cmd = cmd[5:]
                             l = ast.literal_eval(cmd)
 
-                            map_list = []
+                            mapList = []
                             
                             for y in range(0, 31):
                                 l2 = []
                                 for x in range(0, 31):
                                     l2.append(l[y * 31 + x])
-                                map_list.append(l2)
-                        print(str(map_list))
-                        messages_lock.release()
+                                mapList.append(l2)
+                        #print(str(mapList))
+                        messagesLock.release()
                         root.event_generate("<<AddMessage>>")
 
                     else:  # !req received
-                        if command_queue:
-                            print(command_queue[0])
-                            client_sock.send(command_queue.pop(0))
+                        if commandQueue:
+                            print(commandQueue[0])
+                            client_sock.send(commandQueue.pop(0))
                         else:
                             client_sock.send("none")
         except IOError:
@@ -653,77 +668,79 @@ def main():
     app = Window(root)
     root.iconbitmap("dora.ico")
 
-    def handle_message_queue(self):
-        messages_lock.acquire()
-        if new_message_queue:
-            app.add_to_messages(new_message_queue[0][0], new_message_queue[0][1])
-            new_message_queue.pop(0)
-        messages_lock.release()
+    def handleMessageQueue(self):
+        messagesLock.acquire()
+        if newMessageQueue:
+            app.addToMessages(newMessageQueue[0][0], newMessageQueue[0][1])
+            newMessageQueue.pop(0)
+        messagesLock.release()
 
-    root.bind('<<AddMessage>>', handle_message_queue)
+    root.bind('<<AddMessage>>', handleMessageQueue)
 
-    def key_down(e):
-        global move_state, command_queue
-        if e.char == 'w' and move_state != "forward":
-            move_state = "forward"
-            app.move_forward()
-        if e.char == 'a' and move_state != "left":
-            move_state = "left"
-            app.move_left()
-        if e.char == 's' and move_state != "backward":
-            move_state = "backward"
-            app.move_backward()
-        if e.char == 'd' and move_state != "right":
-            move_state = "right"
-            app.move_right()
-        if e.char == 'q' and move_state != "forward left":
-            move_state = "forward_left"
+    def keyDown(e):
+        global moveState, commandQueue
+        print(e.char)
+        if e.char == 'w' and moveState != "forward":
+            moveState = "forward"
+            app.moveForward()
+        if e.char == 'a' and moveState != "left":
+            moveState = "left"
+            app.moveLeft()
+        if e.char == 's' and moveState != "backward":
+            moveState = "backward"
+            app.moveBackward()
+        if e.char == 'd' and moveState != "right":
+            moveState = "right"
+            app.moveRight()
+        if e.char == 'q' and moveState != "forward left":
+            moveState = "forward_left"
             app.move_forward_left()
-        if e.char == 'e' and move_state != "forward right":
-            move_state = "forward_right"
+        if e.char == 'e' and moveState != "forward right":
+            moveState = "forward_right"
             app.move_forward_right()
         if e.char == 'm':
-            command_queue = ["manual"]
+            commandQueue = ["manual"]
         if e.char == 'p':
             ans = simpledialog.askfloat("Kp", "Enter proportional constant Kp:")
             if ans is not None:
-                command_queue = ["pid_p_" + str(ans)]
+                commandQueue = ["pid_p_" + str(ans)]
         if e.char == 'i':
             ans = simpledialog.askfloat("Ki", "Enter integral constant Ki:")
             if ans is not None:
-                command_queue = ["pid_i_" + str(ans)]
+                commandQueue = ["pid_i_" + str(ans)]
         if e.char == 'o':
             ans = simpledialog.askfloat("Kd", "Enter derivative constant Kd:")
             if ans is not None:
-                command_queue = ["pid_d_" + str(ans)]
+                commandQueue = ["pid_d_" + str(ans)]
 
-    def key_release(e):
-        global move_state
-        move_state = "stop"
+    def keyRelease(e):
+        global moveState
+        moveState = "stop"
         app.stop()
 
-    def m_down(e):
-        global m1_down, m1_down_pos, m1_up_pos
-        m1_up_pos = m1_down_pos
-        m1_down_pos = (e.x, e.y)
-        m1_down = True
+    def mDown(e):
+        global m1Down, m1DownPos, m1UpPos
+        m1UpPos = m1DownPos
+        m1DownPos = (e.x, e.y)
+        m1Down = True
 
-    def m_up(e):
-        global m1_down
-        m1_down = False
+    def mUp(e):
+        global m1Down
+        m1Down = False
 
-    root.bind('<KeyPress>', key_down)
-    root.bind('<KeyRelease>', key_release)
-    root.bind('<B1-Motion>', m_down)
-    root.bind('<ButtonRelease-1>', m_up)
+    root.bind('<KeyPress>', keyDown)
+    root.bind('<KeyRelease>', keyRelease)
+    root.bind('<B1-Motion>', mDown)
+    root.bind('<ButtonRelease-1>', mUp)
 
-    global blue_thread
-    blue_thread.daemon = True
-    blue_thread.start()
+    global blueThread
+    blueThread.daemon = True
+    blueThread.start()
 
     root.mainloop()
 
-    blue_thread.join()
+    blueThread.join()
+
 
 if __name__ == '__main__':
     main()

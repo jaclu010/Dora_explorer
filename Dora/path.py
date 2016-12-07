@@ -1,4 +1,5 @@
 from global_vars import *
+import math
 
 # Could use another constant
 MAP_SIZE = 9
@@ -55,6 +56,14 @@ def find_path(grid, start_pos, end_pos=None, find_unidentified=False):
 
         if end and current.equals(end):
             # We found the end node
+            if find_unidentified and grid[end.y * MAP_SIZE + end.x] == 0:
+                # We searched for and found an unidentified end node, return path to previous node
+                current = current.previous
+            break
+
+        if end and end_pos in unidentified_nodes:
+            # We found an end that is unidentified, go to next closest node
+            current = current.previous
             break
 
         for n in current.neighbors():
@@ -66,12 +75,12 @@ def find_path(grid, start_pos, end_pos=None, find_unidentified=False):
                 n.previous = current
                 node_queue += [n]
 
-    if end and not current.equals(end):
+    if end and not find_unidentified and not current.equals(end):
         # No route to end could be found
         return []
 
     # Returns the unidentified nodes if we searched for them
-    if find_unidentified:
+    if not end and find_unidentified:
         return list(unidentified_nodes)
 
     # Find the path by walking backwards through the nodes
@@ -155,9 +164,6 @@ def follow_path(path, rotation):
         current_cell = i
     if num_tiles != 0:
         commands += ["go_tiles_" + str(num_tiles)]
-        commands += ["turn_left_" + str(180)]
-        commands += ["turn_right_" + str(180)]
-        commands += ["turn_left_" + str(180)]
     return commands
 
 
@@ -167,22 +173,35 @@ def closed_room(grid, pos):
     return True
 
 
-if __name__ == "__main__":
-    gr = [0, 0, 0, 2, 0, 0, 0, 2, 2,
-          0, 2, 2, 1, 2, 2, 0, 2, 2,
-          0, 2, 2, 1, 1, 2, 0, 2, 2,
-          0, 2, 2, 1, 1, 2, 0, 2, 2,
-          2, 1, 1, 1, 1, 2, 0, 2, 2,
-          2, 1, 2, 2, 1, 2, 0, 2, 2,
-          2, 1, 2, 2, 1, 2, 0, 2, 2,
-          2, 1, 1, 1, 1, 2, 0, 2, 2,
-          2, 2, 2, 2, 2, 2, 0, 2, 2]
+def find_closest_unexplored(grid, pos):
+    unexplored = find_path(grid, pos, find_unidentified=True)
+    unexplored.sort(key=lambda x: math.sqrt((x[0] - pos[0])**2 + (x[1] - pos[1])**2))
 
-    p = find_path(gr, [3, 1], [3, 2], False)
+    if unexplored:
+        return find_path(grid, pos, unexplored[0], find_unidentified=True)
+    return []
+
+
+if __name__ == "__main__":
+    gr = [0, 0, 0, 2, 2, 2, 2, 2, 2,
+          0, 2, 2, 1, 2, 2, 0, 2, 2,
+          0, 2, 2, 1, 1, 2, 1, 2, 2,
+          0, 2, 2, 1, 1, 2, 1, 2, 2,
+          2, 1, 1, 1, 1, 2, 1, 2, 2,
+          2, 1, 2, 1, 1, 2, 1, 2, 2,
+          2, 1, 2, 2, 1, 2, 1, 2, 2,
+          2, 1, 1, 1, 1, 2, 1, 2, 2,
+          2, 2, 2, 2, 2, 2, 2, 2, 2]
+
+    p = find_path(gr, [3, 1], [2, 3], find_unidentified=True)
     print(p)
+    
     print(closed_room(gr, [3, 1]))
-    cmd = follow_path(p, 3)
+
+    cmd = follow_path(p, 2)
     print(cmd)
+
+    print(find_closest_unexplored(gr, [3, 1]))
 
     """
     g = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,

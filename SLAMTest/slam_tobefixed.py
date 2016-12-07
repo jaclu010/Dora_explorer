@@ -7,6 +7,8 @@ from tkinter import *
 offsetX = 300
 offsetY = 300
 
+active_gui = True
+
 with open("slamfixed2.txt", "r") as f:
     a = f.readlines()
 
@@ -32,6 +34,10 @@ def clearCanvas(canvas):
 def pointlength(p1, p2):
     # returns the length between two points
     return (math.sqrt(((p1[0] - p2[0]) * (p1[0] - p2[0])) + (p1[1] - p2[1]) * (p1[1] - p2[1])))
+
+
+def drawText(canvas, x, y, text, color):
+    canvas.create_text(x + offsetX, y + offsetY, text=text, fill=color)
 
 
 # Returns point of intersection between two vectors
@@ -74,6 +80,7 @@ def test():
     global automode
     global offsetX
     global offsetY
+    unreliable = False
     if (automode):
         clearCanvas(c)
         clearCanvas(c2)
@@ -130,6 +137,8 @@ def test():
     dot_filter_value = 19
     dot_min_dist = 7
     dot_score_dist = 3
+    dot_dist_cut = 30
+    round_base = 4
     res = []
 
     # Convert to angles
@@ -170,7 +179,7 @@ def test():
         if d_next_i > size - 2:
             d_next_i -= size
 
-        #len2d = math.hypot(f2x - b2x, f2y - b2y)
+        # len2d = math.hypot(f2x - b2x, f2y - b2y)
         v1x = sin_cos[i - 2][0] - x
         v1y = sin_cos[i - 2][1] - y
         v2x = sin_cos[d_next_i][0] - x
@@ -180,6 +189,7 @@ def test():
             angle -= 270
         else:
             angle -= 90
+
         two_delta.append(abs(angle))
 
         if abs(angle) < two_delta_covar and dist >= 30:
@@ -206,7 +216,7 @@ def test():
         prev_p = pointlength((x_b, y_b), (x, y))
         next_p = pointlength((x_f, y_f), (x, y))
 
-        if next_p > 40 or prev_p > 40:
+        if next_p > dot_dist_cut or prev_p > dot_dist_cut:
             intersections.append((x, y, i))
 
     # Calculate average delta of deltas
@@ -262,7 +272,7 @@ def test():
             c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='orange')
             d = 1
         if two_delta[i] < two_delta_covar:
-            c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='magenta')
+            c.create_oval(x + offsetX - 8, y + offsetY - 8, x + offsetX + 8, y + offsetY + 8, fill='magenta')
             d = 4
         if read[i] < min_dist or read[i] > 10000:
             c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='purple')
@@ -330,7 +340,6 @@ def test():
 
     # Draw lines
     for i in range(num_vectors):
-
         x0 = lines[i][2] - line_expansion * lines[i][0]
         x1 = lines[i][2] + line_expansion * lines[i][0]
         y0 = lines[i][3] - line_expansion * lines[i][1]
@@ -343,8 +352,8 @@ def test():
         _y0 = sin_cos[good_readings[i][0]][1]
         _y1 = sin_cos[good_readings[i][1]][1]
         c.create_line(_x0 + offsetX, _y0 + offsetY, _x1 + offsetX, _y1 + offsetY, fill='cyan')
-        #intersections.append((_x0, _y0, good_readings[i][0]))
-        #intersections.append((_x1, _y1, good_readings[i][1]))
+        # intersections.append((_x0, _y0, good_readings[i][0]))
+        # intersections.append((_x1, _y1, good_readings[i][1]))
 
         vectors.append((x0, y0, x1, y1))
         angles.append((math.degrees(math.atan2(-lines[i][1], lines[i][0])), i, 0))
@@ -464,8 +473,8 @@ def test():
     for i in range(len(dot_averaging)):
         next_i = i + 1
         if next_i >= len(dot_averaging): next_i = 0
-        #c2.create_line(dot_averaging[i][0] + offsetX, dot_averaging[i][1] + offsetY,
-                       #dot_averaging[next_i][0] + offsetX, dot_averaging[next_i][1] + offsetY, fill='#ABABAB', width=2)
+        # c2.create_line(dot_averaging[i][0] + offsetX, dot_averaging[i][1] + offsetY,
+        # dot_averaging[next_i][0] + offsetX, dot_averaging[next_i][1] + offsetY, fill='#ABABAB', width=2)
         if dot_averaging[i][2] > dot_averaging[next_i][2]:
             new_lines.append((dot_averaging[i][0], dot_averaging[i][1],
                               dot_averaging[next_i][0], dot_averaging[next_i][1],
@@ -488,7 +497,7 @@ def test():
 
     closest_points = []
     line_score = []
-    #print(new_lines)
+    # print(new_lines)
     for l in new_lines:
         score = 0
         line_len = 0
@@ -518,8 +527,8 @@ def test():
             if dist < dot_score_dist:
                 score += 1
 
-        #print(score, d_readings, min_score_per_wall, line_len)
-        #if score > score_filter:
+        # print(score, d_readings, min_score_per_wall, line_len)
+        # if score > score_filter:
         if line_len > 40 and d_readings < 5:
             closest_points.append((closest_1, closest_2, l))
             line_score.append(-1)
@@ -541,7 +550,6 @@ def test():
     c3.create_oval(offsetX - 5, offsetY - 5, 5 + offsetX, 5 + offsetY, fill='black')
     # print(final_score)
 
-    filtered_glas = []
     rotated_lines = []
 
     for fs in final_score:
@@ -558,12 +566,7 @@ def test():
         x2n = fs[1][2][2] * ncos - fs[1][2][3] * nsin
         y2n = fs[1][2][3] * ncos + fs[1][2][2] * nsin
 
-        if fs[0] > 0:
-            filtered_glas.append(fs)
-            #c2.create_line(fs[1][2][0] + offsetX, fs[1][2][1] + offsetY,
-                           #fs[1][2][2] + offsetX, fs[1][2][3] + offsetY, fill='red',
-                           #width=thickness)
-        else:
+        if fs[0] <= 0:
             thickness = 1
             color = '#ACACAC'
 
@@ -573,16 +576,15 @@ def test():
     nr = 31
     submap = [[0 for x in range(nr)] for y in range(nr)]
     straightened_lines = []
-    cur_x = 15
-    cur_y = 15
 
     #
     # Actual grid aligning
     # dx_dy Value closer to 1 is more aligned to x- or y- axis
     #
-    # WARNING WORK IN PROGRESS
     found_start = False
     starting_point = 0
+    best_angle = 90
+    best_angle_pos = 0
 
     for i in range(len(rotated_lines)):
         dx = rotated_lines[i][3] - rotated_lines[i][1]
@@ -601,6 +603,15 @@ def test():
         l_len_n = math.hypot(dx_n, dy_n)
         dx_n /= l_len_n
         dy_n /= l_len_n
+        angle = abs(math.degrees(math.atan2(dy_n, dx_n) - math.atan2(dy, dx)))
+        if angle > 180:
+            angle -= 270
+        else:
+            angle -= 90
+        angle = abs(angle)
+        if angle < best_angle:
+            best_angle = angle
+            best_angle_pos = i
 
         dx_dy = abs(dx) + abs(dy)
         dx_dy_n = abs(dx_n) + abs(dy_n)
@@ -625,31 +636,67 @@ def test():
             if dir_x != dir_x_n or dir_y != dir_y_n:
                 starting_point = i
                 found_start = True
-        #print(dx, dy)
+        # print(dx, dy)
         if dx_dy >= 1.3:
-            
             dir_x = round(dx)
             dir_y = round(dy)
 
         straightened_lines.append((dir_x, dir_y, dx_dy, l_len))
 
+    starting_point = best_angle_pos
+
     for i in range(starting_point):
         straightened_lines.append(straightened_lines.pop(0))
+        rotated_lines.append(rotated_lines.pop(0))
+        line_score.append(line_score.pop(0))
+
+    print(best_angle_pos, best_angle)
+
+    dist_from_start = res[dot_averaging[starting_point][2]][0]
+    org_d_x = rotated_lines[0][1]
+    org_d_y = rotated_lines[0][2]
+    d_x = abs(org_d_x / 40)
+    d_y = abs(org_d_y / 40)
+    s_dir_x = straightened_lines[0][0]
+    s_dir_y = straightened_lines[0][1]
+    print(d_x, d_y, s_dir_x, s_dir_y)
+
+    if s_dir_x == -1:
+        d_x = int(math.floor(d_x) * math.copysign(1, org_d_x))
+        d_y = int(math.ceil(d_y) * math.copysign(1, org_d_y))
+    elif s_dir_y == -1:
+        d_x = int(math.ceil(d_x) * math.copysign(1, org_d_x))
+        d_y = int(math.floor(d_y) * math.copysign(1, org_d_y))
+    elif s_dir_x == 1:
+        d_x = int(math.floor(d_x) * math.copysign(1, org_d_x))
+        d_y = int(math.ceil(d_y) * math.copysign(1, org_d_y))
+    elif s_dir_y == 1:
+        d_x = int(math.ceil(d_x) * math.copysign(1, org_d_x))
+        d_y = int(math.floor(d_y) * math.copysign(1, org_d_y))
+    rob_pos = (d_x, d_y)
+
+    print(d_x, d_y, dist_from_start)
+    start_x = 15 + d_x
+    cur_x = 15 + d_x
+    start_y = 15 + d_y
+    cur_y = 15 + d_y
 
     # Merge concecutive lines in the same direction
     merged_lines = []
+    #print(starting_point)
+    s_line_size = len(straightened_lines)
     i = 0
-    while i < len(straightened_lines):
+    while i < s_line_size:
         cnt = 0
         new_len = straightened_lines[i][3]
         dx = straightened_lines[i][0]
         dy = straightened_lines[i][1]
         line_scr = line_score[i]
 
-        for j in range(i + 1, len(straightened_lines), 1):
+        for j in range(i + 1, s_line_size + 1, 1):
             k = j
-            if k >= len(straightened_lines): k = 0
-            #print(i, k)
+            if k >= s_line_size: k = 0
+            # print(i, k)
             dx_n = straightened_lines[k][0]
             dy_n = straightened_lines[k][1]
             l_len_n = straightened_lines[k][3]
@@ -659,26 +706,23 @@ def test():
                     new_len += l_len_n
                     cnt += 1
                 elif line_scr_n != -1:
-                    merged_lines.append((dx, dy, straightened_lines[i][2], new_len, 1))
-                    print(i, k, merged_lines[-1])
+                    merged_lines.append((dx, dy, straightened_lines[i][2], new_len, 1, (i + starting_point) % s_line_size, (k + starting_point) % s_line_size))
+                    print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, merged_lines[-1])
                     break
             elif line_scr == -1:
                 if dx == dx_n and dy == dy_n:
                     new_len += l_len_n
                     cnt += 1
                 else:
-                    merged_lines.append((dx, dy, straightened_lines[i][2], new_len, -1))
-                    print(i, k, merged_lines[-1])
+                    merged_lines.append((dx, dy, straightened_lines[i][2], new_len, -1, (i + starting_point) % s_line_size, (k + starting_point) % s_line_size))
+                    print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, merged_lines[-1])
                     break
             else:
-                merged_lines.append((dx, dy, straightened_lines[i][2], new_len, 1))
-                print(i, k, merged_lines[-1])
+                merged_lines.append((dx, dy, straightened_lines[i][2], new_len, 1, (i + starting_point) % s_line_size, (k + starting_point) % s_line_size))
+                print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, merged_lines[-1])
                 break
 
-        if cnt > 0:
-            i += cnt + 1
-        else:
-            i += 1
+        i += cnt + 1
 
     for i in range(len(merged_lines)):
         next_i = i + 1
@@ -692,55 +736,75 @@ def test():
         dy_n = merged_lines[next_i][1]
         line_scr = merged_lines[i][4]
         line_scr_n = merged_lines[next_i][4]
+        bad_dot_1 = dot_averaging[merged_lines[i][5]]
+        bad_dot_2 = dot_averaging[merged_lines[i][6]]
 
-        if isinstance(dx, int):
-            if dx_dy < 1.1:
-                rl_score = 0
-            elif dx_dy < 1.2:
-                rl_score = 1
-            elif dx_dy < 1.3:
-                rl_score = 2
+        if dir_x != 0 and dir_y != 0:
+            line_scr = -1
 
-        # If dx positive and ~1, dir = RIGHT
-        # If dy negative and ~1, dir = UP
-        # If dx negative and ~1, dir = LEFT
-        # If dy positive and ~1, dir = DOWN
+        if dx_dy < 1.1:
+            rl_score = 0
+        elif dx_dy < 1.2:
+            rl_score = 1
+        elif dx_dy < 1.3:
+            rl_score = 2
 
         l_len = merged_lines[i][3]
-        if rl_score == 2:
-            l_len *= 0.9
-        elif rl_score == 1:
-            l_len *= 0.95
+        #if rl_score == 2:
+        #    l_len *= 0.9
+        #elif rl_score == 1:
+        #    l_len *= 0.95
 
-        base = 5
-        len_round = int(base * round(float(l_len) / base))
+        len_round = round_base * round(float(l_len)/round_base)
+        #print(len_round)
         nr_cells = len_round / 40
-
 
         score = 10 - rl_score * 2
         if line_scr == -1:
             score = -1
-        cnt = round(nr_cells)
-        #print(i, cur_x, cur_y, nr_cells, cnt, dx_n, dy_n)
-        
+        b_dx = bad_dot_1[0] - bad_dot_2[0]
+        b_dy = bad_dot_1[1] - bad_dot_2[1]
+        bad_dx = round((bad_dot_1[0] - bad_dot_2[0]) / 40)
+        bad_dy = round((bad_dot_1[1] - bad_dot_2[1]) / 40)
+        diff = bad_dx - bad_dy
+        print(bad_dot_1, bad_dot_2)
 
-        #print(cur_x, cur_y)
+        cnt = round(nr_cells)
+        print(i, cur_x, cur_y, nr_cells, cnt, dx_n, dy_n, diff)
+
+
+        # print(cur_x, cur_y)
         if nr_cells > 0:
-            for j in range(cnt):
-                cnt_x = j * dir_x
-                cnt_y = j * dir_y
-                submap[cur_y + cnt_y][cur_x + cnt_x] += score
+            if line_scr == -1:
+                if diff > 0:
+                    for j in range(bad_dx):
+                        cnt_x = j * dir_x
+                        cnt_y = (j - diff) * dir_y
+                        if cnt_y < 0: cnt_y = 0
+                        submap[cur_y + cnt_y][cur_x + cnt_x] += score
+                else:
+                    for j in range(bad_dy):
+                        cnt_y = j * dir_y
+                        cnt_x = (j - diff) * dir_x
+                        if cnt_x < 0: cnt_x = 0
+                        submap[cur_y + cnt_y][cur_x + cnt_x] += score
+
+            else:
+                for j in range(cnt):
+                    cnt_x = j * dir_x
+                    cnt_y = j * dir_y
+                    submap[cur_y + cnt_y][cur_x + cnt_x] += score
 
             if line_scr_n != -1:
                 if dir_y == 0:
-                    if dir_x == -1: # Floor down wall up
+                    if dir_x == -1:  # Floor down wall up
                         if dy_n == -1:
                             cur_x -= (cnt - 1)
                         else:
                             cur_x -= cnt
                             cur_y += 1
 
-                    elif dir_x == 1: # Floor up wall down
+                    elif dir_x == 1:  # Floor up wall down
                         if dy_n == 1:
                             cur_x += (cnt - 1)
                         else:
@@ -748,21 +812,21 @@ def test():
                             cur_y -= 1
 
                 else:
-                    if dir_y == -1: # Floor down wall up
+                    if dir_y == -1:  # Floor down wall up
                         if dx_n == 1:
                             cur_y -= (cnt - 1)
                         else:
                             cur_x -= 1
                             cur_y -= cnt
 
-                    elif dir_y == 1: # Floor right wall left
+                    elif dir_y == 1:  # Floor right wall left
                         if dx_n == -1:
                             cur_y += (cnt - 1)
                         else:
                             cur_x += 1
                             cur_y += cnt
 
-            elif line_scr_n == -1 and line_scr != -1:
+            elif line_scr_n == -1:
                 if dir_y == 0:
                     if dir_x == -1:
                         if dy_n == 0:
@@ -773,7 +837,7 @@ def test():
                             cur_x -= cnt
                             cur_y += 1
                         else:
-                            cur_x -= (cnt -1)
+                            cur_x -= (cnt - 1)
 
                     elif dir_x == 1:
                         if dy_n == 0:
@@ -784,7 +848,7 @@ def test():
                             cur_x += cnt
                             cur_y -= 1
                         elif dy_n == -1:
-                            cur_x += (cnt -1)
+                            cur_x += (cnt - 1)
 
                 else:
                     if dir_y == -1:
@@ -801,23 +865,25 @@ def test():
                     elif dir_y == 1:
                         if dx_n == 0:
                             if dy_n == 1:
-                                cnt_x -= 1
-                                cnt_y += cnt
+                                cur_x -= 1
+                                cur_y += cnt
                         elif dx_n == -1:
-                            cnt_y += (cnt -1)
+                            cur_y += (cnt - 1)
                         elif dx_n == 1:
-                            cnt_x += 1
-                            cnt_y += cnt
-
-        if rl_score == -1:
-            score = -1
+                            cur_x += 1
+                            cur_y += cnt
 
     offset_grid = height / nr
     for i in range(nr):
         for j in range(nr):
+            t_col ='magenta'
             score = submap[i][j]
-            if i == 15 and j == 15:
+            if i == start_y and j == start_x:
                 color = 'green'
+            elif i == 15 and j == 15:
+                color = 'red'
+                t_col = 'white'
+
             elif score == 0:
                 color = 'white'
             elif score < 0:
@@ -825,11 +891,11 @@ def test():
             else:
                 color = 'yellow'
 
-            c3.create_rectangle(j*offset_grid, i*offset_grid, j*offset_grid + offset_grid, 
-                                i*offset_grid + offset_grid, fill=color, outline='white')
-            c3.create_text(j*offset_grid + offset_grid/2, i*offset_grid + offset_grid/2, 
-                           fill='magenta', text=score)
-
+            c3.create_rectangle(j * offset_grid, i * offset_grid, j * offset_grid + offset_grid,
+                                i * offset_grid + offset_grid, fill=color, outline='white')
+            c3.create_text(j * offset_grid + offset_grid / 2, i * offset_grid + offset_grid / 2,
+                           fill=t_col, text=score)
+    print(curr_index)
     root.after(200, test)
 
 

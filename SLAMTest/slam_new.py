@@ -578,6 +578,7 @@ def test():
 
         c2.create_line(x1n + offsetX, y1n + offsetY, x2n + offsetX, y2n + offsetY, fill=color, width=thickness)
         rotated_lines.append((fs[0], x1n, y1n, x2n, y2n))
+        print(rotated_lines[-1])
 
     nr = 31
     submap = [[0 for x in range(nr)] for y in range(nr)]
@@ -743,8 +744,8 @@ def test():
         dy_n = merged_lines[next_i][1]
         line_scr = merged_lines[i][4]
         line_scr_n = merged_lines[next_i][4]
-        bad_dot_1 = dot_averaging[merged_lines[i][5]]
-        bad_dot_2 = dot_averaging[merged_lines[i][6]]
+        bad_dot_1 = (rotated_lines[merged_lines[i][6]][3], rotated_lines[merged_lines[i][6]][4])
+        bad_dot_2 = (rotated_lines[merged_lines[next_i][6]][3], rotated_lines[merged_lines[next_i][6]][4])
 
         if dir_x != 0 and dir_y != 0:
             line_scr = -1
@@ -764,14 +765,16 @@ def test():
 
         len_round = round_base * rounds(float(l_len)/round_base)
         #print(len_round)
+
         nr_cells = len_round / 40
         score = 10 #- rl_score * 2
 
-        b_dx = bad_dot_1[0] - bad_dot_2[0]
-        b_dy = bad_dot_1[1] - bad_dot_2[1]
+        b_dx = rounds(bad_dot_2[0] / 40)
+        b_dy = rounds(bad_dot_2[1] / 40)
         bad_dx = rounds((bad_dot_2[0] - bad_dot_1[0]) / 40)
         bad_dy = rounds((bad_dot_2[1] - bad_dot_1[1]) / 40)
         diff = bad_dx - bad_dy
+
         #print(bad_dot_1, bad_dot_2)
         cnt = rounds(nr_cells)
         print("START DOT: "+ str(merged_lines[i][5]) + ",  POSX: " + str(cur_x)
@@ -783,6 +786,8 @@ def test():
             score = -1
             dir_x = int(math.copysign(1, bad_dx))
             dir_y = int(math.copysign(1, bad_dy))
+            print(bad_dot_1, bad_dot_2)
+            print(b_dx, b_dy)
 
         # print(cur_x, cur_y)
         a_bad_dx = abs(bad_dx)
@@ -793,7 +798,7 @@ def test():
                 for j in range(cnt):
                     cnt_x = j * dir_x
                     cnt_y = j * dir_y
-                    submap[cur_y + cnt_y][cur_x + cnt_x] += 5
+                    submap[cur_y + cnt_y][cur_x + cnt_x] += score
                 """
                 if diff > 0:
                     for j in range(a_bad_dx):
@@ -811,23 +816,39 @@ def test():
 
                 #cur_x += dir_x * cnt
                 #cur_y += dir_y * cnt
-            if line_scr != -1 and line_scr != -1:
-                if dx_n == dir_y and dy_n == -dir_x:
-                    if dir_x != 0:
-                        cur_x += (cnt - 1) + dir_x
-                        cur_y += dy_n
+            if line_scr != -1:
+                if line_scr_n != -1:
+                    if dx_n == dir_y and dy_n == -dir_x:
+                        if dir_x != 0:
+                            cur_x += (cnt - 1) + dir_x
+                            cur_y += dy_n
+                        else:
+                            cur_x += dx_n
+                            cur_y += (cnt - 1) + dir_y
                     else:
-                        cur_x += dx_n
-                        cur_y += (cnt - 1) + dir_y
+                        if dir_x != 0:
+                            cur_x += (cnt - 1)
+                        else:
+                            cur_y += (cnt - 1)
                 else:
-                    if dir_x != 0:
-                        cur_x += (cnt - 1)
-                    else:
-                        cur_y += (cnt - 1)
+                    cur_x += dir_x * (cnt - 1)
+                    cur_y += dir_y * (cnt - 1)
+            else:
+                if dx_n == 0:
+                    cur_y += bad_dy + dy_n
+                    cur_x += bad_dx - dy_n
+            """
+            elif line_scr != -1:
+                print(dir_x, dir_y, a_bad_dx, a_bad_dy, dx_n, dy_n)
+                cur_x += (dir_x * a_bad_dx)
+                cur_y += (dir_y * a_bad_dy)
             else:
                 print(dir_x, dir_y, a_bad_dx, a_bad_dy, dx_n, dy_n)
                 cur_x += (dir_x * a_bad_dx + dx_n)
                 cur_y += (dir_y * a_bad_dy + dy_n)
+            """
+
+
             """
             if line_scr_n != -1 and line_scr != -1:
                 if dir_y == 0:
@@ -862,7 +883,7 @@ def test():
             """
 
 
-            #print(cur_x, cur_y)
+            print(cur_x, cur_y)
             """
             elif line_scr_n == -1: #if bad line next
                 if dir_y == 0:

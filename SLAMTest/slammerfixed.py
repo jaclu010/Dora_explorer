@@ -26,6 +26,9 @@ for e in a:
     # inner = list(map(int(float), inner))
     read_list.append(inner2)
 
+def draw_dot(canvas, x,y, size, color):
+    canvas.create_oval(x + offsetX - size, y + offsetY - size, x + offsetX + size, y + offsetY + size, fill = color)
+
 
 def clearCanvas(canvas):
     canvas.delete(ALL)
@@ -108,7 +111,8 @@ def test():
         curr_index += 1
     else:
         while 1:
-            ins = input("Write f to step forward, or b to step backwards. Write a to enter Automode\n")
+            text_input = "Write f to step forward, or b to step backwards. Write a to enter Automode, current_reading: " + str(curr_index) + "\n"
+            ins = input(text_input)
             if (ins == "f"):
                 clearCanvas(c)
                 clearCanvas(c2)
@@ -583,8 +587,12 @@ def test():
     submap = [[0 for x in range(nr)] for y in range(nr)]
 
     #print("rob_", rob_rot)
+    curr_id = 0
+    best_index = 0
+    best_ang = 10000
 
     for fs in final_score:
+
         thickness = (fs[0] * 100) // 10
         if thickness > 10:
             thickness = 4
@@ -604,7 +612,46 @@ def test():
 
         #c2.create_line(x1n + offsetX, y1n + offsetY, x2n + offsetX, y2n + offsetY, fill=color, width=thickness)
         rotated_lines.append((fs[0], x1n, y1n, x2n, y2n))
+        p1 = (x1n, y1n)
+        p2 = (x2n, y2n)
+
+        vecer = line_to_vector(p1, p2)
+        vec_deg = math.atan2(vecer[1], vecer[0]) % math.radians(90)
+
+        angle_from = 0
+        if (vec_deg >= math.radians(45)):
+            angle_from = math.radians(90) - vec_deg
+        else:
+            angle_from = vec_deg
+
+        if(curr_id == 0):
+            best_ang = angle_from
+            best_index = 0
+        else:
+            if (angle_from < best_ang):
+                best_ang = angle_from
+                best_index = curr_id
+
+        #print("current_Degree", curr_id, fs[0] > 0, math.degrees(vec_deg), angle_from, vecer[0], vecer[1])
+        curr_id += 1
         #"GO HERE"
+                #print(xs)
+    print("____")
+    for l in range (best_index, best_index + len(rotated_lines)):
+
+        id = l % len(rotated_lines)
+        #print(id)
+        roted = rotated_lines[id]
+
+        x1n = roted[1]
+        y1n = roted[2]
+        x2n = roted[3]
+        y2n = roted[4]
+
+
+        clr = "red"
+        if (id == best_index): clr = "green"
+        if (roted[0] <= 0): clr = "gray"
 
         p1 = (x1n, y1n)
         p2 = (x2n, y2n)
@@ -615,65 +662,89 @@ def test():
         norm_vec = normalize(norm_vec)
         check_len = 10
         vec_deg = math.atan2(vec[1], vec[0]) % math.radians(90)
-        """d
-        if (math.degrees(vec_deg) < 30 or math.degrees(vec_deg) > 60):
-            print("good", math.degrees(vec_deg))
-        else:
-            print("bad", math.degrees(vec_deg))
-        """
-        #print("deg", math.degrees() % 90 )
-        c2.create_line(x1n + offsetX, y1n + offsetY, x2n + offsetX, y2n + offsetY, fill=color)
-        #print("FINAL", fs[0])
-        if (fs[0] > 0):
 
+        angle_from = 0
+        if (vec_deg >= math.radians(45)):
+            angle_from = math.radians(90) - vec_deg
+        else:
+            angle_from = vec_deg
+        print(id ,math.degrees(angle_from))
+
+        if (math.degrees(angle_from) >= 9.5): clr = "purple"
+
+
+        # print("deg", math.degrees() % 90 )
+        c2.create_line(x1n + offsetX, y1n + offsetY, x2n + offsetX, y2n + offsetY, fill=clr, width = 2)
+        # print("FINAL", fs[0])
+        if (roted[0] > 0 and math.degrees(angle_from) < 9):
             num_tiles = vector_length(vec) / 40
             x_ = vec_normalized[0]
             y_ = vec_normalized[1]
             tlen = 40
-            numline = 4
+            numline = 2
             for a in range(math.ceil(num_tiles)):
 
-                for i in range(0,numline):
-                    if not(i == 0 and a == 0):
-                        xs = x1n + a * x_ * tlen + x_ * tlen/numline * i
-                        ys = y1n + a * y_ * tlen + y_ * tlen/numline * i
+                for i in range(0, numline):
+                    if not (i == 0 and a == 0):
+                        xs = x1n + a * x_ * tlen + x_ * tlen / numline * i
+                        ys = y1n + a * y_ * tlen + y_ * tlen / numline * i
 
-                        midx1 = x1n + a*x*tlen + x_ * tlen/2
-                        midy1 = y1n + a*y*tlen + y_ * tlen/2
+                        midx1 = x1n + a * x * tlen + x_ * tlen / 2
+                        midy1 = y1n + a * y * tlen + y_ * tlen / 2
 
                         xs1 = xs + norm_vec[0] * 14
                         ys1 = ys + norm_vec[1] * 14
 
-                        midx = midx1 + norm_vec[0] * 20
-                        midy = midy1 + norm_vec[1] * 20
+                        px1 = x1n + x_ * tlen * a
+                        py1 = y1n + y_ * tlen * a
 
-                        vsd = line_to_vector(p1, (xs,ys))
-                        #print("len", vector_length(vsd), vector_length(vec))
+                        px2 = px1 + norm_vec[0] * tlen
+                        py2 = py1 + norm_vec[1] * tlen
+
+
+
+                        draw_dot(c2, px1, py1, 3, "white")
+                        draw_dot(c2, px2, py2, 3, "white")
+
+
+                        midx = midx1 + norm_vec[0] * 14
+                        midy = midy1 + norm_vec[1] * 14
+
+                        vsd = line_to_vector(p1, (xs, ys))
+                        # print("len", vector_length(vsd), vector_length(vec))
+                        #print("vlen", vector_length(vsd))
                         if (vector_length(vsd) < vector_length(vec) - 10):
 
-                            #startpos = (15, 15)
-                            #firstpos = True
-                            #starter = (0, 0)
+                            # startpos = (15, 15)
+                            # firstpos = True
+                            # starter = (0, 0)
+                            """d
+                            c2.create_oval(midx + offsetX - 2, midy + offsetY - 2, midx + offsetX + 2,
+                                           midy + offsetY + 2)
+                            c2.create_oval(midx1 + offsetX - 2, midy1 + offsetY - 2, midx1 + offsetX + 2,
+                                           midy1 + offsetY + 2, fill="red")
+                            """
 
                             if (firstpos):
-                                #print("first", xs1, ys1)
-                                c2.create_oval(xs1 + offsetX - 2, ys1 + offsetY - 2,xs1 + offsetX + 2, ys1 + offsetY + 2, fill ="green")
+                                # print("first", xs1, ys1)
+                                c2.create_oval(xs1 + offsetX - 2, ys1 + offsetY - 2, xs1 + offsetX + 2,
+                                               ys1 + offsetY + 2, fill="green")
                                 starter = (xs1, ys1)
 
-                                c2.create_oval(midx + offsetX - 2, midy + offsetY - 2, midx + offsetX + 2, midy + offsetY + 2)
+
 
                                 firstpos = False
-                                #submap[startpos[1]][startpos[0]] = 1
+                                # submap[startpos[1]][startpos[0]] = 1
                             else:
                                 pos2 = (round((xs1 - starter[0]) / 40), round((ys1 - starter[1]) / 40))
-                                #print("asdasd, pos", pos2)
+                                # print("asdasd, pos", pos2)
                                 submap[startpos[1] + pos2[1]][startpos[0] + pos2[0]] = 1
-                                c2.create_oval(xs1 + offsetX - 2, ys1 + offsetY - 2, xs1 + offsetX + 2, ys1 + offsetY + 2, fill="orange")
+                                c2.create_oval(xs1 + offsetX - 2, ys1 + offsetY - 2, xs1 + offsetX + 2,
+                                               ys1 + offsetY + 2, fill="orange")
 
                             c2.create_line(xs + offsetX, ys + offsetY, xs1 + offsetX, ys1 + offsetY, fill="purple")
                             c2.create_oval(xs + offsetX - 2, ys + offsetY - 2, xs + offsetX + 2, ys + offsetY + 4)
 
-                #print(xs)
     if (not firstpos):
         poss = (round((-starter[0]) / 40), round((-starter[1]) / 40))
         rob_pos = (startpos[0] + poss[0], startpos[1] + poss[1])

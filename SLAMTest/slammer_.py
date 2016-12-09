@@ -31,6 +31,9 @@ for e in a:
 def clearCanvas(canvas):
     canvas.delete(ALL)
 
+def drawbox(canvas, x, y, width, height, color):
+    canvas.create_rectangle(x, y, x + width, y + height, fill=color)
+
 
 def pointlength(p1, p2):
     # returns the length between two points
@@ -90,10 +93,13 @@ height = 400
 c = Canvas(root, width=400, height=400)
 c2 = Canvas(root, width=400, height=400)
 c3 = Canvas(root, width=400, height=400)
-
+c4 = Canvas(root, width= 800, height = 800)
+c4.pack(side=BOTTOM)
 c.pack(side=LEFT)
+
 c3.pack(side=RIGHT)
 c2.pack(side=RIGHT)
+
 
 read = read_list[3]
 
@@ -113,6 +119,7 @@ def test():
         clearCanvas(c)
         clearCanvas(c2)
         clearCanvas(c3)
+        clearCanvas(c4)
         curr_index += 1
     else:
         while 1:
@@ -975,7 +982,26 @@ def test():
     mapper.add_submap(subb,rob_xy)
 
     mapper.generate_map()
-    mapper.print()
+    #mapper.print()
+
+    size = 20
+    for y in range(len(mapper.finalmap)):
+        for x in range(len(mapper.finalmap)):
+            val = mapper.finalmap[y][x] / len(mapper.submaps)
+            clr = "white"
+            if (val > 0):
+                clr = "light cyan"
+            if (val >= 0.5): clr = "light gray"
+            if (val >= 1): clr = "gray"
+            #if (val >= 1.5): clr = "light slate gray"
+            if (val >= 1.4): clr = "black"
+            if (val >= 2): clr = "black"
+            drawbox(c4,x*size,y*size,size,size,clr)
+            c4.create_text(x*size + size/2, y*size + size/2, text =str(round(val,1)), fill = "red")
+            #drawText(c4,x,y,str(round(val,1)),"black")
+
+
+
     #sub = sm.SubMap()
     #sub.set_sub_map(subb, rob_xy,(0,0))
     #sub.print()

@@ -159,25 +159,39 @@ class Mapping:
 
                     final_center = (15, 15)
                     points = 0
-                    for y in range(len(s1)):
 
-                        for x in range(len(s1[0])):
+                    best_o = (0,0)
+                    best_inner = 0
 
-                            #FIX -check from -1,1, -1,1
+                    for y_ in range(-1,2):
+                        for x_ in range(-1,2):
+                            innerp = 0
+                            for y in range(len(s1)):
+                                for x in range(len(s1[0])):
 
-                            startp = subtract(final_center, cent)
-                            xx = x + startp[0]
-                            yy = y + startp[1]
+                                    #FIX -check from -1,1, -1,1
 
-                            prevval = self.finalmap[yy][xx]
-                            val = s1[y][x]
-                            if (abs(val) <= 0.5 and abs(prevval) <= 0.5): points +=1
-                            if (abs(val) >= 0.5 and abs(prevval) >= 0.5): points += 1
+                                    startp = subtract(final_center, cent)
+                                    xx = x + startp[0] + x_
+                                    yy = y + startp[1] + y_
 
-                    if (points > best_points):
-                        best_points = points
+                                    prevval = self.finalmap[yy][xx]
+                                    val = s1[y][x]
+                                    #if (abs(val) <= 0.5 and abs(prevval) <= 0.5): innerp +=1
+                                    if (abs(val) >= 0.5 and abs(prevval) >= 0.5): innerp += 1
+                            #print("l",l ,"x",x_,"y", y_,"point", innerp)
+                            if innerp > best_inner:
+                                best_inner = innerp
+                                best_o = (x_, y_)
+
+
+                    if (best_inner > best_points):
+                        best_points = best_inner
                         best_rot = l
+                        best_offset = best_o
                 #ƒprint(i,best_rot, best_points)
+
+                print("best off", best_offset, "best Rot", best_rot)
 
                 s1 = rotated_grids[best_rot][0]
                 cent = rotated_grids[best_rot][1]
@@ -185,8 +199,8 @@ class Mapping:
                 for y in range(len(s1)):
                     for x in range(len(s1[0])):
                         startp = subtract(final_center, cent)
-                        xx = x + startp[0]
-                        yy = y + startp[1]
+                        xx = x + startp[0] + best_offset[0]
+                        yy = y + startp[1] + best_offset[1]
                         prevval = self.finalmap[yy][xx]
                         val = s1[y][x]
 

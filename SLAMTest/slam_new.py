@@ -73,8 +73,6 @@ def pickDirection(dir_x, dir_y, d_x, d_y, org_d_x, org_d_y):
 
 
 def additionalDirections(dir_x, dir_y, s_dir_x, s_dir_y, dist_x, dist_y):
-
-
     if abs(dir_x) != abs(s_dir_x) or abs(dir_y) != abs(s_dir_y):
         x = rounds2(dist_x, 0.4)  # math.ceil(abs(dist_x)) * math.copysign(1, dist_x)
         y = rounds2(dist_y, 0.4)  # math.floor(abs(dist_y)) * math.copysign(1, dist_y) + dir_y
@@ -204,7 +202,7 @@ def test():
     dot_filter_value = 19
     dot_min_dist = 7
     dot_score_dist = 3
-    dot_dist_cut = 40 # 30
+    dot_dist_cut = 20 # 30
     round_base = 4
     res = []
 
@@ -213,7 +211,7 @@ def test():
         angle = (i * step) - corr
         if angle < 0:
             angle = 360 - abs(i * step - corr)
-        res.append((read[i], angle))
+        res.append((read[i]+3, angle))
 
     # Move corrected readings to end of array
     curr = res[0][1]
@@ -259,7 +257,7 @@ def test():
 
         two_delta.append(abs(angle))
 
-        if abs(angle) < two_delta_covar and dist >= 30:
+        if abs(angle) < two_delta_covar and dist >= 40:
             intersections.append((sin_cos[i][0], sin_cos[i][1], i))
 
     # Calculate delta of delta values
@@ -419,8 +417,8 @@ def test():
         _y0 = sin_cos[good_readings[i][0]][1]
         _y1 = sin_cos[good_readings[i][1]][1]
         c.create_line(_x0 + offsetX, _y0 + offsetY, _x1 + offsetX, _y1 + offsetY, fill='cyan')
-        #intersections.append((_x0, _y0, good_readings[i][0]))
-        #intersections.append((_x1, _y1, good_readings[i][1]))
+        intersections.append((_x0, _y0, good_readings[i][0]))
+        intersections.append((_x1, _y1, good_readings[i][1]))
 
         vectors.append((x0, y0, x1, y1))
         angles.append((math.degrees(math.atan2(-lines[i][1], lines[i][0])), i, 0))
@@ -452,7 +450,7 @@ def test():
 
     if angle_deviation:
         rob_rot /= len(angle_deviation)
-        rob_rot += math.copysign(2, rob_rot)
+        #rob_rot += math.copysign(2, rob_rot)
     else:
         rob_rot = 0
 
@@ -597,7 +595,7 @@ def test():
 
         #print(score, d_readings, min_score_per_wall, line_len)
         # if score > score_filter:
-        if (line_len > 20 and d_readings < 3) or (line_len > 60 and d_readings < 5):
+        if (line_len > 60 and d_readings < 5) or (line_len > 30 and d_readings < 4):
             closest_points.append((closest_1, closest_2, l))
             line_score.append(-1)
         else:

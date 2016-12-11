@@ -4,8 +4,8 @@ from tkinter import *
 # from scipy.optimize import curve_fit
 # import numpy as np
 
-offsetX = 200
-offsetY = 200
+offsetX = 300
+offsetY = 300
 
 
 active_gui = True
@@ -41,26 +41,66 @@ def pointlength(p1, p2):
 def drawText(canvas, x, y, text, color):
     canvas.create_text(x + offsetX, y + offsetY, text=text, fill=color)
 
+
 def rounds(val):
-    if val % 1 >= 0.5:
-        return math.ceil(val)
+    if abs(val) % 1 >= 0.5:
+        return int(math.ceil(abs(val)) * math.copysign(1, val))
     else:
-        return math.floor(val)
+        return int(math.floor(abs(val)) * math.copysign(1, val))
+
+
+def rounds2(val, base):
+    if abs(val) % 1 >= base:
+        return int(math.ceil(abs(val)) * math.copysign(1, val))
+    else:
+        return int(math.floor(abs(val)) * math.copysign(1, val))
+
 
 def pickDirection(dir_x, dir_y, d_x, d_y, org_d_x, org_d_y):
     if dir_x == -1:
-        d_x = int(math.floor(d_x) * math.copysign(1, org_d_x))
-        d_y = int(math.ceil(d_y) * math.copysign(1, org_d_y))
+        d_x = math.floor(d_x) * math.copysign(1, org_d_x)
+        d_y = math.ceil(d_y) * math.copysign(1, org_d_y)
     elif dir_y == -1:
-        d_x = int(math.ceil(d_x) * math.copysign(1, org_d_x))
-        d_y = int(math.floor(d_y) * math.copysign(1, org_d_y))
+        d_x = math.ceil(d_x) * math.copysign(1, org_d_x)
+        d_y = math.floor(d_y) * math.copysign(1, org_d_y)
     elif dir_x == 1:
-        d_x = int(math.floor(d_x) * math.copysign(1, org_d_x))
-        d_y = int(math.ceil(d_y) * math.copysign(1, org_d_y))
+        d_x = math.floor(d_x) * math.copysign(1, org_d_x)
+        d_y = math.ceil(d_y) * math.copysign(1, org_d_y)
     elif dir_y == 1:
-        d_x = int(math.ceil(d_x) * math.copysign(1, org_d_x))
-        d_y = int(math.floor(d_y) * math.copysign(1, org_d_y))
-    return (d_x, d_y)
+        d_x = math.ceil(d_x) * math.copysign(1, org_d_x)
+        d_y = math.floor(d_y) * math.copysign(1, org_d_y)
+    return (int(d_x), int(d_y))
+
+
+def additionalDirections(dir_x, dir_y, s_dir_x, s_dir_y, dist_x, dist_y):
+
+
+    if abs(dir_x) != abs(s_dir_x) or abs(dir_y) != abs(s_dir_y):
+        x = rounds2(dist_x, 0.4)  # math.ceil(abs(dist_x)) * math.copysign(1, dist_x)
+        y = rounds2(dist_y, 0.4)  # math.floor(abs(dist_y)) * math.copysign(1, dist_y) + dir_y
+        x += dir_x
+        y += dir_y
+    else:
+        x = rounds2(dist_x, 0.5)  # math.ceil(abs(dist_x)) * math.copysign(1, dist_x)
+        y = rounds2(dist_y, 0.5)  # math.floor(abs(dist_y)) * math.copysign(1, dist_y) + dir_y
+    #if abs(dir_y) == abs(s_dir_y) and dir_y != 0:
+    #    x += 1
+
+    """
+    if s_dir_x == dir_x or s_dir_y == dir_y:
+        x += dir_x
+        y += dir_y
+    else:
+        if dir_y != 0:
+            y += dir_y
+            x -= s_dir_x
+        else:
+            y -= s_dir_y
+            x += dir_x
+    """
+
+
+    return (int(x), int(y))
 
 
 
@@ -86,11 +126,11 @@ def getIndex(item):
 root = Tk()
 root.title("Submapping")
 
-width = 400
-height = 400
-c = Canvas(root, width=400, height=400)
-c2 = Canvas(root, width=400, height=400)
-c3 = Canvas(root, width=400, height=400)
+width = 600
+height = 600
+c = Canvas(root, width=600, height=600)
+c2 = Canvas(root, width=600, height=600)
+c3 = Canvas(root, width=600, height=600)
 
 c.pack(side=LEFT)
 c3.pack(side=RIGHT)
@@ -164,7 +204,7 @@ def test():
     dot_filter_value = 19
     dot_min_dist = 7
     dot_score_dist = 3
-    dot_dist_cut = 20 # 30
+    dot_dist_cut = 40 # 30
     round_base = 4
     res = []
 
@@ -555,14 +595,15 @@ def test():
             if dist < dot_score_dist:
                 score += 1
 
-        # print(score, d_readings, min_score_per_wall, line_len)
+        #print(score, d_readings, min_score_per_wall, line_len)
         # if score > score_filter:
-        if line_len > 40 and d_readings < 5:
+        if (line_len > 20 and d_readings < 3) or (line_len > 60 and d_readings < 5):
             closest_points.append((closest_1, closest_2, l))
             line_score.append(-1)
         else:
             closest_points.append((closest_1, closest_2, l))
             line_score.append(score)
+        print(closest_points[-1])
 
     final_score = []
 
@@ -571,7 +612,7 @@ def test():
             final_score.append((line_score[i] / (closest_points[i][1] - closest_points[i][0]), closest_points[i]))
         else:
             final_score.append((-1, closest_points[i]))
-        print(i, final_score[-1])
+        #print(i, final_score[-1])
 
     # Draw score vectors
 
@@ -686,7 +727,7 @@ def test():
 
         straightened_lines.append((dir_x, dir_y, dx_dy, l_len))
 
-    #print(found_start, starting_point)
+    print(found_start, starting_point)
     if not found_start:
         starting_point = best_angle_pos
 
@@ -696,10 +737,10 @@ def test():
 
     #print(best_angle_pos, best_angle)
 
-    dist_from_start = res[dot_averaging[starting_point][2]][0]
-
     org_d_x = rotated_lines[starting_point][1]
     org_d_y = rotated_lines[starting_point][2]
+
+    start_dot = (org_d_x, org_d_y)
 
     d_x = abs(org_d_x / 40)
     d_y = abs(org_d_y / 40)
@@ -710,6 +751,7 @@ def test():
     #print(rob_pos)
 
     #print(1111, d_x, d_y, dist_from_start)
+    start_dir = (s_dir_x, s_dir_y)
     start_x = 15 + rob_pos[0]
     cur_x = 15 + rob_pos[0]
     start_y = 15 + rob_pos[1]
@@ -800,11 +842,13 @@ def test():
             line_scr = merged_lines[i][4]
             line_scr_n = merged_lines[next_i][4]
             line_scr_p = merged_lines[i-1][4]
+            line_start_dot_nr = merged_lines[i][5]
+            line_end_dot_nr = merged_lines[i][6]
 
-            bad_dot_1 = (rotated_lines[merged_lines[i][5]][1], rotated_lines[merged_lines[i][5]][2])
-            bad_dot_2 = (rotated_lines[merged_lines[i][6]][1], rotated_lines[merged_lines[i][6]][2])
-            #print(merged_lines[i][5], bad_dot_1)
-            #print(merged_lines[i][6], bad_dot_2)
+            line_start_dot = (rotated_lines[line_start_dot_nr][1], rotated_lines[line_start_dot_nr][2])
+            line_end_dot = (rotated_lines[line_end_dot_nr][1], rotated_lines[line_end_dot_nr][2])
+            #print(merged_lines[i][5], start_dot)
+            #print(merged_lines[i][6], line_end_dot)
             
             if dir_x != 0 and dir_y != 0:
                 line_scr = -1
@@ -825,24 +869,31 @@ def test():
             len_round = round_base * rounds(float(l_len)/round_base)
             #print(len_round)
             
-            nr_cells = len_round / 40
+            nr_cells = l_len / 40
             score = 10 #- rl_score * 2
+            if first_loop:
+                cnt = rounds2(nr_cells, 0.5)
+            else:
+                cnt = rounds2(nr_cells, 0.33)
             
-            cnt = rounds(nr_cells)
-            
-            start_dot_x = bad_dot_1[0] / 40
-            start_dot_y = bad_dot_1[1] / 40
-            b_dx = rounds(bad_dot_2[0] / 40)
-            b_dy = rounds(bad_dot_2[1] / 40)
-            bad_dx = rounds((bad_dot_2[0] - bad_dot_1[0]) / 40)
-            bad_dy = rounds((bad_dot_2[1] - bad_dot_1[1]) / 40)
+            new_draw_start_x = (line_start_dot[0] - start_dot[0]) / 40
+            new_draw_start_y = (line_start_dot[1] - start_dot[1]) / 40
+            b_dx = rounds(line_end_dot[0] / 40)
+            b_dy = rounds(line_end_dot[1] / 40)
+            bad_dx = rounds((line_end_dot[0] - line_start_dot[0]) / 40)
+            bad_dy = rounds((line_end_dot[1] - line_start_dot[1]) / 40)
+
             diff = bad_dx - bad_dy
 
-            if not first_loop and line_scr_p == -1:
-                new_pos = pickDirection(dir_x, dir_y, abs(start_dot_x), abs(start_dot_y), start_dot_x, start_dot_y)
-                cur_x = 15 + new_pos[0]
-                cur_y = 15 + new_pos[1]
-                #print(1111, 15+new_pos[0], 15+new_pos[1], start_dot_x, start_dot_y)
+            if not first_loop and line_scr_p == -1 and line_scr != -1:
+                print(new_draw_start_x, new_draw_start_y)
+                new_pos = (0,0)#pickDirection(dir_x, dir_y, abs(new_draw_start_x), abs(new_draw_start_y), new_draw_start_x, new_draw_start_y)
+                extra_pos = additionalDirections(dir_x, dir_y, start_dir[0], start_dir[1], new_draw_start_x, new_draw_start_y)
+                cur_x = start_x + extra_pos[0]
+                cur_y = start_y + extra_pos[1]
+                print("New start dot: " + str(cur_x) + str(cur_y) + " New pos: " + str(extra_pos) + ", Start/end dot: "
+                      + str(line_start_dot_nr) + str(line_end_dot_nr) + ", Start point: " + str(start_x) + str(start_y))
+                #print(1111, 15+new_pos[0], 15+new_pos[1], new_draw_start_x, new_draw_start_y)
 
             #print(subline[i][5], 15+b_dy, 15+b_dx, b_dx, b_dy)
             #if line_scr != -1:
@@ -851,14 +902,14 @@ def test():
             # else:
             #    submap[15 + b_dy][15 + b_dx - dir_y] += -10
             
-            #print(bad_dot_1, bad_dot_2)
+            #print(start_dot, line_end_dot)
   
         
 
-            #print("START DOT: "+ str(merged_lines[i][5]) + ",  POSX: " + str(cur_x)
-                  #+ ",  POSY: " +  str(cur_y) + ",  LINE LENGTH: " + str(nr_cells) +
-                  #",  CELL COUNT: " + str(cnt) + ",  N DIR X, Y: " + str(dx_n) +
-                  #", " + str(dy_n) + ",  DIFF: " + str(diff) + ",  BAD DX/DY: " + str(bad_dx) + str(bad_dy))
+            print("START DOT: "+ str(merged_lines[i][5]) + ",  POSX: " + str(cur_x)
+                  + ",  POSY: " +  str(cur_y) + ",  LINE LENGTH: " + str(nr_cells) +
+                  ",  CELL COUNT: " + str(cnt) + ",  N DIR X, Y: " + str(dx_n) +
+                  ", " + str(dy_n) + ",  DIFF: " + str(diff) + ",  BAD DX/DY: " + str(bad_dx) + str(bad_dy))
             #print(line_scr)
 
             real_b_dx = 0
@@ -868,7 +919,7 @@ def test():
                 score = -1
                 dir_x = int(math.copysign(1, bad_dx))
                 dir_y = int(math.copysign(1, bad_dy))
-                #print(bad_dot_1, bad_dot_2)
+                #print(start_dot, line_end_dot)
                 #print(b_dx, b_dy)
 
             if abs(bad_dx) > abs(bad_dy):
@@ -886,7 +937,10 @@ def test():
                     for j in range(cnt):
                         cnt_x = j * dir_x
                         cnt_y = j * dir_y
-                        submap[cur_y + cnt_y][cur_x + cnt_x] += 2
+                        if cur_y + cnt_y <= nr or cur_x + cnt_x < nr:
+                            submap[cur_y + cnt_y][cur_x + cnt_x] += 2
+                        #else:
+                            #print(cur_y+cnt_y, cur_x+cnt_x)
 
                         #cur_x += dir_x * cnt
                         #cur_y += dir_y * cnt
@@ -904,199 +958,10 @@ def test():
                                 cur_x += ((cnt - 1) * dir_x)
                             else:
                                 cur_y += ((cnt - 1) * dir_y)
-            print(cur_x, cur_y)
-
-            first_loop = False
-    """
-                else:
-                    if real_b_dx == prev_dx and real_b_dy == prev_dy:
-                        if dx_n == real_b_dy and dy_n == -real_b_dx:
-                            if real_b_dx != 0:
-                                cur_x += bad_dx + real_b_dx
-                                cur_y += bad_dy + dy_n
-                            else:
-                                cur_x += bad_dx + dx_n
-                                cur_y += bad_dy + real_b_dy
-                        else:
-                            cur_y += bad_dy
-                            cur_x += bad_dx
-
-                    elif prev_dx == -real_b_dy and prev_dy == real_b_dx:
-
-                        if real_b_dx == dx_n and real_b_dy == dy_n:
-                            if real_b_dx != 0:
-                                cur_x += bad_dx + real_b_dx + real_b_dx
-                                cur_y += real_b_dx + dy_n
-                            else:
-                                cur_x += real_b_dy + dx_n
-                                cur_y += bad_dy + real_b_dy + real_b_dy
-                        else:
-                            if real_b_dx != 0:
-                                cur_x += bad_dx + real_b_dx
-                                cur_y += real_b_dx + dy_n
-                            else:
-                                cur_x += real_b_dy + dx_n
-                                cur_y += bad_dy + real_b_dy
-
-                    # check this
-                    elif dx_n == real_b_dy and dy_n == -real_b_dx:
-                        if real_b_dx != 0:
-                            cur_x += bad_dx
-                            cur_y += bad_dy + dy_n
-                        else:
-                            cur_x += bad_dx + dx_n
-                            cur_y += bad_dy
-
-                    elif real_b_dx == dx_n and real_b_dy == dy_n:
-                        cur_y += bad_dy
-                        cur_x += bad_dx
-
-                    else:
-                        print("I DID NOTHING !! FIX PLS")
-
-            else:
-                cur_x += dir_x * (cnt - 1)
-                cur_y += dir_y * (cnt - 1)
+            #print(cur_x, cur_y)
 
             first_loop = False
 
-
-            
-            else:
-
-                if dx_n == real_b_dy and dy_n == -real_b_dx:
-                    if real_b_dx != 0:
-                        print(11, real_b_dx, real_b_dy, cnt, dx_n, dy_n)
-                        cur_x += bad_dx + real_b_dx
-                        cur_y += dy_n# + bad_dx
-                    else:
-                        print(12, real_b_dx, real_b_dy, cnt, dx_n, dy_n)
-                        #cur_x += dx_n
-                        cur_y += (cnt * real_b_dy)
-                        cur_x += dx_n + bad_dx
-                elif dx_n == dir_x and dy_n == dir_y:
-                    print(21, real_b_dx, real_b_dy, cnt, dx_n, dy_n)
-                    cur_y += real_b_dy
-                    cur_x += real_b_dx
-
-                else:
-                    if real_b_dx != 0:
-                        print(31, real_b_dx, real_b_dy, cnt, dx_n, dy_n)
-                        cur_x += (cnt * real_b_dx) + real_b_dx
-                        cur_y += bad_dy
-                    else:
-                        print(32, real_b_dx, real_b_dy, cnt, dx_n, dy_n)
-                        cur_y += (cnt * real_b_dy) + real_b_dy
-                        cur_x += bad_dx
-
-                if dy_n == 1:
-                    cur_y += bad_dy + dy_n
-                    cur_x += bad_dx - dy_n
-                elif dx_n == 1:
-                    cur_y += bad_dy
-                    cur_x += bad_dx + dy_n
-                elif dy_n == -1:
-                    cur_y -= bad_dy + dy_n
-                    cur_x += bad_dx
-                elif dx_n == -1:
-                    cur_y += bad_dy + dx_n
-                    cur_x += bad_dx + dx_n
-                
-            
-            elif line_scr != -1:
-                print(dir_x, dir_y, a_bad_dx, a_bad_dy, dx_n, dy_n)
-                cur_x += (dir_x * a_bad_dx)
-                cur_y += (dir_y * a_bad_dy)
-            else:
-                print(dir_x, dir_y, a_bad_dx, a_bad_dy, dx_n, dy_n)
-                cur_x += (dir_x * a_bad_dx + dx_n)
-                cur_y += (dir_y * a_bad_dy + dy_n)
-            
-
-
-            
-            if line_scr_n != -1 and line_scr != -1:
-                if dir_y == 0:
-                    if dir_x == -1:  # Floor down wall up
-                        if dy_n == -1:
-                            cur_x -= (cnt - 1)
-                        else:
-                            cur_x -= cnt
-                            cur_y += 1
-
-                    elif dir_x == 1:  # Floor up wall down
-                        if dy_n == 1:
-                            cur_x += (cnt - 1)
-                        else:
-                            cur_x += cnt
-                            cur_y -= 1
-
-                else:
-                    if dir_y == -1:  # Floor down wall up
-                        if dx_n == 1:
-                            cur_y -= (cnt - 1)
-                        else:
-                            cur_x -= 1
-                            cur_y -= cnt
-
-                    elif dir_y == 1:  # Floor right wall left
-                        if dx_n == -1:
-                            cur_y += (cnt - 1)
-                        else:
-                            cur_x += 1
-                            cur_y += cnt
-    """
-
-
-            
-    """
-            elif line_scr_n == -1: #if bad line next
-                if dir_y == 0:
-                    if dir_x == -1:
-                        if dy_n == 0:
-                            if dx_n == -1:
-                                cur_x -= cnt
-                                cur_y -= 1
-                        elif dy_n == 1:
-                            cur_x -= cnt
-                            cur_y += 1
-                        else:
-                            cur_x -= (cnt - 1)
-
-                    elif dir_x == 1:
-                        if dy_n == 0:
-                            if dx_n == 1:
-                                cur_x += cnt
-                                cur_y += 1
-                        elif dy_n == 1:
-                            cur_x += cnt
-                            cur_y -= 1
-                        elif dy_n == -1:
-                            cur_x += (cnt - 1)
-
-                else:
-                    if dir_y == -1:
-                        if dx_n == 0:
-                            if dy_n == -1:
-                                cur_y -= cnt
-                                cur_x += 1
-                        elif dx_n == -1:
-                            cur_y -= cnt
-                            cur_x -= 1
-                        elif dx_n == 1:
-                            cur_y -= (cnt - 1)
-
-                    elif dir_y == 1:
-                        if dx_n == 0:
-                            if dy_n == 1:
-                                cur_x -= 1
-                                cur_y += cnt
-                        elif dx_n == -1:
-                            cur_y += (cnt - 1)
-                        elif dx_n == 1:
-                            cur_x += 1
-                            cur_y += cnt
-    """
     offset_grid = height / nr
     for i in range(nr):
         for j in range(nr):

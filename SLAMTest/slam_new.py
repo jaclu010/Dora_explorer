@@ -4,8 +4,8 @@ from tkinter import *
 # from scipy.optimize import curve_fit
 # import numpy as np
 
-offsetX = 300
-offsetY = 300
+offsetX = 200
+offsetY = 200
 
 
 active_gui = True
@@ -81,6 +81,10 @@ def additionalDirections(dir_x, dir_y, s_dir_x, s_dir_y, dist_x, dist_y):
     else:
         x = rounds2(dist_x, 0.5)  # math.ceil(abs(dist_x)) * math.copysign(1, dist_x)
         y = rounds2(dist_y, 0.5)  # math.floor(abs(dist_y)) * math.copysign(1, dist_y) + dir_y
+        #if dir_y != 0:
+        #    x += 1 * (-dir_y)
+        #else:
+        #    y += 1 * (-dir_x)
     #if abs(dir_y) == abs(s_dir_y) and dir_y != 0:
     #    x += 1
 
@@ -124,11 +128,11 @@ def getIndex(item):
 root = Tk()
 root.title("Submapping")
 
-width = 600
-height = 600
-c = Canvas(root, width=600, height=600)
-c2 = Canvas(root, width=600, height=600)
-c3 = Canvas(root, width=600, height=600)
+width = 400
+height = 400
+c = Canvas(root, width=400, height=400)
+c2 = Canvas(root, width=400, height=400)
+c3 = Canvas(root, width=400, height=400)
 
 c.pack(side=LEFT)
 c3.pack(side=RIGHT)
@@ -257,7 +261,7 @@ def test():
 
         two_delta.append(abs(angle))
 
-        if abs(angle) < two_delta_covar and dist >= 40:
+        if abs(angle) < two_delta_covar and dist >= 20:
             intersections.append((sin_cos[i][0], sin_cos[i][1], i))
 
     # Calculate delta of delta values
@@ -564,7 +568,8 @@ def test():
     closest_points = []
     line_score = []
     # print(new_lines)
-    for l in new_lines:
+    for i in range(len(new_lines)):
+        l = new_lines[i]
         score = 0
         line_len = 0
         min_score_per_wall = 0
@@ -577,6 +582,13 @@ def test():
         d_readings = closest_2 - closest_1
         line_len = math.hypot(dx, dy)
         min_score_per_wall = int(line_len / d_readings)
+
+        line_angle = abs(math.degrees(math.atan2(dy, dx)))
+        if line_angle > 180:
+            line_angle -= 270
+        else:
+            line_angle -= 90
+        print(i, abs(line_angle)-abs(rob_rot))
 
         x1 = l[0]
         y1 = l[1]
@@ -595,13 +607,17 @@ def test():
 
         #print(score, d_readings, min_score_per_wall, line_len)
         # if score > score_filter:
-        if (line_len > 60 and d_readings < 5) or (line_len > 30 and d_readings < 4):
+        print(i, closest_1, closest_2, d_readings, line_len)
+        #if 30 <= abs(line_angle)-abs(rob_rot) <= 60:
+        #    closest_points.append((closest_1, closest_2, l))
+        #    line_score.append(-1)
+        if (line_len > 40 and d_readings < 5) or (line_len > 30 and d_readings < 4):
             closest_points.append((closest_1, closest_2, l))
             line_score.append(-1)
         else:
             closest_points.append((closest_1, closest_2, l))
             line_score.append(score)
-        print(closest_points[-1])
+        #print(closest_points[-1])
 
     final_score = []
 
@@ -620,7 +636,8 @@ def test():
 
     rotated_lines = []
 
-    for fs in final_score:
+    for i in range(len(final_score)):
+        fs = final_score[i]
         thickness = (fs[0] * 100) // 10
         if thickness > 10:
             thickness = 4
@@ -634,7 +651,7 @@ def test():
         x2n = fs[1][2][2] * ncos - fs[1][2][3] * nsin
         y2n = fs[1][2][3] * ncos + fs[1][2][2] * nsin
 
-        if fs[0] <= 0:
+        if line_score[i] <= 0 or fs[0] <= 0:
             thickness = 1
             color = '#ACACAC'
 
@@ -680,10 +697,12 @@ def test():
         dx_n /= l_len_n
         dy_n /= l_len_n
         angle = abs(math.degrees(math.atan2(dy_n, dx_n) - math.atan2(dy, dx)))
+
         if angle > 180:
             angle -= 270
         else:
             angle -= 90
+
         angle = abs(angle)
         if angle < best_angle:
             best_angle = angle
@@ -732,6 +751,9 @@ def test():
     for i in range(starting_point):
         straightened_lines.append(straightened_lines.pop(0))
         line_score.append(line_score.pop(0))
+
+    #for l in straightened_lines:
+    #    print(math.degrees(math.atan2(l[1], l[0])))
 
     #print(best_angle_pos, best_angle)
 

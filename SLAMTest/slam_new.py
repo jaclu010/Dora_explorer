@@ -4,8 +4,8 @@ from tkinter import *
 # from scipy.optimize import curve_fit
 # import numpy as np
 
-offsetX = 200
-offsetY = 200
+offsetX = 300
+offsetY = 300
 
 
 active_gui = True
@@ -58,21 +58,38 @@ def rounds2(val, base):
 
 def pickDirection(dir_x, dir_y, d_x, d_y, org_d_x, org_d_y):
     if dir_x == -1:
-        d_x = math.floor(d_x) * math.copysign(1, org_d_x)
-        d_y = math.ceil(d_y) * math.copysign(1, org_d_y)
+        d_x = math.floor(abs(d_x)) * math.copysign(1, org_d_x)
+        d_y = math.ceil(abs(d_y)) * math.copysign(1, org_d_y)
     elif dir_y == -1:
-        d_x = math.ceil(d_x) * math.copysign(1, org_d_x)
-        d_y = math.floor(d_y) * math.copysign(1, org_d_y)
+        d_x = math.ceil(abs(d_x)) * math.copysign(1, org_d_x)
+        d_y = math.floor(abs(d_y)) * math.copysign(1, org_d_y)
     elif dir_x == 1:
-        d_x = math.floor(d_x) * math.copysign(1, org_d_x)
-        d_y = math.ceil(d_y) * math.copysign(1, org_d_y)
+        d_x = math.floor(abs(d_x)) * math.copysign(1, org_d_x)
+        d_y = math.ceil(abs(d_y)) * math.copysign(1, org_d_y)
     elif dir_y == 1:
-        d_x = math.ceil(d_x) * math.copysign(1, org_d_x)
-        d_y = math.floor(d_y) * math.copysign(1, org_d_y)
+        d_x = math.ceil(abs(d_x)) * math.copysign(1, org_d_x)
+        d_y = math.floor(abs(d_y)) * math.copysign(1, org_d_y)
     return (int(d_x), int(d_y))
 
 
 def additionalDirections(dir_x, dir_y, s_dir_x, s_dir_y, dist_x, dist_y):
+    x = y = 0
+    if dir_x == s_dir_x and dir_y == s_dir_y:
+        pass
+    else:
+        if s_dir_x != 0:
+            if dir_y != 0:
+                x -= s_dir_x
+            else:
+                y -= s_dir_y
+        else:
+            if dir_x != 0:
+                y -= s_dir_y
+            else:
+                x -= s_dir_x
+
+
+    """
     if abs(dir_x) != abs(s_dir_x) or abs(dir_y) != abs(s_dir_y):
         x = rounds2(dist_x, 0.4)  # math.ceil(abs(dist_x)) * math.copysign(1, dist_x)
         y = rounds2(dist_y, 0.4)  # math.floor(abs(dist_y)) * math.copysign(1, dist_y) + dir_y
@@ -87,7 +104,7 @@ def additionalDirections(dir_x, dir_y, s_dir_x, s_dir_y, dist_x, dist_y):
         #    y += 1 * (-dir_x)
     #if abs(dir_y) == abs(s_dir_y) and dir_y != 0:
     #    x += 1
-
+    """
     """
     if s_dir_x == dir_x or s_dir_y == dir_y:
         x += dir_x
@@ -128,11 +145,11 @@ def getIndex(item):
 root = Tk()
 root.title("Submapping")
 
-width = 400
-height = 400
-c = Canvas(root, width=400, height=400)
-c2 = Canvas(root, width=400, height=400)
-c3 = Canvas(root, width=400, height=400)
+width = 600
+height = 600
+c = Canvas(root, width=600, height=600)
+c2 = Canvas(root, width=600, height=600)
+c3 = Canvas(root, width=600, height=600)
 
 c.pack(side=LEFT)
 c3.pack(side=RIGHT)
@@ -198,12 +215,12 @@ def test():
     min_dist = 40
     d_mean_covar = 11
     d_delta_covar = 1.65
-    two_delta_covar = 35
+    two_delta_covar = 45
     good_reading_count = 3
     angle_deviation_filter = 8
     score_percent_filter = 0.5
     score_filter = 3
-    dot_filter_value = 19
+    dot_filter_value = 25
     dot_min_dist = 7
     dot_score_dist = 3
     dot_dist_cut = 20 # 30
@@ -322,8 +339,8 @@ def test():
     # Yellow - delta_mean triggered
     # Orange - Too high delta values
     # Purple - invalid measurement
-    dots = [None] * size
-
+        dots = [None] * size
+    bad_readings_cnt = 0
     for i in range(size):
         x = sin_cos[i][0]
         y = sin_cos[i][1]
@@ -336,16 +353,20 @@ def test():
         d = 0
         if abs(delta_mean[i][0]) + abs(delta_mean[i][1]) > d_mean_covar:
             c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='yellow')
+            bad_readings_cnt += 1
             d = 2
         if abs(double_delta[i][0]) > d_delta_covar and abs(double_delta[i][1]) > d_delta_covar:
             c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='orange')
             d = 1
+            bad_readings_cnt += 1
         if two_delta[i] < two_delta_covar:
             c.create_oval(x + offsetX - 8, y + offsetY - 8, x + offsetX + 8, y + offsetY + 8, fill='magenta')
             d = 4
+            bad_readings_cnt += 1
         if read[i] < min_dist or read[i] > 10000:
             c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='purple')
             d = 3  # Invalid measures
+            bad_readings_cnt += 1
 
         dots[i] = d
 
@@ -611,7 +632,7 @@ def test():
         #if 30 <= abs(line_angle)-abs(rob_rot) <= 60:
         #    closest_points.append((closest_1, closest_2, l))
         #    line_score.append(-1)
-        if (line_len > 40 and d_readings < 5) or (line_len > 30 and d_readings < 4):
+        if line_len < 20 or (line_len > 35 and d_readings < 4):
             closest_points.append((closest_1, closest_2, l))
             line_score.append(-1)
         else:
@@ -907,11 +928,11 @@ def test():
 
             if not first_loop and line_scr_p == -1 and line_scr != -1:
                 print(new_draw_start_x, new_draw_start_y)
-                new_pos = (0,0)#pickDirection(dir_x, dir_y, abs(new_draw_start_x), abs(new_draw_start_y), new_draw_start_x, new_draw_start_y)
+                new_pos = pickDirection(dir_x, dir_y, abs(new_draw_start_x), abs(new_draw_start_y), new_draw_start_x, new_draw_start_y)
                 extra_pos = additionalDirections(dir_x, dir_y, start_dir[0], start_dir[1], new_draw_start_x, new_draw_start_y)
-                cur_x = start_x + extra_pos[0]
-                cur_y = start_y + extra_pos[1]
-                print("New start dot: " + str(cur_x) + str(cur_y) + " New pos: " + str(extra_pos) + ", Start/end dot: "
+                cur_x = start_x + new_pos[0] + extra_pos[0]
+                cur_y = start_y + new_pos[1] + extra_pos[1]
+                print("New start dot: " + str(cur_x) + str(cur_y) + " New pos: " + str(extra_pos) + str(new_pos) + ", Start/end dot: "
                       + str(line_start_dot_nr) + str(line_end_dot_nr) + ", Start point: " + str(start_x) + str(start_y))
                 #print(1111, 15+new_pos[0], 15+new_pos[1], new_draw_start_x, new_draw_start_y)
 
@@ -1005,6 +1026,7 @@ def test():
             c3.create_text(j * offset_grid + offset_grid / 2, i * offset_grid + offset_grid / 2,
                            fill=t_col, text=score)
     print(curr_index)
+    print(size, bad_readings_cnt)
     root.after(200, test)
 
 

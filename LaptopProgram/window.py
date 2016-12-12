@@ -38,7 +38,7 @@ root.geometry("1280x720")
 
 # Lists with data from Dora
 mapList = []
-robList = []
+robot_pos = [0, 0]
 laserList = []
 
 
@@ -349,6 +349,7 @@ Esc - Exit the program'
 
         elif self.messages[-1][0] == "LASER" and self.cbSensor.getvar(str(self.cbSensorVar)) == "1":
             self.textBox.insert("0.0", self.messages[-1][1])
+            self.textBox.insert("0.0", "[robot][" + str(robot_pos[0]) + ", " + str(robot_pos[1]) + "]\n")
         elif self.messages[-1][0] == "GYRO" and self.cbSensor.getvar(str(self.cbSensorVar)) == "1":
             self.textBox.insert("0.0", self.messages[-1][1])
 
@@ -388,17 +389,11 @@ Esc - Exit the program'
 
     def draw2DMap(self):
         self.clearCanvas()
-        #print("___")
-
-        #for l in self.mapArray:
-        #    print(l)
-
-
 
         xOffset = self.canvasOffX
         yOffset = self.canvasOffY
         boxWidth = boxHeight = self.mapSize
-        ezDraw = False
+        ezDraw = True
         # rotation in rad, rotate around map center
         rotation = self.mapRotation
         if ezDraw:
@@ -408,6 +403,8 @@ Esc - Exit the program'
                         self.drawBox(x * boxWidth + xOffset, y * boxHeight + yOffset, boxWidth, boxHeight, True)
                     if self.getMapValue(x, y) == 1:
                         self.drawBox(x * boxWidth + xOffset, y * boxHeight + yOffset, boxWidth, boxHeight, True, "white")
+                    if robot_pos == [x, y]:
+                        self.drawBox(x * boxWidth + xOffset, y * boxHeight + yOffset, boxWidth, boxHeight, True, "red")
         else:
             # Now draw with lines
             for y in range(0, 31):
@@ -417,11 +414,6 @@ Esc - Exit the program'
                     downVal = str(self.getMapValue(x, y + 1))
                     rightVal = str(self.getMapValue(x + 1, y))
                     leftVal = str(self.getMapValue(x - 1, y))
-
-                    #if (curVal == "2"): print(curVal)
-                    #print(curVal)
-
-
 
                     # Tuples with coords to box corner
                     leftUp = (x * boxWidth + xOffset, y * boxHeight + yOffset)
@@ -443,13 +435,13 @@ Esc - Exit the program'
                     if curVal == "2":
                         # Now we should draw shit
 
-                        if rightVal == "0":
+                        if rightVal == "0" or rightVal == "1":
                             self.draw3d(rightUp, rightDown, offset3d)
-                        if upVal == "0":
+                        if upVal == "0" or upVal == "1":
                             self.draw3d(leftUp, rightUp, offset3d)
-                        if leftVal == "0":
+                        if leftVal == "0" or leftVal == "1":
                             self.draw3d(leftDown, leftUp, offset3d)
-                        if downVal == "0":
+                        if downVal == "0" or downVal == "1":
                             self.draw3d(rightDown, leftDown, offset3d)
             self.drawRobot()
 
@@ -570,7 +562,7 @@ def clearRobotLog():
 
 
 def blue():
-    global server_sock, newMessageQueue, mapList, robList, laserList
+    global server_sock, newMessageQueue, mapList, robot_pos, laserList
     try:
         server_sock.bind(("", PORT_ANY))
         server_sock.listen(1)
@@ -632,7 +624,7 @@ def blue():
 
                             # Strip [rob] and split to list
                             cmd = cmd[5:]
-                            robList = ast.literal_eval(cmd)
+                            robot_pos = ast.literal_eval(cmd)
                         elif "map" in cmd:
                             # We have the whole map
                             newMessageQueue += [("MAP", cmd)]
@@ -647,7 +639,6 @@ def blue():
                                 for x in range(0, 31):
                                     l2.append(l[y * 31 + x])
                                 mapList.append(l2)
-                        #print(str(mapList))
                         messagesLock.release()
                         root.event_generate("<<AddMessage>>")
 
@@ -679,7 +670,6 @@ def main():
 
     def keyDown(e):
         global moveState, commandQueue
-        print(e.char)
         if e.char == 'w' and moveState != "forward":
             moveState = "forward"
             app.moveForward()

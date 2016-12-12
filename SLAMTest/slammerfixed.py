@@ -26,6 +26,9 @@ for e in a:
     # inner = list(map(int(float), inner))
     read_list.append(inner2)
 
+def draw_dot(canvas, x,y, size, color):
+    canvas.create_oval(x + offsetX - size, y + offsetY - size, x + offsetX + size, y + offsetY + size, fill = color)
+
 
 def clearCanvas(canvas):
     canvas.delete(ALL)
@@ -84,9 +87,9 @@ width = 400
 height = 400
 c = Canvas(root, width=400, height=400)
 c2 = Canvas(root, width=400, height=400)
-c3 = Canvas(root, width=700, height=300)
+c3 = Canvas(root, width=400, height=400)
 c.pack(side=LEFT)
-c3.pack(side=RIGHT)
+c3.pack(side=BOTTOM)
 c2.pack(side=RIGHT)
 
 read = read_list[3]
@@ -108,7 +111,8 @@ def test():
         curr_index += 1
     else:
         while 1:
-            ins = input("Write f to step forward, or b to step backwards. Write a to enter Automode\n")
+            text_input = "Write f to step forward, or b to step backwards. Write a to enter Automode, current_reading: " + str(curr_index) + "\n"
+            ins = input(text_input)
             if (ins == "f"):
                 clearCanvas(c)
                 clearCanvas(c2)
@@ -403,13 +407,15 @@ def test():
                 c.create_line(vectors[i][0] + offsetX, vectors[i][1] + offsetY,
                               vectors[i][2] + offsetX, vectors[i][3] + offsetY, fill='red')
 
+    print("rob bef", rob_rot)
+
     if angle_deviation:
         rob_rot /= len(angle_deviation)
     else:
         rob_rot = 0
 
     print(avg_angle, rob_rot)
-
+    rob_rot -= 2
     # -----
     # Calculate intersection points for all vectors
     # -----
@@ -575,11 +581,18 @@ def test():
     startpos = (15,15)
     firstpos = True
     starter = (0,0)
+    rob_pos = (0,0)
 
     nr = 31
     submap = [[0 for x in range(nr)] for y in range(nr)]
 
+    #print("rob_", rob_rot)
+    curr_id = 0
+    best_index = 0
+    best_ang = 10000
+
     for fs in final_score:
+
         thickness = (fs[0] * 100) // 10
         if thickness > 10:
             thickness = 4
@@ -597,9 +610,48 @@ def test():
             thickness = 1
             color = '#ACACAC'
 
-        c2.create_line(x1n + offsetX, y1n + offsetY, x2n + offsetX, y2n + offsetY, fill=color, width=thickness)
+        #c2.create_line(x1n + offsetX, y1n + offsetY, x2n + offsetX, y2n + offsetY, fill=color, width=thickness)
         rotated_lines.append((fs[0], x1n, y1n, x2n, y2n))
+        p1 = (x1n, y1n)
+        p2 = (x2n, y2n)
+
+        vecer = line_to_vector(p1, p2)
+        vec_deg = math.atan2(vecer[1], vecer[0]) % math.radians(90)
+
+        angle_from = 0
+        if (vec_deg >= math.radians(45)):
+            angle_from = math.radians(90) - vec_deg
+        else:
+            angle_from = vec_deg
+
+        if(curr_id == 0):
+            best_ang = angle_from
+            best_index = 0
+        else:
+            if (angle_from < best_ang):
+                best_ang = angle_from
+                best_index = curr_id
+
+        #print("current_Degree", curr_id, fs[0] > 0, math.degrees(vec_deg), angle_from, vecer[0], vecer[1])
+        curr_id += 1
         #"GO HERE"
+                #print(xs)
+    print("____")
+    for l in range (best_index, best_index + len(rotated_lines)):
+
+        id = l % len(rotated_lines)
+        #print(id)
+        roted = rotated_lines[id]
+
+        x1n = roted[1]
+        y1n = roted[2]
+        x2n = roted[3]
+        y2n = roted[4]
+
+
+        clr = "red"
+        if (id == best_index): clr = "green"
+        if (roted[0] <= 0): clr = "gray"
 
         p1 = (x1n, y1n)
         p2 = (x2n, y2n)
@@ -609,46 +661,97 @@ def test():
         norm_vec = (-vec[1], vec[0])
         norm_vec = normalize(norm_vec)
         check_len = 10
+        vec_deg = math.atan2(vec[1], vec[0]) % math.radians(90)
 
-        c3.create_line(x1n + offsetX, y1n + offsetY, x2n + offsetX, y2n + offsetY, fill=color)
+        angle_from = 0
+        if (vec_deg >= math.radians(45)):
+            angle_from = math.radians(90) - vec_deg
+        else:
+            angle_from = vec_deg
+        print(id ,math.degrees(angle_from))
 
-        if (fs[0] > 0):
+        if (math.degrees(angle_from) >= 9.5): clr = "purple"
 
-            num_tiles = round(vector_length(vec) / 40)
+
+        # print("deg", math.degrees() % 90 )
+        c2.create_line(x1n + offsetX, y1n + offsetY, x2n + offsetX, y2n + offsetY, fill=clr, width = 2)
+        # print("FINAL", fs[0])
+        if (roted[0] > 0 and math.degrees(angle_from) < 9):
+            num_tiles = vector_length(vec) / 40
             x_ = vec_normalized[0]
             y_ = vec_normalized[1]
             tlen = 40
-            numline = 3
-            for a in range(num_tiles):
+            numline = 2
+            for a in range(math.ceil(num_tiles)):
 
-                for i in range(0,numline):
-                    if not(i == 0 and a == 0):
-                        xs = x1n + a * x_ * tlen + x_ * tlen/numline * i
-                        ys = y1n + a * y_ * tlen + y_ * tlen/numline * i
+                for i in range(0, numline):
+                    if not (i == 0 and a == 0):
+                        xs = x1n + a * x_ * tlen + x_ * tlen / numline * i
+                        ys = y1n + a * y_ * tlen + y_ * tlen / numline * i
+
+                        midx1 = x1n + a * x * tlen + x_ * tlen / 2
+                        midy1 = y1n + a * y * tlen + y_ * tlen / 2
 
                         xs1 = xs + norm_vec[0] * 14
                         ys1 = ys + norm_vec[1] * 14
 
-                        #startpos = (15, 15)
-                        #firstpos = True
-                        #starter = (0, 0)
+                        px1 = x1n + x_ * tlen * a
+                        py1 = y1n + y_ * tlen * a
 
-                        if (firstpos):
-                            starter = (xs1, ys1)
-                            firstpos = False
-                            submap[startpos[1]][startpos[0]] = 1
-                        else:
-                            pos2 = (round((xs1 - starter[0]) / 40), round((ys1 - starter[1]) / 40))
-                            print("asdasd, pos", pos2)
-                            submap[startpos[1] + pos2[1]][startpos[0] + pos2[0]] = 1
-
-                        c2.create_line(xs + offsetX, ys + offsetY, xs1 + offsetX, ys1 + offsetY, fill="purple")
-                        c2.create_oval(xs + offsetX - 2, ys + offsetY - 2, xs + offsetX + 2, ys + offsetY + 4)
-
-                print(xs)
+                        px2 = px1 + norm_vec[0] * tlen
+                        py2 = py1 + norm_vec[1] * tlen
 
 
-            print(vec, norm_vec, num_tiles)
+
+                        draw_dot(c2, px1, py1, 3, "white")
+                        draw_dot(c2, px2, py2, 3, "white")
+
+
+                        midx = midx1 + norm_vec[0] * 14
+                        midy = midy1 + norm_vec[1] * 14
+
+                        vsd = line_to_vector(p1, (xs, ys))
+                        # print("len", vector_length(vsd), vector_length(vec))
+                        #print("vlen", vector_length(vsd))
+                        if (vector_length(vsd) < vector_length(vec) - 10):
+
+                            # startpos = (15, 15)
+                            # firstpos = True
+                            # starter = (0, 0)
+                            """d
+                            c2.create_oval(midx + offsetX - 2, midy + offsetY - 2, midx + offsetX + 2,
+                                           midy + offsetY + 2)
+                            c2.create_oval(midx1 + offsetX - 2, midy1 + offsetY - 2, midx1 + offsetX + 2,
+                                           midy1 + offsetY + 2, fill="red")
+                            """
+
+                            if (firstpos):
+                                # print("first", xs1, ys1)
+                                c2.create_oval(xs1 + offsetX - 2, ys1 + offsetY - 2, xs1 + offsetX + 2,
+                                               ys1 + offsetY + 2, fill="green")
+                                starter = (xs1, ys1)
+
+
+
+                                firstpos = False
+                                # submap[startpos[1]][startpos[0]] = 1
+                            else:
+                                pos2 = (round((xs1 - starter[0]) / 40), round((ys1 - starter[1]) / 40))
+                                # print("asdasd, pos", pos2)
+                                submap[startpos[1] + pos2[1]][startpos[0] + pos2[0]] = 1
+                                c2.create_oval(xs1 + offsetX - 2, ys1 + offsetY - 2, xs1 + offsetX + 2,
+                                               ys1 + offsetY + 2, fill="orange")
+
+                            c2.create_line(xs + offsetX, ys + offsetY, xs1 + offsetX, ys1 + offsetY, fill="purple")
+                            c2.create_oval(xs + offsetX - 2, ys + offsetY - 2, xs + offsetX + 2, ys + offsetY + 4)
+
+    if (not firstpos):
+        poss = (round((-starter[0]) / 40), round((-starter[1]) / 40))
+        rob_pos = (startpos[0] + poss[0], startpos[1] + poss[1])
+        #print("position", rob_pos)
+
+
+            #print(vec, norm_vec, num_tiles)
 
             #c3.create_line(x1n + offsetX, y1n + offsetY, x1n + norm_vec[0]*5 + offsetX, y1n + norm_vec[1]*5 + offsetY, fill="purple")
         #c3.create_line(x1n + offsetX, x1n + offsetY, x1n + norm_vec[0] + offsetX, y1n + norm_vec[1] + offsetY, fill="purple")
@@ -661,33 +764,12 @@ def test():
             clr = "white"
             if val > 0:
                 clr = "black"
+            if (x == 15 and y == 15): clr = "green"
+            if (x == rob_pos[0] and y == rob_pos[1]): clr = "red"
 
             c3.create_rectangle(x * rec_size, y *rec_size, x * rec_size + rec_size, y *rec_size+ rec_size, fill = clr)
 
-
-    """d
-    offset_grid = height / nr
-    for i in range(nr):
-        for j in range(nr):
-            t_col ='magenta'
-            score = submap[i][j]
-            if i == start_y and j == start_x:
-                color = 'green'
-            elif i == 15 and j == 15:
-                color = 'red'
-                t_col = 'white'
-
-            elif score == 0:
-                color = 'white'
-            elif score < 0:
-                color = 'gray'
-            else:
-                color = 'yellow'
-
-            c3.create_rectangle(j * offset_grid, i * offset_grid, j * offset_grid + offset_grid, i * offset_grid + offset_grid, fill=color, outline='white')
-            c3.create_text(j * offset_grid + offset_grid / 2, i * offset_grid + offset_grid / 2,fill=t_col, text=score)
-    print(curr_index)"""
-    root.after(2000, test)
+    root.after(100, test)
 
 
 root.after(1, test)

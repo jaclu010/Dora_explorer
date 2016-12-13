@@ -448,8 +448,8 @@ def test():
         _y0 = sin_cos[good_readings[i][0]][1]
         _y1 = sin_cos[good_readings[i][1]][1]
         c.create_line(_x0 + offsetX, _y0 + offsetY, _x1 + offsetX, _y1 + offsetY, fill='cyan')
-        #intersections.append((_x0, _y0, good_readings[i][0]))
-        #intersections.append((_x1, _y1, good_readings[i][1]))
+        intersections.append((_x0, _y0, good_readings[i][0]))
+        intersections.append((_x1, _y1, good_readings[i][1]))
 
         vectors.append((x0, y0, x1, y1))
         angles.append((math.degrees(math.atan2(-lines[i][1], lines[i][0])), i, 0))
@@ -884,12 +884,46 @@ def test():
         i += cnt + 1
 
     # -----
+    # Extract block of lines not containing bad ones
+    #
+    # -----
+    merged_lines_again = []
+    merged_lines_size = len(merged_lines)
+    i = 0
+    while i < merged_lines_size:
+        cnt = 0
+        temp = []
+        ls = merged_lines[i][4]
+
+        if ls != -1:
+            temp.append(merged_lines[i])
+            for j in range(i + 1, merged_lines_size, 1):
+                k = j
+                ls_n = merged_lines[k][4]
+                if ls_n != -1:
+                    cnt += 1
+                    temp.append(merged_lines[k])
+                else:
+                    break
+            merged_lines_again.append(temp)
+
+        i += cnt + 1
+
+    # -----
     # Additional filtering
     #
     # -----
-
     offset_grid = height / nr
-    
+
+    first_line = merged_lines_again[0][0]
+    f_line_end_dot = (rotated_lines[first_line[6]][1], rotated_lines[first_line[6]][2])
+    start_pos_x = f_line_end_dot[0]
+    start_pos_y = f_line_end_dot[1]
+    first_x = x = rounds(start_pos_x / 40) + 15
+    first_y = y = rounds(start_pos_y / 40) + 15
+    print(x, y)
+    next_x = next_y = 0
+    start_dir = (first_line[0], first_line[1])
     aligning = (0,0)
     if start_dir[1] != 0:
         if start_dir[1] == 1:
@@ -899,25 +933,51 @@ def test():
     elif start_dir[0] == -1:
         aligning = (1,1)
 
-    new_start_x = x = start_x * offset_grid + aligning[0] * offset_grid
-    new_start_y = y = start_y * offset_grid + aligning[1] * offset_grid
-    c2.create_oval(x -10, y -10, x +10, y +10, fill='pink')
-    
-    for i in range(len(merged_lines)):
-        next_i = i + 1
-        if next_i >= len(merged_lines): next_i = 0
-        dir_x = merged_lines[i][0]
-        dir_y = merged_lines[i][1]
-        l_len = merged_lines[i][3]
-        line_scr = merged_lines[i][4]
-        line_scr_n = merged_lines[next_i][4]
-        cnt = rounds2(l_len/40, 0.2)
+    for lines in merged_lines_again:
+        line_end_dot_nr = lines[0][6]
+        line_end_dot = (rotated_lines[line_end_dot_nr][1], rotated_lines[line_end_dot_nr][2])
+        for i in range(len(lines)):
+            next_i = i + 1
 
-        #if line_scr != -1:
-        #    c2.create_line(
+            if next_i >= len(lines): next_i = 0
+            dir_x = lines[i][0]
+            dir_y = lines[i][1]
+            #n_dir_x = lines[next_i][0]
+            #n_dir_y = lines[next_i][1]
+            l_len = lines[i][3]
 
-        
+            cnt = rounds2(l_len / 40, 0.2)
+            #line_start_dot_nr = lines[i][5]
+            #line_end_dot_nr = lines[i][6]
+            #line_start_dot = (rotated_lines[line_start_dot_nr][1], rotated_lines[line_start_dot_nr][2])
 
+            # Draw backwards
+            if i == 0:
+                x = first_x + rounds((line_end_dot[0] - start_pos_x) / 40)
+                y = first_y + rounds((line_end_dot[1] - start_pos_y) / 40)
+                c3.create_line(x * offset_grid + aligning[0] * offset_grid,
+                               y * offset_grid + aligning[1] * offset_grid,
+                               (x + cnt * (-dir_x)) * offset_grid + aligning[0] * offset_grid,
+                               (y + cnt * (-dir_y))* offset_grid + aligning[1] * offset_grid,
+                               fill='green', width=5)
+            else:
+                next_x = x + cnt * dir_x
+                next_y = y + cnt * dir_y
+                c3.create_line(x * offset_grid + aligning[0] * offset_grid,
+                               y * offset_grid + aligning[1] * offset_grid,
+                               next_x * offset_grid + aligning[0] * offset_grid,
+                               next_y * offset_grid + aligning[1] * offset_grid,
+                               fill='green', width=5)
+                x = next_x
+                y = next_y
+
+
+
+
+    c3.create_oval(first_x * offset_grid + aligning[0] * offset_grid - 10,
+                   first_y * offset_grid + aligning[1] * offset_grid - 10,
+                   first_x * offset_grid + aligning[0] * offset_grid + 10,
+                   first_y * offset_grid + aligning[1] * offset_grid + 10, fill='pink')
 
     # -----
     # Original drawing loop
@@ -1015,7 +1075,7 @@ def test():
             
             #print(start_dot, line_end_dot)
   
-            score = 1 + int(4*merged_lines[i][7] / (rl_score+bad_scores_cnt+1))
+            score = 1 + int(4*merged_lines[i][7] / (rl_score+bad_scores_cnt+2))
             if line_scr_n == -1 or line_scr_p == -1:
                 score -= 1
                 
@@ -1094,8 +1154,8 @@ def test():
             else:
                 color = 'yellow'
 
-            c3.create_rectangle(j * offset_grid, i * offset_grid, j * offset_grid + offset_grid,
-                                i * offset_grid + offset_grid, fill=color, outline='white')
+            #c3.create_rectangle(j * offset_grid, i * offset_grid, j * offset_grid + offset_grid,
+                                #i * offset_grid + offset_grid, fill=color, outline='white')
             c3.create_text(j * offset_grid + offset_grid / 2, i * offset_grid + offset_grid / 2,
                            fill=t_col, text=score)
 

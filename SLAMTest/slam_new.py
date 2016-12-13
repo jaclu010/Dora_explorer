@@ -55,9 +55,12 @@ def rounds2(val, base):
 
 def pickDir(dir_x, dir_y, dist_x, dist_y):
     print(dist_x, dist_y)
-    if dir_y != 0:
+    if dir_y == 1:
         x = math.ceil(dist_x)
-        y = rounds2(dist_y, 0.7) + dir_y
+        y = rounds2(dist_y, 0.7)
+    elif dir_y == -1:
+        x = math.ceil(dist_x)
+        y = rounds2(dist_y, 0.7)
     elif dir_x != 0:
         x = math.ceil(dist_x)
         y = rounds2(dist_y, 0.5)
@@ -79,6 +82,10 @@ def getIndex(item):
     return item[2]
 
 
+def roundHalf(val):
+    return round(val * 2.0) / 2.0
+
+
 root = Tk()
 root.title("Submapping")
 
@@ -94,7 +101,7 @@ c2.pack(side=RIGHT)
 
 read = read_list[3]
 
-curr_index = 10
+curr_index = 0
 automode = False
 
 
@@ -154,13 +161,10 @@ def mapper():
     two_delta_covar = 45
     good_reading_count = 3
     angle_deviation_filter = 8
-    score_percent_filter = 0.5
-    score_filter = 3
-    dot_filter_value = 20
+    dot_filter_value = 18
     dot_min_dist = 7
     dot_score_dist = 6
     dot_dist_cut = 20 # 30
-    round_base = 4
     res = []
 
     uncertain_threshold = 1
@@ -378,8 +382,11 @@ def mapper():
         d_distX /= d_nr
         d_distY /= d_nr
         normalized = math.hypot(valX, valY)
-        valX /= normalized
-        valY /= normalized
+        if normalized:
+            valX /= normalized
+            valY /= normalized
+        else:
+            print("----------------WARNING MAP MAYBE WRONG------------------")
         lines.append((valX, valY, d_distX, d_distY, good_readings[i][2]))
 
     # Draw lines
@@ -550,14 +557,12 @@ def mapper():
 
         d_readings = closest_2 - closest_1
         line_len = math.hypot(dx, dy)
-        min_score_per_wall = int(line_len / d_readings)
 
         line_angle = abs(math.degrees(math.atan2(dy, dx)))
         if line_angle > 180:
             line_angle -= 270
         else:
             line_angle -= 90
-        #print(i, abs(line_angle)-abs(rob_rot))
 
         x1 = l[0]
         y1 = l[1]
@@ -580,7 +585,7 @@ def mapper():
         #if 30 <= abs(line_angle)-abs(rob_rot) <= 60:
         #    closest_points.append((closest_1, closest_2, l))
         #    line_score.append(-1)
-        if (line_len < 20 and d_readings < 1) or (line_len > 40 and d_readings <3) or (line_len > 60 and d_readings < 4) or (line_len > 80 and d_readings < 5) or (line_len > 100 and d_readings < 9):
+        if (line_len < 20 and d_readings < 1) or (line_len > 30 and d_readings < 4) or (line_len > 40 and d_readings <5) or (line_len > 60 and d_readings < 6) or (line_len > 80 and d_readings < 6) or (line_len > 100 and d_readings < 9):
             closest_points.append((closest_1, closest_2, l))
             line_score.append(-1)
         else:
@@ -653,11 +658,8 @@ def mapper():
         line_scr = line_score[i]
         line_scr_n = line_score[next_i]
         line_scr_p = line_score[i-1]
-
         dir_x = dx
         dir_y = dy
-        dir_x_n = dx_n
-        dir_y_n = dy_n
 
         l_len = math.hypot(dx, dy)
         dx /= l_len
@@ -774,7 +776,7 @@ def mapper():
                     cnt += 1
                     percent_score += percent_score_n
                 elif line_scr_n != -1:
-                    score = math.ceil(math.sqrt(line_scr*abs(percent_score)*120 / new_len + cnt + 3))
+                    score = math.ceil(math.sqrt(line_scr*abs(percent_score)*20 / new_len + cnt + 3))
                     #print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, line_scr*abs(percent_score), new_len/40, percent_score, score)
                     merged_lines.append((dx, dy, straightened_lines[i][2], new_len, 1, (i + starting_point) % s_line_size, (k + starting_point) % s_line_size, score))
                     print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, merged_lines[-1])
@@ -788,7 +790,7 @@ def mapper():
                     print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, merged_lines[-1])
                     break
             else:
-                score = math.ceil(math.sqrt(line_scr*abs(percent_score)*120 / new_len + cnt + 3))
+                score = math.ceil(math.sqrt(line_scr*abs(percent_score)*20 / new_len + cnt + 3))
                 #print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, line_scr*abs(percent_score), new_len/40, percent_score, score)
                 merged_lines.append((dx, dy, straightened_lines[i][2], new_len, 1, (i + starting_point) % s_line_size, (k + starting_point) % s_line_size, score))
                 print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, merged_lines[-1])
@@ -826,8 +828,7 @@ def mapper():
     # Draw lines and fill grid
     # 
     # -----
-    first_loop = True
-    bad_score_cnt = 0
+    bad_score_cnt = 1
     for i in line_score:
         if i < 0:
             bad_score_cnt += 1
@@ -845,8 +846,7 @@ def mapper():
         start_pos_y = f_line_end_dot[1]
         pos_corr = pickDir(start_dir[0], start_dir[1], start_pos_x / 40, start_pos_y / 40)
         first_x = x = 15 + pos_corr[0]
-        first_y = y = 15 + pos_corr[1]  
-        next_x = next_y = 0
+        first_y = y = 15 + pos_corr[1]
  
         print("----START DIR: " + str(start_dir) + ", FIRST DOT POS " + str(f_line_end_dot) + ", ROUNDED TO: " + str(pos_corr))
 
@@ -857,11 +857,14 @@ def mapper():
                 next_i = i + 1
                 if next_i >= len(lines): next_i = 0
 
+                line_dist = roundHalf(math.hypot(rotated_lines[lines[i][5]][0] / 40, rotated_lines[lines[i][5]][1] / 40))
+                #print(i, lines[i][5], line_dist)
                 dir_x = lines[i][0]
                 dir_y = lines[i][1]
                 l_len = lines[i][3]
                 cnt = rounds2(l_len / 40, 0.25)
 
+                # Reduce score with this value
                 if dx_dy < 1.1:
                     rl_score = 0
                 elif dx_dy < 1.2:
@@ -871,10 +874,17 @@ def mapper():
                 else:
                     rl_score = 3
 
-                score = 1 + int(4 * merged_lines[i][7] / (rl_score + bad_score_cnt + 2))
+                score = rounds((2 + merged_lines[i][7] - rl_score) / bad_score_cnt)
+                print(merged_lines[i][5], score, line_dist)
                 if line_scr_n == -1 or line_scr_p == -1:
                     score -= 1
 
+                score += 5 - round(line_dist / 2)
+                if score < 1:
+                    score = 1
+                print(l_len)
+                if l_len < 25:
+                    score = 1
                 # Draw backwards if first line
                 if i == 0:
                     if dir_x == -1:
@@ -883,19 +893,18 @@ def mapper():
                         extra = (1, 1)
                     else:
                         extra = (0, 0)
-                    x = first_x + rounds2((line_end_dot[0] - start_pos_x) / 40, 0.3)
+                    x = first_x + rounds2((line_end_dot[0] - start_pos_x) / 40, 0.45)
                     y = first_y + rounds2((line_end_dot[1] - start_pos_y) / 40, 0.45)
                     print("----New line seg: " + str(line_end_dot[0] - start_pos_x)+
                           ", " + str(line_end_dot[1] - start_pos_y) + " Rounded: " + 
                           str(rounds((line_end_dot[0] - start_pos_x) / 40)) + ", " +
                           str(rounds((line_end_dot[1] - start_pos_y) / 40)) + ", X/Y: " + str(x) + ", " + str(y))
-                    print(x, y)
                     for j in range(cnt):
                         cnt_x = j * dir_x + dir_x + extra[0]
                         cnt_y = j * dir_y + extra[1]
-                        if 0 <= y + cnt_y < nr:
-                            if 0 <= x + cnt_x < nr:
-                                submap[y - cnt_y][x - cnt_x] += 2#score
+                        if 0 <= y - cnt_y < nr:
+                            if 0 <= x - cnt_x < nr:
+                                submap[y - cnt_y][x - cnt_x] += score
                         c3.create_line(x * offset_grid, y * offset_grid,
                                        (x + cnt * (-dir_x)) * offset_grid,
                                        (y + cnt * (-dir_y)) * offset_grid,
@@ -916,7 +925,7 @@ def mapper():
                         cnt_y = j * dir_y + extra[1]
                         if 0 <= y + cnt_y < nr:
                             if 0 <= x + cnt_x < nr:
-                                submap[y + cnt_y][x + cnt_x] += 2#score
+                                submap[y + cnt_y][x + cnt_x] += score
                         c3.create_line(x * offset_grid, y * offset_grid,
                                        next_x * offset_grid, next_y * offset_grid,
                                        fill='green', width=5)
@@ -951,8 +960,8 @@ def mapper():
                                fill=t_col, text=score)
 
 
-    print("Current index: " + str(curr_index) + ", List size: " + str(size) + ", No bad readings: " + 
-          str(bad_readings_cnt) + ", No bad lines: " + str(bad_score_cnt) + ", No invalid measures: " + str(uncertain_values))
+    print("Current index: " + str(curr_index) + ", List size: " + str(size) + ", No. bad readings: " +
+          str(bad_readings_cnt) + ", No. bad lines: " + str(bad_score_cnt) + ", No. invalid measures: " + str(uncertain_values))
     print(rob_rot)
     root.after(200, mapper)
 

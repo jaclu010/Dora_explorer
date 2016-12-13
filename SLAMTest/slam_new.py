@@ -5,11 +5,9 @@ from tkinter import *
 # import numpy as np
 
 offsetX = 300
-offsetY = 300
-
+offsetY = 200
 
 active_gui = True
-bad_reading = False
 
 with open("slamfixed2.txt", "r") as f:
     a = f.readlines()
@@ -41,11 +39,13 @@ def pointlength(p1, p2):
 def drawText(canvas, x, y, text, color):
     canvas.create_text(x + offsetX, y + offsetY, text=text, fill=color)
 
-
+# Always round .5 up
 def rounds(val):
     return rounds2(val, 0.5)
 
 
+# Rounds input value up if equal to base
+# Opposite direction for negative values
 def rounds2(val, base):
     if abs(val) % 1 >= base:
         return int(math.ceil(abs(val)) * math.copysign(1, val))
@@ -53,80 +53,18 @@ def rounds2(val, base):
         return int(math.floor(abs(val)) * math.copysign(1, val))
 
 
-def pickDirection(dir_x, dir_y, d_x, d_y, org_d_x, org_d_y):
-    if dir_x == -1:
-        d_x = math.floor(abs(d_x)) * math.copysign(1, org_d_x)
-        d_y = math.ceil(abs(d_y)) * math.copysign(1, org_d_y)
-    elif dir_y == -1:
-        d_x = math.ceil(abs(d_x)) * math.copysign(1, org_d_x)
-        d_y = math.floor(abs(d_y)) * math.copysign(1, org_d_y)
-    elif dir_x == 1:
-        d_x = math.floor(abs(d_x)) * math.copysign(1, org_d_x)
-        d_y = math.ceil(abs(d_y)) * math.copysign(1, org_d_y)
-    elif dir_y == 1:
-        d_x = math.ceil(abs(d_x)) * math.copysign(1, org_d_x)
-        d_y = math.floor(abs(d_y)) * math.copysign(1, org_d_y)
-    return (int(d_x), int(d_y))
+def pickDir(dir_x, dir_y, dist_x, dist_y):
+    print(dist_x, dist_y)
+    if dir_y != 0:
+        x = math.ceil(dist_x)
+        y = rounds2(dist_y, 0.7) + dir_y
+    elif dir_x != 0:
+        x = math.ceil(dist_x)
+        y = rounds2(dist_y, 0.5)
 
-
-def additionalDirections(dir_x, dir_y, s_dir_x, s_dir_y, dist_x, dist_y):
-    x = y = 0
-    if dir_x == s_dir_x and dir_y == s_dir_y:
-        pass
-    elif abs(dir_x) == abs(s_dir_x) and abs(dir_y) == abs(s_dir_y):
-        if dir_x != 0:
-            x -= s_dir_x
-        else:
-            y -= s_dir_y
-    else:
-        if s_dir_x != 0:
-            if dir_x != 0:
-                y += 1 * dir_x
-            else:
-                x += 1 * dir_y
-        else:
-            if dir_x != 0:
-                x += s_dir_y
-                y -= s_dir_x
-            else:
-                x -= s_dir_y
-                y += s_dir_x
-
-
-    """
-    if abs(dir_x) != abs(s_dir_x) or abs(dir_y) != abs(s_dir_y):
-        x = rounds2(dist_x, 0.4)  # math.ceil(abs(dist_x)) * math.copysign(1, dist_x)
-        y = rounds2(dist_y, 0.4)  # math.floor(abs(dist_y)) * math.copysign(1, dist_y) + dir_y
-        x += dir_x
-        y += dir_y
-    else:
-        x = rounds2(dist_x, 0.5)  # math.ceil(abs(dist_x)) * math.copysign(1, dist_x)
-        y = rounds2(dist_y, 0.5)  # math.floor(abs(dist_y)) * math.copysign(1, dist_y) + dir_y
-        #if dir_y != 0:
-        #    x += 1 * (-dir_y)
-        #else:
-        #    y += 1 * (-dir_x)
-    #if abs(dir_y) == abs(s_dir_y) and dir_y != 0:
-    #    x += 1
-    """
-    """
-    if s_dir_x == dir_x or s_dir_y == dir_y:
-        x += dir_x
-        y += dir_y
-    else:
-        if dir_y != 0:
-            y += dir_y
-            x -= s_dir_x
-        else:
-            y -= s_dir_y
-            x += dir_x
-    """
-
-
+    print(x, y)
     return (int(x), int(y))
-
-
-
+    
 
 # Returns point of intersection between two vectors
 def vectorIntersection(x1, y1, x2, y2, x3, y3, x4, y4):
@@ -137,11 +75,6 @@ def vectorIntersection(x1, y1, x2, y2, x3, y3, x4, y4):
     return (px, py)
 
 
-# Function definition for SciPy
-def f(x, A, B):
-    return A * x + B
-
-
 def getIndex(item):
     return item[2]
 
@@ -149,11 +82,11 @@ def getIndex(item):
 root = Tk()
 root.title("Submapping")
 
-width = 600
-height = 600
-c = Canvas(root, width=600, height=600)
-c2 = Canvas(root, width=600, height=600)
-c3 = Canvas(root, width=600, height=600)
+width = 400
+height = 400
+c = Canvas(root, width=400, height=400)
+c2 = Canvas(root, width=400, height=400)
+c3 = Canvas(root, width=400, height=400)
 
 c.pack(side=LEFT)
 c3.pack(side=RIGHT)
@@ -161,16 +94,16 @@ c2.pack(side=RIGHT)
 
 read = read_list[3]
 
-curr_index = 0
+curr_index = 10
 automode = False
 
 
-def test():
+def mapper():
     global curr_index
     global automode
     global offsetX
     global offsetY
-    unreliable = False
+    bad_reading = False
     if (automode):
         clearCanvas(c)
         clearCanvas(c2)
@@ -214,7 +147,6 @@ def test():
     # Variables
     size = len(read)
     corr = 7.0  # degrees
-    step = 360 / size
     cell_size = 40
     min_dist = 40
     d_mean_covar = 11
@@ -224,12 +156,19 @@ def test():
     angle_deviation_filter = 8
     score_percent_filter = 0.5
     score_filter = 3
-    dot_filter_value = 25
+    dot_filter_value = 20
     dot_min_dist = 7
     dot_score_dist = 6
     dot_dist_cut = 20 # 30
     round_base = 4
     res = []
+
+    uncertain_threshold = 1
+    
+    if size > 0:
+        step = 360.0 / size
+    else:
+        bad_reading = True
 
     # Convert to angles
     for i in range(size):
@@ -239,10 +178,11 @@ def test():
         res.append((read[i], angle))
 
     # Move corrected readings to end of array
-    curr = res[0][1]
-    while curr > 180:
-        res.append(res.pop(0))
+    if not bad_reading:
         curr = res[0][1]
+        while curr > 180:
+            res.append(res.pop(0))
+            curr = res[0][1]
 
     sin_cos = []
     intersections = []
@@ -347,6 +287,7 @@ def test():
     # Purple - invalid measurement
         dots = [None] * size
     bad_readings_cnt = 0
+    uncertain_values = 0
     for i in range(size):
         x = sin_cos[i][0]
         y = sin_cos[i][1]
@@ -357,24 +298,31 @@ def test():
         else:
             c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2)
         d = 0
+
+        if read[i] < min_dist or read[i] > 10000:
+            c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='purple')
+            d = 3  # Invalid measures
+            uncertain_values += 1
+
         if abs(delta_mean[i][0]) + abs(delta_mean[i][1]) > d_mean_covar:
             c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='yellow')
             bad_readings_cnt += 1
             d = 2
-        if abs(double_delta[i][0]) > d_delta_covar and abs(double_delta[i][1]) > d_delta_covar:
+        elif abs(double_delta[i][0]) > d_delta_covar and abs(double_delta[i][1]) > d_delta_covar:
             c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='orange')
             d = 1
             bad_readings_cnt += 1
+
         if two_delta[i] < two_delta_covar:
             c.create_oval(x + offsetX - 8, y + offsetY - 8, x + offsetX + 8, y + offsetY + 8, fill='magenta')
             d = 4
-            bad_readings_cnt += 1
-        if read[i] < min_dist or read[i] > 10000:
-            c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='purple')
-            d = 3  # Invalid measures
-            bad_readings_cnt += 1
 
         dots[i] = d
+
+    # Legitimacy check 1
+    if not bad_reading:
+        if uncertain_values > (size / uncertain_threshold):
+            bad_reading = True
 
     # Dot value 0 == good value
     # Appended to list
@@ -448,8 +396,8 @@ def test():
         _y0 = sin_cos[good_readings[i][0]][1]
         _y1 = sin_cos[good_readings[i][1]][1]
         c.create_line(_x0 + offsetX, _y0 + offsetY, _x1 + offsetX, _y1 + offsetY, fill='cyan')
-        intersections.append((_x0, _y0, good_readings[i][0]))
-        intersections.append((_x1, _y1, good_readings[i][1]))
+        #intersections.append((_x0, _y0, good_readings[i][0]))
+        #intersections.append((_x1, _y1, good_readings[i][1]))
 
         vectors.append((x0, y0, x1, y1))
         angles.append((math.degrees(math.atan2(-lines[i][1], lines[i][0])), i, 0))
@@ -481,7 +429,6 @@ def test():
 
     if angle_deviation:
         rob_rot /= len(angle_deviation)
-        #rob_rot += math.copysign(2, rob_rot)
     else:
         rob_rot = 0
 
@@ -489,6 +436,7 @@ def test():
 
     # -----
     # Calculate intersection points for all vectors
+    #
     # -----
     filtered_len = len(filtered_vectors)
     for v in range(filtered_len):
@@ -522,25 +470,22 @@ def test():
 
     # -----
     # Do some filtering of the intersections to remove bad ones
+    #
     # -----
     filtered_intersections = []
     used = []
     dot_averaging = []
     # Filter intersections outside the grid
     for d in intersections:
-
         x1 = d[0]
         y1 = d[1]
 
         for _d in range(size):
             _x1 = sin_cos[_d][0]
             _y1 = sin_cos[_d][1]
-
             d_x1 = x1 - _x1
             d_y1 = y1 - _y1
-
             hypot = math.hypot(d_x1, d_y1)
-
             if hypot < dot_min_dist:
                 filtered_intersections.append(d)
                 break
@@ -566,12 +511,9 @@ def test():
     new_lines = []
     dot_averaging.sort(key=getIndex)
 
-    # Draw polygon from all normalized points
     for i in range(len(dot_averaging)):
         next_i = i + 1
         if next_i >= len(dot_averaging): next_i = 0
-        # c2.create_line(dot_averaging[i][0] + offsetX, dot_averaging[i][1] + offsetY,
-        # dot_averaging[next_i][0] + offsetX, dot_averaging[next_i][1] + offsetY, fill='#ABABAB', width=2)
         if dot_averaging[i][2] > dot_averaging[next_i][2]:
             new_lines.append((dot_averaging[i][0], dot_averaging[i][1],
                               dot_averaging[next_i][0], dot_averaging[next_i][1],
@@ -634,11 +576,11 @@ def test():
 
         #print(score, d_readings, min_score_per_wall, line_len)
         # if score > score_filter:
-        #print(i, closest_1, closest_2, d_readings, line_len)
+        print(i, closest_1, closest_2, d_readings, line_len)
         #if 30 <= abs(line_angle)-abs(rob_rot) <= 60:
         #    closest_points.append((closest_1, closest_2, l))
         #    line_score.append(-1)
-        if line_len < 20 or (line_len > 40 and d_readings <3) or (line_len > 60 and d_readings < 4) or (line_len > 80 and d_readings < 5) or (line_len > 100 and d_readings < 9):
+        if (line_len < 20 and d_readings < 1) or (line_len > 40 and d_readings <3) or (line_len > 60 and d_readings < 4) or (line_len > 80 and d_readings < 5) or (line_len > 100 and d_readings < 9):
             closest_points.append((closest_1, closest_2, l))
             line_score.append(-1)
         else:
@@ -658,7 +600,7 @@ def test():
     # Draw score vectors
 
     c2.create_oval(offsetX - 5, offsetY - 5, 5 + offsetX, 5 + offsetY, fill='black')
-    c3.create_oval(offsetX - 5, offsetY - 5, 5 + offsetX, 5 + offsetY, fill='black')
+    c3.create_oval(height/2 - 5, height/2 - 5, 5 + height/2, 5 + height/2, fill='black')
     # print(final_score)
 
     rotated_lines = []
@@ -669,7 +611,7 @@ def test():
         if thickness > 10:
             thickness = 4
         color = 'red'
-        print(thickness)
+        #print(thickness)
         # rob_rot = 30
         ncos = math.cos(math.radians(rob_rot))
         nsin = math.sin(math.radians(rob_rot))
@@ -690,16 +632,15 @@ def test():
     submap = [[0 for x in range(nr)] for y in range(nr)]
     straightened_lines = []
 
-    #
+    # -----
     # Actual grid aligning
     # dx_dy Value closer to 1 is more aligned to x- or y- axis
-    #
+    # -----
     found_start = False
     starting_point = 0
     best_angle = 90
     best_angle_pos = 0
     possible_starting_points = []
-    #print(line_score)
 
     for i in range(len(rotated_lines)):
         next_i = i + 1
@@ -767,7 +708,6 @@ def test():
         if line_scr == -1 and line_scr_n != -1:
             possible_starting_points.append(next_i)
             found_start = True
-            
 
         if line_scr == -1:
             dir_x = rounds(dx)
@@ -794,7 +734,6 @@ def test():
         if dist < best_dist:
             best_dist = dist
             starting_point = i
-        
 
     if not found_start:
         starting_point = best_angle_pos
@@ -802,31 +741,6 @@ def test():
     for i in range(starting_point):
         straightened_lines.append(straightened_lines.pop(0))
         line_score.append(line_score.pop(0))
-
-    #for l in straightened_lines:
-    #    print(math.degrees(math.atan2(l[1], l[0])))
-
-    #print(best_angle_pos, best_angle)
-
-    org_d_x = rotated_lines[starting_point][1]
-    org_d_y = rotated_lines[starting_point][2]
-
-    start_dot = (org_d_x, org_d_y)
-
-    d_x = abs(org_d_x / 40)
-    d_y = abs(org_d_y / 40)
-    s_dir_x = straightened_lines[0][0]
-    s_dir_y = straightened_lines[0][1]
-    #print(d_x, d_y, s_dir_x, s_dir_y)
-    rob_pos = pickDirection(s_dir_x, s_dir_y, d_x, d_y, org_d_x, org_d_y)
-    #print(rob_pos)
-
-    #print(1111, d_x, d_y, dist_from_start)
-    start_dir = (s_dir_x, s_dir_y)
-    start_x = 15 + rob_pos[0]
-    cur_x = 15 + rob_pos[0]
-    start_y = 15 + rob_pos[1]
-    cur_y = 15 + rob_pos[1]
 
     # Merge concecutive lines in the same direction
     merged_lines = []
@@ -844,7 +758,6 @@ def test():
         new_score = 0
         percent_score = straightened_lines[i][0]
         
-
         for j in range(i + 1, s_line_size + 1, 1):
             k = j
             if k >= s_line_size: k = 0
@@ -862,9 +775,9 @@ def test():
                     percent_score += percent_score_n
                 elif line_scr_n != -1:
                     score = math.ceil(math.sqrt(line_scr*abs(percent_score)*120 / new_len + cnt + 3))
-                    print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, line_scr*abs(percent_score), new_len/40, percent_score, score)
+                    #print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, line_scr*abs(percent_score), new_len/40, percent_score, score)
                     merged_lines.append((dx, dy, straightened_lines[i][2], new_len, 1, (i + starting_point) % s_line_size, (k + starting_point) % s_line_size, score))
-                    #print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, merged_lines[-1])
+                    print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, merged_lines[-1])
                     break
             elif line_scr == -1:
                 if dx == dx_n and dy == dy_n and line_scr_n == -1:
@@ -872,13 +785,13 @@ def test():
                     cnt += 1
                 else:
                     merged_lines.append((dx, dy, straightened_lines[i][2], new_len, -1, (i + starting_point) % s_line_size, (k + starting_point) % s_line_size, -1))
-                    #print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, merged_lines[-1])
+                    print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, merged_lines[-1])
                     break
             else:
                 score = math.ceil(math.sqrt(line_scr*abs(percent_score)*120 / new_len + cnt + 3))
-                print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, line_scr*abs(percent_score), new_len/40, percent_score, score)
+                #print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, line_scr*abs(percent_score), new_len/40, percent_score, score)
                 merged_lines.append((dx, dy, straightened_lines[i][2], new_len, 1, (i + starting_point) % s_line_size, (k + starting_point) % s_line_size, score))
-                #print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, merged_lines[-1])
+                print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, merged_lines[-1])
                 break
 
         i += cnt + 1
@@ -910,301 +823,139 @@ def test():
         i += cnt + 1
 
     # -----
-    # Additional filtering
-    #
+    # Draw lines and fill grid
+    # 
     # -----
     first_loop = True
-    bad_scores_cnt = 0
+    bad_score_cnt = 0
     for i in line_score:
         if i < 0:
-            bad_scores_cnt += 1
+            bad_score_cnt += 1
+    if not bad_reading:
+        if bad_score_cnt / size > 0.65:
+            bad_reading = True
 
     offset_grid = height / nr
-
-    first_line = merged_lines_again[0][0]
-    f_line_end_dot = (rotated_lines[first_line[6]][1], rotated_lines[first_line[6]][2])
-    start_pos_x = f_line_end_dot[0]
-    start_pos_y = f_line_end_dot[1]
-    first_x = x = rounds(start_pos_x / 40) + 15
-    first_y = y = rounds(start_pos_y / 40) + 15
-    print(x, y)
-    next_x = next_y = 0
-    start_dir = (first_line[0], first_line[1])
-    aligning = (0,0)
-    if start_dir[1] != 0:
-        if start_dir[1] == 1:
-            aligning = (1, 0)
-        else:
-            aligning = (0, 1)
-    elif start_dir[0] == -1:
-        aligning = (1,1)
-    aligning= (0,0)
-
-    for lines in merged_lines_again:
-        line_end_dot_nr = lines[0][6]
-        line_end_dot = (rotated_lines[line_end_dot_nr][1], rotated_lines[line_end_dot_nr][2])
-        for i in range(len(lines)):
-            next_i = i + 1
-
-            if next_i >= len(lines): next_i = 0
-            dir_x = lines[i][0]
-            dir_y = lines[i][1]
-            #n_dir_x = lines[next_i][0]
-            #n_dir_y = lines[next_i][1]
-            l_len = lines[i][3]
-            cnt = rounds2(l_len / 40, 0.2)
-            print(cnt)
-            #line_start_dot_nr = lines[i][5]
-            #line_end_dot_nr = lines[i][6]
-            #line_start_dot = (rotated_lines[line_start_dot_nr][1], rotated_lines[line_start_dot_nr][2])
-            if dx_dy < 1.1:
-                rl_score = 0
-            elif dx_dy < 1.2:
-                rl_score = 1
-            elif dx_dy < 1.3:
-                rl_score = 2
-            else:
-                rl_score = 3
-
-            if dir_x == -1:
-                extra = (-1, -1)
-            elif dir_y == 1:
-                extra = (-1, 0)
-            else:
-                extra = (0, 0)
-
-
-            score = 1 + int(4 * merged_lines[i][7] / (rl_score + bad_scores_cnt + 2))
-            if line_scr_n == -1 or line_scr_p == -1:
-                score -= 1
-
-            # Draw backwards
-            if i == 0:
-                if dir_x == -1:
-                    extra = (1, 1)
-                elif dir_y == 1:
-                    extra = (1, 1)
-                else:
-                    extra = (0, 0)
-                x = first_x + rounds((line_end_dot[0] - start_pos_x) / 40)
-                y = first_y + rounds((line_end_dot[1] - start_pos_y) / 40)
-                print(x, y)
-                for j in range(cnt):
-                    cnt_x = j * dir_x + dir_x + extra[0]
-                    cnt_y = j * dir_y + extra[1]
-                    #print(cnt_x, cnt_y, x, y)
-                    if 0 <= y + cnt_y < nr:
-                        if 0 <= x + cnt_x < nr:
-                            submap[y - cnt_y][x - cnt_x] += score
-                c3.create_line(x * offset_grid + aligning[0] * offset_grid,
-                               y * offset_grid + aligning[1] * offset_grid,
-                               (x + cnt * (-dir_x)) * offset_grid + aligning[0] * offset_grid,
-                               (y + cnt * (-dir_y))* offset_grid + aligning[1] * offset_grid,
-                               fill='green', width=5)
-            else:
-                if dir_x == -1:
-                    extra = (-1, -1)
-                elif dir_y == 1:
-                    extra = (-1, 0)
-                elif dir_y == -1:
-                    extra = (0, -1)
-                else:
-                    extra = (0, 0)
-                next_x = x + cnt * dir_x
-                next_y = y + cnt * dir_y
-                for j in range(cnt):
-                    cnt_x = j * dir_x + extra[0]
-                    cnt_y = j * dir_y + extra[1]
-                    if 0 <= y + cnt_y < nr:
-                        if 0 <= x + cnt_x < nr:
-                            submap[y + cnt_y][x + cnt_x] += score
-                c3.create_line(x * offset_grid + aligning[0] * offset_grid,
-                               y * offset_grid + aligning[1] * offset_grid,
-                               next_x * offset_grid + aligning[0] * offset_grid,
-                               next_y * offset_grid + aligning[1] * offset_grid,
-                               fill='green', width=5)
-                x = next_x
-                y = next_y
-
-
-
-    c3.create_oval(first_x * offset_grid + aligning[0] * offset_grid - 10,
-                   first_y * offset_grid + aligning[1] * offset_grid - 10,
-                   first_x * offset_grid + aligning[0] * offset_grid + 10,
-                   first_y * offset_grid + aligning[1] * offset_grid + 10, fill='pink')
-
-    # -----
-    # Original drawing loop
-    # -----
-    """
-    #print(len(merged_lines))
-    if not bad_reading:
-        for i in range(len(merged_lines)):
-            #subline = merged_lines[j]
-
-            #for i in range(len(subline)):
-
-            next_i = i + 1
-            if next_i >= len(merged_lines): next_i = 0
-            rl_score = -1
-            
-            
-            #print(j,i, next_i,  subline,next_i)
-            
-            # The old shit -----------
-            prev_dx = merged_lines[i-1][0]
-            prev_dy = merged_lines[i-1][1]
-            dx_dy = merged_lines[i][2]
-            dir_x = merged_lines[i][0]
-            dir_y = merged_lines[i][1]
-            dx_n = merged_lines[next_i][0]
-            dy_n = merged_lines[next_i][1]
-            line_scr = merged_lines[i][4]
-            line_scr_n = merged_lines[next_i][4]
-            line_scr_p = merged_lines[i-1][4]
-            line_start_dot_nr = merged_lines[i][5]
-            line_end_dot_nr = merged_lines[i][6]
-
-            line_start_dot = (rotated_lines[line_start_dot_nr][1], rotated_lines[line_start_dot_nr][2])
-            line_end_dot = (rotated_lines[line_end_dot_nr][1], rotated_lines[line_end_dot_nr][2])
-            #print(merged_lines[i][5], start_dot)
-            #print(merged_lines[i][6], line_end_dot)
-            
-            if dir_x != 0 and dir_y != 0:
-                line_scr = -1
-                
-
-            l_len = merged_lines[i][3]
-            #if rl_score == 2:
-            #    l_len *= 0.9
-            #elif rl_score == 1:
-            #    l_len *= 0.95
-            
-            len_round = round_base * rounds(float(l_len)/round_base)
-            #print(len_round)
-            
-            nr_cells = l_len / 40
-            #if first_loop:
-            #    cnt = rounds2(nr_cells, 0.5)
-            #else:
-            cnt = rounds2(nr_cells, 0.2)
-            
-            new_draw_start_x = (line_start_dot[0] - start_dot[0]) / 40
-            new_draw_start_y = (line_start_dot[1] - start_dot[1]) / 40
-            b_dx = rounds(line_end_dot[0] / 40)
-            b_dy = rounds(line_end_dot[1] / 40)
-            bad_dx = rounds((line_end_dot[0] - line_start_dot[0]) / 40)
-            bad_dy = rounds((line_end_dot[1] - line_start_dot[1]) / 40)
-
-            diff = bad_dx - bad_dy
-
-            if not first_loop and line_scr_p == -1 and line_scr != -1:
-                #print(new_draw_start_x, new_draw_start_y)
-                new_pos = pickDirection(dir_x, dir_y, abs(new_draw_start_x), abs(new_draw_start_y), new_draw_start_x, new_draw_start_y)
-                extra_pos = additionalDirections(dir_x, dir_y, start_dir[0], start_dir[1], new_draw_start_x, new_draw_start_y)
-                cur_x = start_x + new_pos[0]
-                cur_y = start_y + new_pos[1]
-                #print("New start dot: " + str(cur_x) + str(cur_y) + " New pos: " + str(extra_pos) + str(new_pos) + ", Start/end dot: "
-                #      + str(line_start_dot_nr) + str(line_end_dot_nr) + ", Start point: " + str(start_x) + str(start_y))
-                #print(1111, 15+new_pos[0], 15+new_pos[1], new_draw_start_x, new_draw_start_y)
-
-            #print(subline[i][5], 15+b_dy, 15+b_dx, b_dx, b_dy)
-            #if line_scr != -1:
-            #if dir_x != 0:
-            #   submap[15 + b_dy + dir_x][15 + b_dx] += -10
-            # else:
-            #    submap[15 + b_dy][15 + b_dx - dir_y] += -10
-            
-            #print(start_dot, line_end_dot)
-  
-            score = 1 + int(4*merged_lines[i][7] / (rl_score+bad_scores_cnt+2))
-            if line_scr_n == -1 or line_scr_p == -1:
-                score -= 1
-                
-
-            #print("START DOT: "+ str(merged_lines[i][5]) + ",  POSX: " + str(cur_x)
-            #      + ",  POSY: " +  str(cur_y) + ",  LINE LENGTH: " + str(nr_cells) +
-            #      ",  CELL COUNT: " + str(cnt) + ",  N DIR X, Y: " + str(dx_n) +
-            #      ", " + str(dy_n) + ",  DIFF: " + str(diff) + ",  BAD DX/DY: " + str(bad_dx) + str(bad_dy))
-            #print(line_scr)
-
-            real_b_dx = 0
-            real_b_dy = 0
-            
-            if line_scr == -1:
-                score = -1
-                dir_x = int(math.copysign(1, bad_dx))
-                dir_y = int(math.copysign(1, bad_dy))
-                #print(start_dot, line_end_dot)
-                #print(b_dx, b_dy)
-
-            if abs(bad_dx) > abs(bad_dy):
-                real_b_dx = dir_x
-            else:
-                real_b_dy = dir_y
-
-
-            # print(cur_x, cur_y)
-            a_bad_dx = abs(bad_dx)
-            a_bad_dy = abs(bad_dy)
-
-            if nr_cells > 0:
-                if line_scr != -1:
-                    for j in range(cnt):
-                        cnt_x = j * dir_x
-                        cnt_y = j * dir_y
-                        if cur_y + cnt_y <= nr or cur_x + cnt_x < nr:
-                            submap[cur_y + cnt_y][cur_x + cnt_x] += score
-                        #else:
-                            #print(cur_y+cnt_y, cur_x+cnt_x)
-
-                        #cur_x += dir_x * cnt
-                        #cur_y += dir_y * cnt
-                if line_scr_n != -1:
-                    if line_scr != -1:
-                        if dx_n == dir_y and dy_n == -dir_x:
-                            if dir_x != 0:
-                                cur_x += ((cnt - 1) * dir_x) + dir_x
-                                cur_y += dy_n
-                            else:
-                                cur_x += dx_n
-                                cur_y += ((cnt - 1) * dir_y) + dir_y
-                        else:
-                            if dir_x != 0:
-                                cur_x += ((cnt - 1) * dir_x)
-                            else:
-                                cur_y += ((cnt - 1) * dir_y)
-            #print(cur_x, cur_y)
-
-            first_loop = False
-            """
     
-    for i in range(nr):
-        for j in range(nr):
-            t_col ='magenta'
-            score = submap[i][j]
-            if i == start_y and j == start_x:
-                color = 'green'
-            elif i == 15 and j == 15:
-                color = 'red'
-                t_col = 'white'
+    if not bad_reading:
+        first_line = merged_lines_again[0][0]
+        start_dir = (first_line[0], first_line[1])
+        f_line_end_dot = (rotated_lines[first_line[6]][1], rotated_lines[first_line[6]][2])
+        start_pos_x = f_line_end_dot[0]
+        start_pos_y = f_line_end_dot[1]
+        pos_corr = pickDir(start_dir[0], start_dir[1], start_pos_x / 40, start_pos_y / 40)
+        first_x = x = 15 + pos_corr[0]
+        first_y = y = 15 + pos_corr[1]  
+        next_x = next_y = 0
+ 
+        print("----START DIR: " + str(start_dir) + ", FIRST DOT POS " + str(f_line_end_dot) + ", ROUNDED TO: " + str(pos_corr))
 
-            elif score == 0:
-                color = 'white'
-            elif score < 0:
-                color = 'gray'
-            else:
-                color = 'yellow'
-            if color != 'white':
-                c3.create_rectangle(j * offset_grid, i * offset_grid, j * offset_grid + offset_grid,
-                                    i * offset_grid + offset_grid, fill=color, outline='white')
-            c3.create_text(j * offset_grid + offset_grid / 2, i * offset_grid + offset_grid / 2,
-                           fill=t_col, text=score)
+        for lines in merged_lines_again:
+            line_end_dot_nr = lines[0][6]
+            line_end_dot = (rotated_lines[line_end_dot_nr][1], rotated_lines[line_end_dot_nr][2])
+            for i in range(len(lines)):
+                next_i = i + 1
+                if next_i >= len(lines): next_i = 0
 
-    print(curr_index)
-    print(size, bad_readings_cnt)
-    root.after(200, test)
+                dir_x = lines[i][0]
+                dir_y = lines[i][1]
+                l_len = lines[i][3]
+                cnt = rounds2(l_len / 40, 0.25)
+
+                if dx_dy < 1.1:
+                    rl_score = 0
+                elif dx_dy < 1.2:
+                    rl_score = 1
+                elif dx_dy < 1.3:
+                    rl_score = 2
+                else:
+                    rl_score = 3
+
+                score = 1 + int(4 * merged_lines[i][7] / (rl_score + bad_score_cnt + 2))
+                if line_scr_n == -1 or line_scr_p == -1:
+                    score -= 1
+
+                # Draw backwards if first line
+                if i == 0:
+                    if dir_x == -1:
+                        extra = (1, 1)
+                    elif dir_y == 1:
+                        extra = (1, 1)
+                    else:
+                        extra = (0, 0)
+                    x = first_x + rounds2((line_end_dot[0] - start_pos_x) / 40, 0.3)
+                    y = first_y + rounds2((line_end_dot[1] - start_pos_y) / 40, 0.45)
+                    print("----New line seg: " + str(line_end_dot[0] - start_pos_x)+
+                          ", " + str(line_end_dot[1] - start_pos_y) + " Rounded: " + 
+                          str(rounds((line_end_dot[0] - start_pos_x) / 40)) + ", " +
+                          str(rounds((line_end_dot[1] - start_pos_y) / 40)) + ", X/Y: " + str(x) + ", " + str(y))
+                    print(x, y)
+                    for j in range(cnt):
+                        cnt_x = j * dir_x + dir_x + extra[0]
+                        cnt_y = j * dir_y + extra[1]
+                        if 0 <= y + cnt_y < nr:
+                            if 0 <= x + cnt_x < nr:
+                                submap[y - cnt_y][x - cnt_x] += 2#score
+                        c3.create_line(x * offset_grid, y * offset_grid,
+                                       (x + cnt * (-dir_x)) * offset_grid,
+                                       (y + cnt * (-dir_y)) * offset_grid,
+                                       fill='green', width=5)
+                else:
+                    if dir_x == -1:
+                        extra = (-1, -1)
+                    elif dir_y == 1:
+                        extra = (-1, 0)
+                    elif dir_y == -1:
+                        extra = (0, -1)
+                    else:
+                        extra = (0, 0)
+                    next_x = x + cnt * dir_x
+                    next_y = y + cnt * dir_y
+                    for j in range(cnt):
+                        cnt_x = j * dir_x + extra[0]
+                        cnt_y = j * dir_y + extra[1]
+                        if 0 <= y + cnt_y < nr:
+                            if 0 <= x + cnt_x < nr:
+                                submap[y + cnt_y][x + cnt_x] += 2#score
+                        c3.create_line(x * offset_grid, y * offset_grid,
+                                       next_x * offset_grid, next_y * offset_grid,
+                                       fill='green', width=5)
+                    x = next_x
+                    y = next_y
+
+        c3.create_oval(first_x * offset_grid - 5,
+                       first_y * offset_grid - 5,
+                       first_x * offset_grid + 5,
+                       first_y * offset_grid + 5, fill='red')
+    
+        for i in range(nr):
+            for j in range(nr):
+                t_col ='magenta'
+                score = submap[i][j]
+                if i == first_y and j == first_x:
+                    color = 'green'
+                elif i == 15 and j == 15:
+                    color = 'red'
+                    t_col = 'white'
+
+                elif score == 0:
+                    color = 'white'
+                elif score < 0:
+                    color = 'gray'
+                else:
+                    color = 'yellow'
+                if color != 'white':
+                    c3.create_rectangle(j * offset_grid, i * offset_grid, j * offset_grid + offset_grid,
+                                        i * offset_grid + offset_grid, fill=color, outline='white')
+                c3.create_text(j * offset_grid + offset_grid / 2, i * offset_grid + offset_grid / 2,
+                               fill=t_col, text=score)
 
 
-root.after(1, test)
+    print("Current index: " + str(curr_index) + ", List size: " + str(size) + ", No bad readings: " + 
+          str(bad_readings_cnt) + ", No bad lines: " + str(bad_score_cnt) + ", No invalid measures: " + str(uncertain_values))
+    print(rob_rot)
+    root.after(200, mapper)
+
+
+root.after(1, mapper)
 root.mainloop()

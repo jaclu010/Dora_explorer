@@ -913,6 +913,12 @@ def test():
     # Additional filtering
     #
     # -----
+    first_loop = True
+    bad_scores_cnt = 0
+    for i in line_score:
+        if i < 0:
+            bad_scores_cnt += 1
+
     offset_grid = height / nr
 
     first_line = merged_lines_again[0][0]
@@ -932,6 +938,7 @@ def test():
             aligning = (0, 1)
     elif start_dir[0] == -1:
         aligning = (1,1)
+    aligning= (0,0)
 
     for lines in merged_lines_again:
         line_end_dot_nr = lines[0][6]
@@ -945,24 +952,72 @@ def test():
             #n_dir_x = lines[next_i][0]
             #n_dir_y = lines[next_i][1]
             l_len = lines[i][3]
-
             cnt = rounds2(l_len / 40, 0.2)
+            print(cnt)
             #line_start_dot_nr = lines[i][5]
             #line_end_dot_nr = lines[i][6]
             #line_start_dot = (rotated_lines[line_start_dot_nr][1], rotated_lines[line_start_dot_nr][2])
+            if dx_dy < 1.1:
+                rl_score = 0
+            elif dx_dy < 1.2:
+                rl_score = 1
+            elif dx_dy < 1.3:
+                rl_score = 2
+            else:
+                rl_score = 3
+
+            if dir_x == -1:
+                extra = (-1, -1)
+            elif dir_y == 1:
+                extra = (-1, 0)
+            else:
+                extra = (0, 0)
+
+
+            score = 1 + int(4 * merged_lines[i][7] / (rl_score + bad_scores_cnt + 2))
+            if line_scr_n == -1 or line_scr_p == -1:
+                score -= 1
 
             # Draw backwards
             if i == 0:
+                if dir_x == -1:
+                    extra = (1, 1)
+                elif dir_y == 1:
+                    extra = (1, 1)
+                else:
+                    extra = (0, 0)
                 x = first_x + rounds((line_end_dot[0] - start_pos_x) / 40)
                 y = first_y + rounds((line_end_dot[1] - start_pos_y) / 40)
+                print(x, y)
+                for j in range(cnt):
+                    cnt_x = j * dir_x + dir_x + extra[0]
+                    cnt_y = j * dir_y + extra[1]
+                    #print(cnt_x, cnt_y, x, y)
+                    if 0 <= y + cnt_y < nr:
+                        if 0 <= x + cnt_x < nr:
+                            submap[y - cnt_y][x - cnt_x] += score
                 c3.create_line(x * offset_grid + aligning[0] * offset_grid,
                                y * offset_grid + aligning[1] * offset_grid,
                                (x + cnt * (-dir_x)) * offset_grid + aligning[0] * offset_grid,
                                (y + cnt * (-dir_y))* offset_grid + aligning[1] * offset_grid,
                                fill='green', width=5)
             else:
+                if dir_x == -1:
+                    extra = (-1, -1)
+                elif dir_y == 1:
+                    extra = (-1, 0)
+                elif dir_y == -1:
+                    extra = (0, -1)
+                else:
+                    extra = (0, 0)
                 next_x = x + cnt * dir_x
                 next_y = y + cnt * dir_y
+                for j in range(cnt):
+                    cnt_x = j * dir_x + extra[0]
+                    cnt_y = j * dir_y + extra[1]
+                    if 0 <= y + cnt_y < nr:
+                        if 0 <= x + cnt_x < nr:
+                            submap[y + cnt_y][x + cnt_x] += score
                 c3.create_line(x * offset_grid + aligning[0] * offset_grid,
                                y * offset_grid + aligning[1] * offset_grid,
                                next_x * offset_grid + aligning[0] * offset_grid,
@@ -970,7 +1025,6 @@ def test():
                                fill='green', width=5)
                 x = next_x
                 y = next_y
-
 
 
 
@@ -982,13 +1036,7 @@ def test():
     # -----
     # Original drawing loop
     # -----
-
-    first_loop = True
-    bad_scores_cnt = 0
-    for i in line_score:
-        if i < 0:
-            bad_scores_cnt += 1
-
+    """
     #print(len(merged_lines))
     if not bad_reading:
         for i in range(len(merged_lines)):
@@ -1025,13 +1073,7 @@ def test():
             if dir_x != 0 and dir_y != 0:
                 line_scr = -1
                 
-            if dx_dy < 1.1:
-                rl_score = 0
-            elif dx_dy < 1.2:
-                rl_score = 1
-            elif dx_dy < 1.3:
-                rl_score = 2
-                
+
             l_len = merged_lines[i][3]
             #if rl_score == 2:
             #    l_len *= 0.9
@@ -1135,7 +1177,7 @@ def test():
             #print(cur_x, cur_y)
 
             first_loop = False
-
+            """
     
     for i in range(nr):
         for j in range(nr):
@@ -1153,9 +1195,9 @@ def test():
                 color = 'gray'
             else:
                 color = 'yellow'
-
-            #c3.create_rectangle(j * offset_grid, i * offset_grid, j * offset_grid + offset_grid,
-                                #i * offset_grid + offset_grid, fill=color, outline='white')
+            if color != 'white':
+                c3.create_rectangle(j * offset_grid, i * offset_grid, j * offset_grid + offset_grid,
+                                    i * offset_grid + offset_grid, fill=color, outline='white')
             c3.create_text(j * offset_grid + offset_grid / 2, i * offset_grid + offset_grid / 2,
                            fill=t_col, text=score)
 

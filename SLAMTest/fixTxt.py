@@ -1,4 +1,4 @@
-with open("laser_log.txt", "r") as f:
+with open("log_2.txt", "r") as f:
 	a = f.readlines()
 newlist = []
 for e in a:

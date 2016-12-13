@@ -14,15 +14,15 @@ class Node:
     def neighbors(self):
         neighbors = []
 
+        if self.x - 1 >= 0:
+            neighbors += [Node(self.x - 1, self.y)]
         if self.y - 1 >= 0:
             neighbors += [Node(self.x, self.y - 1)]
         if self.x + 1 < MAP_SIZE:
             neighbors += [Node(self.x + 1, self.y)]
         if self.y + 1 < MAP_SIZE:
             neighbors += [Node(self.x, self.y + 1)]
-        if self.x - 1 >= 0:
-            neighbors += [Node(self.x - 1, self.y)]
-            
+
         return neighbors
 
 
@@ -92,9 +92,6 @@ def find_path(grid, start_pos, end_pos=None, find_unidentified=False):
 
 
 def follow_path(path, rotation):
-    """
-    Generates a set of movement instructions for the robot to execute from a path.
-    """
     if not path:
         return []
 
@@ -168,19 +165,12 @@ def follow_path(path, rotation):
 
 
 def closed_room(grid, pos):
-    """
-    Returns True if grid is a closed room around pos, False otherwise.
-    """
     if find_path(grid, pos, find_unidentified=True):
         return False
     return True
 
 
 def find_closest_unexplored(grid, pos):
-    """
-    Returns a path to the node next to the closest uneplored node.
-    Returns empty list if no such path is found.
-    """
     unexplored = find_path(grid, pos, find_unidentified=True)
     unexplored.sort(key=lambda x: math.sqrt((x[0] - pos[0])**2 + (x[1] - pos[1])**2))
 
@@ -189,79 +179,49 @@ def find_closest_unexplored(grid, pos):
     return []
 
 
-def line_of_sight(grid, start_pos, end_pos):
-    """
-    Uses a modified Bresenhams algorithm to test for line of sight between two tiles in grid
-    """
-    dx = float(end_pos[0] - start_pos[0])
-    dy = float(end_pos[1] - start_pos[1])
-    error = -1.0
-    if dx != 0.0:
-        derror = abs(dy/dx)
-    else:
-        # Check vertical lines
-        x = start_pos[0]
-        for y in range(start_pos[1], end_pos[1]):
-            if grid[y*MAP_SIZE + x] == 2:
-                return False
-        return True
-
-    y = start_pos[1]
-    for x in range(start_pos[0], end_pos[0]-1):
-        print(x, y)
-        if grid[y*MAP_SIZE + x] == 2:
-            return False
-
-        error += derror
-        if error >= 0.0:
-            y += 1
-            error -= 1.0
-    return True
-
-
-def find_line_of_sight(grid, pos):
-    """
-    Returns a path to a node which is close to the closest unexplored node, is at least 2 squares away from the unexplored
-    node and has line of sight to the unexplored node
-    Returns empty list if no such path is found.
-    """
-    unexplored = find_path(grid, pos, find_unidentified=True)
-    unexplored.sort(key=lambda x: math.sqrt((x[0] - pos[0]) ** 2 + (x[1] - pos[1]) ** 2))
-
-    if unexplored:
-        end = unexplored[0]
-        path = find_path(grid, pos, unexplored[0], find_unidentified=True)
-
-        while not (math.sqrt((path[-1][0] - end[0])**2 + (path[-1][1] - end[1])**2) > 2 and line_of_sight(grid, path[-1], end)):
-            path.pop()
-
-        return path
-    return []
-
-
 if __name__ == "__main__":
-    gr = [2, 0, 0, 2, 2, 2, 2, 2, 2,
-          2, 2, 2, 2, 2, 2, 0, 2, 2,
-          2, 1, 1, 1, 1, 1, 2, 2, 2,
-          2, 1, 1, 1, 1, 1, 2, 2, 2,
-          2, 1, 1, 2, 1, 1, 2, 2, 2,
-          2, 2, 2, 2, 0, 1, 2, 2, 2,
-          2, 1, 2, 2, 0, 0, 2, 2, 2,
-          2, 1, 1, 1, 2, 2, 2, 2, 2,
+    gr = [0, 0, 0, 2, 2, 2, 2, 2, 2,
+          0, 2, 2, 1, 2, 2, 0, 2, 2,
+          0, 2, 2, 1, 1, 2, 1, 2, 2,
+          0, 2, 2, 1, 1, 2, 1, 2, 2,
+          2, 1, 1, 1, 1, 2, 1, 2, 2,
+          2, 1, 2, 1, 1, 2, 1, 2, 2,
+          2, 1, 2, 2, 1, 2, 1, 2, 2,
+          2, 1, 1, 1, 1, 2, 1, 2, 2,
           2, 2, 2, 2, 2, 2, 2, 2, 2]
 
-    p = find_line_of_sight(gr, [1, 3])
+    p = find_path(gr, [3, 1], [2, 3], find_unidentified=True)
     print(p)
-    print(follow_path(p, NORTH))
-
-    """
-    p = find_path(gr, [1, 4], [4, 5], find_unidentified=True)
-    print(p)
-
+    
     print(closed_room(gr, [3, 1]))
 
-    cmd = follow_path(p, NORTH)
+    cmd = follow_path(p, 2)
     print(cmd)
 
     print(find_closest_unexplored(gr, [3, 1]))
+
+    """
+    g = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+         2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
+         2, 1, 2, 2, 2, 2, 1, 2, 1, 2, 2, 2, 2, 2, 2,
+         2, 1, 2, 2, 2, 1, 1, 2, 1, 2, 2, 2, 2, 2, 2,
+         2, 1, 1, 1, 1, 1, 1, 2, 1, 2, 2, 2, 2, 2, 2,
+         2, 1, 1, 1, 2, 2, 2, 2, 1, 1, 1, 2, 2, 2, 2,
+         2, 1, 1, 1, 2, 2, 2, 2, 1, 2, 1, 2, 2, 2, 2,
+         2, 1, 1, 1, 2, 2, 2, 2, 1, 2, 1, 2, 2, 2, 2,
+         2, 1, 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2,
+         2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2,
+         2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2,
+         2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2,
+         2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2,
+         2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2,
+         2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+
+    p = find_path(g, [1, 1], [8, 2])
+    print(p)
+
+
+
+    cmd = follow_path(p, NORTH)
+    print(cmd)
     """

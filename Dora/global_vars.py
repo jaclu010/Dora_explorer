@@ -1,26 +1,68 @@
-import threading
 import time
 import math
 
-STEERING_PORT = "FT94TI48"
-SENSOR_PORT = "FT94S3XQ"
+
+# UART
+STEERING_PORT_NAME = "FT94IDR4"
+SENSOR_PORT_NAME = "FT94NXIE"
 
 BAUDRATE_STEERING = 115200
 BAUDRATE_SENSOR = 230400
 
-running = True
-condition = threading.Condition()
+# MODES
+MANUAL_MODE = 0
+AUTO_MODE = 1
 
-movement_dir = "none"
+# TILES
+UNKNOWN_TILE = 0
+EMPTY_TILE = 1
+WALL_TILE = 2
+TILE_SIZE = 40
 
-num_sensors = 6
+# DIRECTIONS
+NORTH = 0
+EAST = 1
+SOUTH = 2
+WEST = 3
 
-sensor_value = [0 for x in range(num_sensors)]
-laser_value = []
-last_laser_value = []
-gyro_value = 0
-#num_laser_reads = 0
-last_gyro_time = time.time()
-last_gyro_value = 0
-robot_rot = math.pi
-robot_rot_speed = math.pi / 40
+# TURNING
+LEFT = 0
+RIGHT = 1
+TOWER = 2
+DEFAULT = 3
+
+# MAPPING
+MAP_SIZE = 31
+GRID_INDEX_VALUES = [[[0,-1],[0,0],[1,0],[-1,0]],
+                     [[1,0],[0,0],[0,1],[0,-1]],
+                     [[0,1],[0,0],[-1,0],[1,0]],
+                     [[-1,0],[0,0],[0,-1],[0,1]]]
+
+# IR CHECK VALUES
+FORWARD_CHECK = 18
+BACKWARD_CHECK = 14
+LEFT_CHECK = 12
+RIGHT_CHECK = 12
+EMPTY_CHECK = 25
+
+# SEARCH_MODE
+IR = 0
+LASER = 1
+
+FORWARD = 0
+BACKWARD = 1
+BACKWARD_RIGHT = 2
+FORWARD_RIGHT = 3
+BACKWARD_LEFT = 4
+FORWARD_LEFT = 5
+
+IR_ID = {FORWARD: 0, BACKWARD: 1, BACKWARD_RIGHT: 2,
+         FORWARD_RIGHT: 3, BACKWARD_LEFT: 4, FORWARD_LEFT: 5}
+
+NUM_SENSORS = 6
+
+WHEEL_ID = 95
+WHEEL_STEP = 4  # 4cm / step
+
+# States
+MANUAL, SLAM, WALL, TURN_LEFT, TURN_RIGHT, DEAD_END, START, TRAVEL = range(8)

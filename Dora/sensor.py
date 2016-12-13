@@ -53,13 +53,15 @@ def sensor_serial(ir_values, laser_values, gyro_value, num_laser_values, num_hal
                     first_byte = ord(sensor_port.read(1))
                     
                     if first_byte == STOP_ID:
-                        with num_hall_reads.get_lock():
-                            num_hall_reads.values = 0
                         
                         if len(laser_buffer) <= len(laser_values):
                             with laser_values.get_lock():
                                 for i in range(len(laser_buffer)):
                                     laser_values[i] = laser_buffer[i]
+
+                        print('SET HALL READS TO 0')
+                        with num_hall_reads.get_lock():
+                            num_hall_reads.value = 0
 
                         diff = int(ord(sensor_port.read(1)))
                         num_laser_values.value = int(ord(sensor_port.read(1)))*256+int(ord(sensor_port.read(1)))

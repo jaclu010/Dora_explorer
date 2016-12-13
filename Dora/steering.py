@@ -3,7 +3,7 @@ from global_vars import *
 from common import *
 
 
-speeds = {LEFT: 0, RIGHT: 0, TOWER: 80, DEFAULT: 100}
+speeds = {LEFT: 0, RIGHT: 0, TOWER: 80, DEFAULT: 75}
 man_speeds = {LEFT: 125, RIGHT: 125, TOWER: 80, DEFAULT: 125}
 steering_port = None
 

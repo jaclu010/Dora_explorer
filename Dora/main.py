@@ -18,7 +18,7 @@ import copy
 from path import *
 from position import *
 import submap as sm
-import slam_submapper2 as slammer 
+import slam_submapper3 as slammer 
 from multiprocessing import Process, Value, Array
 from multiprocessing.queues import SimpleQueue
 
@@ -38,6 +38,7 @@ verified_grids = 0
 need_new_time = True
 
 travel_commands = []
+tile_wall_count = {}
 
 auto_mode = False
 state = MANUAL
@@ -81,7 +82,7 @@ def go_tiles_simple(tiles):
     
 
 def go_tiles(tiles, ir_values, shared_pos, enable_pid=True):
-    global robot_pos, robot_dir, wheel_distance, test_pos
+    global robot_pos, robot_dir, wheel_distance, test_pos, tile_wall_count
     prev_pos = int_robot_pos(robot_pos)
     #start_time = time.time()
     st.set_speed(AUTO_MODE, 0)
@@ -116,10 +117,8 @@ def go_tiles(tiles, ir_values, shared_pos, enable_pid=True):
     #start_dist = wheel_distance
     wheel_distance = 0
     #print('POS: %s %s ' % (test_pos, robot_pos))
-    #print('Attempting to move %f from pos %s %f' % (to_drive, str(robot_pos), dest))
+    print('Attempting to move %f from pos %s %f' % (to_drive, str(robot_pos), dest))
     
-
-
 
     # Move until correct number of tiles are traversed
     #print('START DIST: %f  TO DRIVE: %f' % (abs(dest - robot_pos[compare_axis]), to_drive*40))
@@ -130,9 +129,12 @@ def go_tiles(tiles, ir_values, shared_pos, enable_pid=True):
         #print(dest - robot_pos[compare_axis])
     #Current_distance = wheel_distance
     #while wheel_distance - current_distance < 40 * tiles:
-    
+
+        if check_centered():
+            map_ir_neighbors(grid, robot_pos, robot_dir, ir_values, tile_wall_count)
+
         update_path(robot_pos, shared_pos)
-        if ir_values[IR_ID[FORWARD]] < 5:  # Wall detected
+        if ir_values[IR_ID[FORWARD]] < 8:  # Wall detected
             st.set_speed(AUTO_MODE, 0)
             print('STOP')
             break
@@ -158,43 +160,36 @@ def go_tiles(tiles, ir_values, shared_pos, enable_pid=True):
             st.set_speed(AUTO_MODE, st.speeds[st.DEFAULT])
         
         get_distance()
-        
-    """
-    # Attempt at corner position fix
-    if tiles < 1:
-        if robot_dir == NORTH:
-            robot_pos = [prev_pos[0], prev_pos[1] - 0.5]
-        elif robot_dir == EAST:
-            robot_pos = [prev_pos[0] + 0.5, prev_pos[1]]
-        elif robot_dir == SOUTH:
-            robot_pos = [prev_pos[0], prev_pos[1] + 0.5]
-        elif robot_dir == WEST:
-            robot_pos = [prev_pos[0] - 0.5, prev_pos[1]]
-    """
-    
-    print('Position after go %s' % str(robot_pos))
+            
+    #print('Position after go %s' % str(robot_pos))
         
     st.set_speed(AUTO_MODE, 0)
  
     
     
 def turn(turn_deg, side, ir_values):
-    print('BUFFER', st.steering_port.inWaiting())
+    #print('BUFFER', st.steering_port.inWaiting())
     global robot_dir, robot_pos, state, verified_grids, need_new_time, wheel_distance, x_gain, y_gain
 
     if side == 'left' or side == LEFT:
         st.left()
         robot_dir = (robot_dir - (turn_deg//90)) % 4
+        print('TURNING LEFT, NEW DIR: ' + DIRECTIONS[robot_dir])
     elif side == 'right' or side == RIGHT:
         st.right()
         robot_dir = (robot_dir + (turn_deg//90)) % 4
+        print('TURNING RIGHT, NEW DIR: ' + DIRECTIONS[robot_dir])
     else:
         return
-    
-    st.set_speed(AUTO_MODE, 170)
+
+    turn_pid = control.PID(turn_deg, 0.6, 0, 0)
+    turn_pid.set_output_limits(70, 180)
     start_angle = gyro_value.value
-    while abs(gyro_value.value - start_angle) < turn_deg-15:
-        pass
+    
+    while abs(gyro_value.value - start_angle) < turn_deg:
+        turn_speed = turn_pid.compute(float(abs(gyro_value.value - start_angle)))
+        #print(turn_speed)
+        st.set_speed(AUTO_MODE, turn_speed)
 
         
     st.set_speed(AUTO_MODE, 0)
@@ -276,8 +271,8 @@ def check_centered():
     is_horizontal = robot_dir % 2
     position = int_robot_pos(robot_pos)
 
-    centered_vertical = not is_horizontal and (position[1] + 0.4) <= robot_pos[1] <= (position[1] + 0.6)
-    centered_horizontal = is_horizontal and (position[0] + 0.4) <= robot_pos[0] <= (position[0] + 0.6)
+    centered_vertical = not is_horizontal and (position[1] + 0.2) <= robot_pos[1] <= (position[1] + 0.7)
+    centered_horizontal = is_horizontal and (position[0] + 0.2) <= robot_pos[0] <= (position[0] + 0.7)
 
     return centered_vertical or centered_horizontal
                 
@@ -297,7 +292,7 @@ def check_pos_change(prev_pos):
 
 
 def slam(ir_values, laser_values, mode, steering_cmd_man, pid_cons, gyro_value, num_laser_values, num_hall_reads, grid, shared_pos):
-    global pid, state, robot_pos, robot_dir, travel_commands, need_new_time, verified_grids, wheel_distance, driven_path
+    global pid, state, robot_pos, robot_dir, travel_commands, need_new_time, verified_grids, wheel_distance, driven_path, tile_wall_count
     st.open_port()
     st.steering_port.flushInput()
     st.forward()
@@ -314,14 +309,14 @@ def slam(ir_values, laser_values, mode, steering_cmd_man, pid_cons, gyro_value, 
     adjusted_laser = []
     last_laser_list = []
 
-    tile_wall_count = {}
-
     search_mode = LASER
     stop_tower(num_hall_reads)
     mapping_time = time.time()
     start_pos = [pos for pos in robot_pos]
     laser_counter = 0
     num_reads = 0
+
+    prev_state = MANUAL
 
     #mapper = doramapper.Mapping()
     #generated = False
@@ -332,36 +327,12 @@ def slam(ir_values, laser_values, mode, steering_cmd_man, pid_cons, gyro_value, 
     while True:
         get_distance()
         update_path(robot_pos, shared_pos)
-                    
-                
-        
-        """
-        laser_list = []
-
-        # Copy laser_values to list
-        # with laser_values.get_lock()
-        laser_list = [laser_values[i] for i in range(len(laser_values))]
-        #for i in range(num_laser_values.value):
-        #    laser_list[i] = laser_values[i]
-
-        # Check if we have new laser values
-        if laser_list != last_laser_list:
-            adjusted_laser = []
-            dist = math.sqrt((robot_pos[0] - last_robot_pos[0]) ** 2 + (robot_pos[1] - last_robot_pos[1]) ** 2)
-        
-            for i in range(num_laser_values.value):
-                angle = (360 / num_laser_values.value) * i
-                adjusted_laser += [laser_list[i] - (dist * math.cos(angle))]
-                
-                last_robot_pos = robot_pos
-                last_laser_list = laser_list
-        """
-        """
-        if int(robot_pos[0]) == int(start_pos[0]) and int(robot_pos[1]) == int(start_pos[1]) and wheel_distance > 30:
-            st.set_speed(AUTO_MODE, 0)
-            state = MANUAL
-            continue
-        """
+        if state != prev_state:
+            print('---------------')
+            print('CURRENT STATE: ' + STATES[state])
+            print('CURRENT DIRECTION: ' + DIRECTIONS[robot_dir])
+            print('CURRENT POSITION: ' + str(robot_pos))
+            print('PID SIDE: ' + str(pid_side))
         
         if not mode.value:
             state = MANUAL
@@ -379,28 +350,25 @@ def slam(ir_values, laser_values, mode, steering_cmd_man, pid_cons, gyro_value, 
 
         if state == START:
             print("START")
-            
+            prev_state = START
+
             # Assign values to surrounding tiles from START position
             set_grid_value(15,15,EMPTY_TILE,grid)
-            #set_grid_value(14,15,WALL_TILE,grid)
             set_grid_value(15,16,WALL_TILE,grid)
-            #set_grid_value(15,14,EMPTY_TILE,grid)
-            #set_grid_value(14,16,WALL_TILE,grid)
-            #set_grid_value(16,16,WALL_TILE,grid)
             
-            #go_tilesgo_tiles(1)
-            #driven_grids += 1
             # Enter WALL to exit the starting cell
             state = WALL
+            continue
                 
         elif state == WALL:
             #print("WALL")
+            prev_state = WALL
 
             if check_centered():
                 map_ir_neighbors(grid, robot_pos, robot_dir, ir_values, tile_wall_count)
 
-
-            if search_mode == LASER and not [ir_values[i] for i in range(NUM_SENSORS) if ir_values[i] != EMPTY_CHECK]:  # TODO: Lock ir_values?
+ 
+            if search_mode == LASER and not [ir_values[i] for i in range(NUM_SENSORS) if ir_values[i] != EMPTY_CHECK and i != 1]:  # TODO: Lock ir_values?
                 # All ir values == 25 (no walls detected), should switch to slam?
                 state = SLAM
                 st.set_speed(AUTO_MODE, 0)
@@ -411,50 +379,87 @@ def slam(ir_values, laser_values, mode, steering_cmd_man, pid_cons, gyro_value, 
             if ir_values[IR_ID[FORWARD]] <= FORWARD_CHECK:
                 #print("Wall forwards detected")
                 if ir_values[IR_ID[FORWARD_RIGHT]] <= RIGHT_CHECK and ir_values[IR_ID[FORWARD_LEFT]] <= LEFT_CHECK:
-                    print("Wall sides detected, turning back")
+                    #print("Wall sides detected, turning back")
                     # Dead end, start driving backwards
                     state = DEAD_END
                 elif ir_values[IR_ID[FORWARD_RIGHT]] <= RIGHT_CHECK:
-                    print("Wall right  detected, turning left")
+                    #print("Wall right  detected, turning left")
                     # wall to the right, turn left
                     state = TURN_LEFT
                                             
                 elif ir_values[IR_ID[FORWARD_LEFT]] <= LEFT_CHECK:
                     # wall to the left, turn right
-                    print("Wall left detected, turning right")
+                    #print("Wall left detected, turning right")
                     state = TURN_RIGHT
                 continue
 
             if ir_values[IR_ID[FORWARD_LEFT]] == EMPTY_CHECK and ir_values[IR_ID[BACKWARD_LEFT]] <= LEFT_CHECK:
-                #print(ir_values[4], ir_values[5])
                 # We have detected an opening in the wall, turning left around corner
                 print('TURN LEFT AROUND CORNER')
-                #print([ir_values[i] for i in range(NUM_SENSORS)])
                 st.set_speed(AUTO_MODE, st.speeds[st.DEFAULT])
-                go_tiles(1, ir_values, shared_pos)
+
+                # Drive out past walls
+                while ir_values[IR_ID[BACKWARD_LEFT]] != EMPTY_CHECK:
+                    get_distance()
+
+                for i in range(10):    
+                    map_ir_neighbors(grid, robot_pos, robot_dir, ir_values, tile_wall_count)
+
+                st.set_speed(AUTO_MODE, 0)
+                time.sleep(1)
+                st.set_speed(AUTO_MODE, st.speeds[st.DEFAULT])
+
+
                 if search_mode == LASER:
                     continue
-                turn(90,'left', ir_values)
-                reset_neighbors(robot_pos, tile_wall_count)
-                map_ir_neighbors(grid, robot_pos, robot_dir, ir_values, tile_wall_count)
-                go_tiles(1, ir_values, shared_pos)
+                
+                # Wall continues on the right side: Follow it
+                if ir_values[IR_ID[FORWARD_RIGHT]] <= RIGHT_CHECK and ir_values[IR_ID[BACKWARD_RIGHT]] <= RIGHT_CHECK:
+                    pid_side = RIGHT
+                    continue
+                # Wall detected in front. T turn # 4 turn                  
+                else:
+                    state = TRAVEL
+                    continue
+
+                #turn(90,'left', ir_values)
+                #reset_neighbors(robot_pos, tile_wall_count)
+                #map_ir_neighbors(grid, robot_pos, robot_dir, ir_values, tile_wall_count)
+
+                #pid_side = detect_walls(ir_values)
+                #go_tiles(1, ir_values, shared_pos)
                 continue
 
             if ir_values[IR_ID[FORWARD_RIGHT]] == EMPTY_CHECK and ir_values[IR_ID[BACKWARD_RIGHT]] <= RIGHT_CHECK:
                 # Wall ending on the right side
+                print('TURN RIGHT AROUND CORNER')
+                st.set_speed(AUTO_MODE, st.speeds[st.DEFAULT])
+                
+                # Drive out past walls
+                while ir_values[IR_ID[BACKWARD_RIGHT]] != EMPTY_CHECK:
+                    get_distance()
+
+                for i in range(10):    
+                    map_ir_neighbors(grid, robot_pos, robot_dir, ir_values, tile_wall_count)
+                        
+                st.set_speed(AUTO_MODE, 0)
+                time.sleep(1)
+                st.set_speed(AUTO_MODE, st.speeds[st.DEFAULT])
+
+                    
+                if search_mode == LASER:
+                    continue
+                
                 if ir_values[IR_ID[FORWARD_LEFT]] <= LEFT_CHECK and ir_values[IR_ID[BACKWARD_LEFT]] <= LEFT_CHECK:
                     # Wall continues on the left side: Follow it
                     pid_side = LEFT
                     continue
-                print('TURN RIGHT AROUND CORNER')
-                st.set_speed(AUTO_MODE, st.speeds[st.DEFAULT])
-                go_tiles(1, ir_values, shared_pos)
-                if search_mode == LASER:
+
+                # Wall detected in front. T turn # 4 turn                  
+                else:
+                    state = TRAVEL
                     continue
-                turn(90,'right', ir_values)
-                reset_neighbors(robot_pos, tile_wall_count)
-                map_ir_neighbors(grid, robot_pos, robot_dir, ir_values, tile_wall_count)
-                go_tiles(1, ir_values, shared_pos)
+                
                 continue
 
 
@@ -472,49 +477,62 @@ def slam(ir_values, laser_values, mode, steering_cmd_man, pid_cons, gyro_value, 
                 st.set_speed(AUTO_MODE, abs(st.speeds[st.DEFAULT] - turn_factor), "left")
             if st.speeds[st.RIGHT] != abs(int(st.speeds[st.DEFAULT] + turn_factor)):
                 st.set_speed(AUTO_MODE, abs(st.speeds[st.DEFAULT] + turn_factor), "right")
+            continue
 
         elif state == TRAVEL:
+            prev_state = TRAVEL
             print("TRAVEL")
             if not travel_commands:
                 p = path.find_closest_unexplored(grid, robot_pos)
+                #print("path: " + str(p))
+                for cell in p:
+                    set_grid_value(int(cell[0]), int(cell[1]), 3, grid)
                 travel_commands = path.follow_path(p, robot_dir)
+            #print(travel_commands)
             
             if travel_commands:
                 c = travel_commands.pop(0)
+                print(c)
                 parts = c.split('_')
                 if parts[0] == "go":
                     tiles = int(parts[2])
                     go_tiles(tiles, ir_values, shared_pos)
-                    print("Travelling 2 tiles")
                 elif parts[0] == "turn":
                     turn_deg = int(parts[2])
-                    print("Turning " + str(turn_deg))
                     turn(turn_deg, parts[1], ir_values)
             else:
                 
                 state = WALL
+            continue
             
         elif state == TURN_LEFT:
+            prev_state = TURN_LEFT
             print('TURN LEFT')
             turn(90, 'left', ir_values)
             reset_neighbors(robot_pos, tile_wall_count)
             state = WALL
             need_new_time = True
+            continue
             
         elif state == TURN_RIGHT:
+            prev_state = TURN_RIGHT
             print('TURN_RIGHT')
             turn(90, 'right', ir_values)
             reset_neighbors(robot_pos, tile_wall_count)
             state = WALL
             need_new_time = True
+            continue
             
         elif state == DEAD_END:
+            prev_state = DEAD_END
             turn(180, 'left', ir_values)
-            reset_neighbors(robot_pos, tile_Wall_count)
+            #reset_neighbors(robot_pos, tile_wall_count)
             state = WALL
             need_new_time = True
+            continue
 
         elif state == SLAM:
+            prev_state = SLAM
             pid.enabled = False
             """
             if len(mapper.submaps) < 10 and num_laser_values.value > 0:
@@ -544,6 +562,11 @@ def slam(ir_values, laser_values, mode, steering_cmd_man, pid_cons, gyro_value, 
                             print('value', newvalue)
                             set_grid_value(j, i, newvalue, grid)
             """
+            #  Wait for new laser values
+            while num_hall_reads.value != 0:
+                pass
+
+            
             if num_laser_values.value > 0 and laser_counter < mapper.maxiter:
                 laser_list = []
                 with laser_values.get_lock():
@@ -564,12 +587,23 @@ def slam(ir_values, laser_values, mode, steering_cmd_man, pid_cons, gyro_value, 
                         print(generated_map[0][i])
 
                     print('-------------------')
-                    if laser_counter >= mapper.maxiter:
-                        mapper.remove_bad_values()
-                    
+                    #if laser_counter >= mapper.maxiter:
+                    #    mapper.remove_bad_values()
+                    #print(laser_counter, generated_map[2])
                     mapper.add_submap(generated_map[0], generated_map[1], (int(robot_pos[0]), int(robot_pos[1])))
                     mapper.generate_map()
 
+                    newss = copy.deepcopy(mapper.finalmap)
+
+                    
+                    for y in range(31):
+                        for x in range(31):
+                            value = mapper.finalmap[y][x]
+                            newval = 0
+                            if (value >= 1.5):
+                                newval = 2
+                            newss[y][x] = newval
+                    newss = sm.raycast_floor(newss,(int(robot_pos[0]), int(robot_pos[1])))
                     
                     
                     #print('after')
@@ -578,26 +612,48 @@ def slam(ir_values, laser_values, mode, steering_cmd_man, pid_cons, gyro_value, 
 
                     for i in range(31):
                         for j in range(31):
-                            newvalue = 0
+                            #newvalue = 0
                             
-                            value = mapper.finalmap[i][j]
-                            if value >= 1.5:
-                                newvalue = 2
+                            value = newss[i][j]
+                            #if value >= 1.5:
+                            #    newvalue = 2
                                 #print('value', newvalue)
                             #if(laser_counter >= mapper.maxiter / 2):    
-                            if laser_counter >= mapper.maxiter / 2:
-                                set_grid_value(j, i, newvalue, grid)
+                            #if laser_counter >= mapper.maxiter / 2:
+                            set_grid_value(j, i, value, grid)
+
+                    #asd
+
+                                
             elif laser_counter >= mapper.maxiter:
+                # Done with reading laser
+                
                 #go_tiles(2, ir_values, shared_pos)
                 laser_counter = 0
                 #num_reads = 1
-                
-                    
+
+                # Laser readings done, stop tower
+                stop_tower(num_hall_reads)
+                """                
+                if path.closed_room(grid, robot_pos):
+                    # Find closest path home
+                    path_home = path.find_path(grid, robot_pos, [15.5, 15.5])
+                    travel_commands = path.follow_path(path_home, robot_dir)
+                    print("Path home: " + str(travel_commands))
+                    state = TRAVEL
+                else:
+                    #travel_commands = path.follow_path(find_line_of_sight(grid, robot_pos), robot_dir)
+                    state = TRAVEL
+                """                 
                 
             #state = WALL
+            continue
                     
         elif state == MANUAL:
             print("MANUAL")
+            prev_state = MANUAL
+            stop_tower(num_hall_reads)
+            
             #travel_path = reverse(drive_path)
             #travel_path = [node for node in driven_path.reverse()]
             if mode.value == 1:
@@ -608,9 +664,11 @@ def slam(ir_values, laser_values, mode, steering_cmd_man, pid_cons, gyro_value, 
 
             pid.enabled = False
             st.steering_serial(steering_cmd_man, mode, ir_values)
-            #state = TRAVEL
+            #st.steering_port.flushInput()
             st.forward()
             print('Exiting manual mode')
+            state = SLAM
+            continue
 
 
 if __name__ == "__main__":  

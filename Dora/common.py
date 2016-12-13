@@ -24,13 +24,16 @@ def reset_neighbors(robot_pos, tile_wall_count):
     current_node = Node(int_pos[0], int_pos[1])
     for node in current_node.neighbors():
         neighbour_pos = (node.x, node.y)
-        tile_wall_count[neighbour_pos] = [0,0,0]
+        if neighbour_pos in tile_wall_count.keys():
+            tile_wall_count[neighbour_pos][0] = 0
 
 
 def map_ir_neighbors(grid, robot_pos, robot_dir, ir_values, tile_wall_count):
     int_pos = tuple(int_robot_pos(robot_pos))
     current_node = Node(int_pos[0], int_pos[1])
     neighbours = []
+
+    tile_wall_count[int_pos] = [11,0,0]  # Fix current tile as checked
     for node in current_node.neighbors():
         neighbour_pos = (node.x, node.y)
         neighbours.append(neighbour_pos)
@@ -59,14 +62,12 @@ def map_ir_neighbors(grid, robot_pos, robot_dir, ir_values, tile_wall_count):
                 tile_wall_count[temp_pos][1] += 1
 
     for n in neighbours:
-        if tile_wall_count[n][0] == 10:
-            tile_wall_count[n][0] += 1
-            if tile_wall_count[n][1] == tile_wall_count[n][2]:
-                tile_wall_count[n] = [0, 0, 0] # reset counter
-            elif tile_wall_count[n][1] < tile_wall_count[n][2]:
-                set_grid_value(n[0], n[1], EMPTY_TILE, grid)
-            else:
-                set_grid_value(n[0], n[1], WALL_TILE, grid)
+        if tile_wall_count[n][1] == tile_wall_count[n][2]:
+            tile_wall_count[n] = [0, 0, 0] # reset counter
+        elif tile_wall_count[n][1] < tile_wall_count[n][2]:
+            set_grid_value(n[0], n[1], EMPTY_TILE, grid)
+        else:
+            set_grid_value(n[0], n[1], WALL_TILE, grid)
 
     set_grid_value(int_pos[0], int_pos[1], EMPTY_TILE, grid)
 

@@ -10,23 +10,22 @@ FIXED_PC = True
 GOOMBA = "7C:7A:91:4A:21:D9" 
 NICKEPICKE = "74:2F:68:69:99:60"
 JONATHAN = "60:02:92:95:26:22"
-FIXED_ADDR = GOOMBA
 
 adrs = [GOOMBA, NICKEPICKE, JONATHAN]
 
 
-def blue_connect(adr=FIXED_ADDR):
+def blue_connect():
     #Unique id, should be the same as servers
     uuid = "94f39d29-7d6d-437d-973b-fba39e49d4ee"
 
-    service_matches = find_service(uuid=uuid, address=adr)
+    service_matches = find_service(uuid=uuid, address=adrs[0])
 
     i = 0
     while len(service_matches) == 0:
         print("Server could not be found on adr " + adrs[i])
-        time.sleep(1)
-        service_matches = find_service(uuid=uuid, address=adrs[i])
+        time.sleep(0.2)
         i = (i + 1)%2
+        service_matches = find_service(uuid=uuid, address=adrs[i])
 
     sock = None
 

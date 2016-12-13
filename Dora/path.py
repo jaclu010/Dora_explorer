@@ -34,10 +34,10 @@ def find_path(grid, start_pos, end_pos=None, find_unidentified=False):
     If find_unidentified is True and the end_pos empty the function will return a list of
     unidentified cells in the grid.
     """
-    start = Node(start_pos[0], start_pos[1])
+    start = Node(int(start_pos[0]), int(start_pos[1]))
     end = None
     if end_pos:
-        end = Node(end_pos[0], end_pos[1])
+        end = Node(int(end_pos[0]), int(end_pos[1]))
     elif not find_unidentified:
         return []
 
@@ -49,11 +49,11 @@ def find_path(grid, start_pos, end_pos=None, find_unidentified=False):
     current = start
 
     while node_queue:
-        current = node_queue.pop()
-
+        current = node_queue.pop(0)
+        
         if end and current.equals(end):
             # We found the end node
-            if find_unidentified and grid[end.y * MAP_SIZE + end.x] == 0:
+            if find_unidentified and grid[int(end.y) * MAP_SIZE + int(end.x)] == 0:
                 # We searched for and found an unidentified end node, return path to previous node
                 current = current.previous
             break
@@ -65,10 +65,10 @@ def find_path(grid, start_pos, end_pos=None, find_unidentified=False):
 
         for n in current.neighbors():
             if (n.x, n.y) not in visited and \
-                    (grid[n.y * MAP_SIZE + n.x] == 1 or (find_unidentified and grid[n.y * MAP_SIZE + n.x] == 0)):
-                if find_unidentified and grid[n.y * MAP_SIZE + n.x] == 0:
+                    (grid[int(n.y) * MAP_SIZE + int(n.x)] == 1 or (find_unidentified and grid[int(n.y) * MAP_SIZE + int(n.x)] == 0)):
+                if find_unidentified and grid[int(n.y) * MAP_SIZE + int(n.x)] == 0:
                     unidentified_nodes += [[n.x, n.y]]
-                visited.add((n.x, n.y))
+                visited.add((n.x, n.y))        
                 n.previous = current
                 node_queue += [n]
 
@@ -182,7 +182,7 @@ def find_closest_unexplored(grid, pos):
     Returns empty list if no such path is found.
     """
     unexplored = find_path(grid, pos, find_unidentified=True)
-    unexplored.sort(key=lambda x: math.sqrt((x[0] - pos[0])**2 + (x[1] - pos[1])**2))
+#    unexplored.sort(key=lambda x: math.sqrt((x[0] - pos[0])**2 + (x[1] - pos[1])**2))
 
     if unexplored:
         return find_path(grid, pos, unexplored[0], find_unidentified=True)
@@ -219,6 +219,14 @@ def line_of_sight(grid, start_pos, end_pos):
     return True
 
 
+def place_walls(grid, start_pos):
+    pos_counter = 0
+    for cell in grid:
+        if line_of_sight(grid, start_pos, cell):
+            set_grid(pos_counter, pos_counter*MAP_SIZE, 1, grid)
+            pos_counter += 1
+
+
 def find_line_of_sight(grid, pos):
     """
     Returns a path to a node which is close to the closest unexplored node, is at least 2 squares away from the unexplored
@@ -241,18 +249,22 @@ def find_line_of_sight(grid, pos):
 
 if __name__ == "__main__":
     gr = [2, 0, 0, 2, 2, 2, 2, 2, 2,
-          2, 2, 2, 2, 2, 2, 0, 2, 2,
-          2, 1, 1, 1, 1, 1, 2, 2, 2,
-          2, 1, 1, 1, 1, 1, 2, 2, 2,
-          2, 1, 1, 2, 1, 1, 2, 2, 2,
-          2, 2, 2, 2, 0, 1, 2, 2, 2,
+          2, 2, 2, 2, 2, 2, 2, 2, 2,
+          2, 1, 2, 0, 0, 0, 2, 2, 2,
+          2, 1, 2, 0, 0, 0, 2, 2, 2,
           2, 1, 2, 2, 0, 0, 2, 2, 2,
-          2, 1, 1, 1, 2, 2, 2, 2, 2,
+          2, 2, 2, 2, 0, 0, 2, 2, 2,
+          2, 1, 2, 2, 0, 0, 2, 2, 2,
+          2, 1, 1, 2, 2, 2, 2, 2, 2,
           2, 2, 2, 2, 2, 2, 2, 2, 2]
 
-    p = find_line_of_sight(gr, [1, 3])
-    print(p)
-    print(follow_path(p, NORTH))
+    place_walls(gr, [4,3])
+
+    #for 
+    
+    #p = find_line_of_sight(gr, [1, 3])
+    #print(p)
+    #print(follow_path(p, NORTH))
 
     """
     p = find_path(gr, [1, 4], [4, 5], find_unidentified=True)

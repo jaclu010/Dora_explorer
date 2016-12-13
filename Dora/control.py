@@ -41,15 +41,14 @@ class PID():
         
         if not self.enabled:
             return 0
-        
-        with input.get_lock():
-            # test this code:
-            dist  = float(input[forward_sensor])
 
-            #if dist == 25 and input[backward_sensor] < 25:
-                # forward sensor invalid and backward valid, use backward sensor
-                #dist = input[backward_sensor]
-            
+        if isinstance(input, float):
+            error = self.setpoint - input
+        else:
+            with input.get_lock():
+                # test this code:
+                dist  = float(input[forward_sensor])
+                
             error = float(self.setpoint) - dist
             
         # Add to current error to total error sum
@@ -64,8 +63,11 @@ class PID():
             self.error_sum = self.max
             
         # Compute the PID output
-        with input.get_lock():
-            output = self.Kp * error + self.error_sum - self.Kd * (int(input[forward_sensor]) - int(input[backward_sensor]))
+        if isinstance(input, float):
+            output = self.Kp * error + self.error_sum
+        else:
+            with input.get_lock():
+                output = self.Kp * error + self.error_sum - self.Kd * (int(input[forward_sensor]) - int(input[backward_sensor]))
             
         # Adjust output to be within the bounds
         if output < self.min:

@@ -1,5 +1,5 @@
 /*
- * SensorModule1284P.c
+ * LaserModule2313.h
  *
  * Updated: 1/12/2016
  * Author: Jacob Lundberg, Niklas Nilsson

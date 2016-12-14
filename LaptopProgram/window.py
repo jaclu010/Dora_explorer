@@ -1,3 +1,13 @@
+#####
+#
+# window.py
+# Updated: 14/12 2016
+# Authors: Jonathan Johansson, Martin Lundberg, Johan Nilsson
+#
+####
+
+
+
 from tkinter import *
 from tkinter import simpledialog
 import math
@@ -393,7 +403,7 @@ Esc - Exit the program'
         xOffset = self.canvasOffX
         yOffset = self.canvasOffY
         boxWidth = boxHeight = self.mapSize
-        ezDraw = True
+        ezDraw = False
         # rotation in rad, rotate around map center
         rotation = self.mapRotation
         if ezDraw:
@@ -430,18 +440,17 @@ Esc - Exit the program'
                         leftDown = self.rotatePoint(leftDown, center, rotation)
                         rightDown = self.rotatePoint(rightDown, center, rotation)
                     self.drawLine(center[0], center[1], center[0] + 1, center[1] + 1, False)
-                    ##Current glitch _|
 
                     if curVal == "2":
                         # Now we should draw shit
 
-                        if rightVal == "0" or rightVal == "1":
+                        if rightVal == "1" or rightVal == "1":
                             self.draw3d(rightUp, rightDown, offset3d)
-                        if upVal == "0" or upVal == "1":
+                        if upVal == "1" or upVal == "1":
                             self.draw3d(leftUp, rightUp, offset3d)
-                        if leftVal == "0" or leftVal == "1":
+                        if leftVal == "1" or leftVal == "1":
                             self.draw3d(leftDown, leftUp, offset3d)
-                        if downVal == "0" or downVal == "1":
+                        if downVal == "1" or downVal == "1":
                             self.draw3d(rightDown, leftDown, offset3d)
             self.drawRobot()
 
@@ -454,9 +463,9 @@ Esc - Exit the program'
         robotCenter = (self.robotPos[0] * self.mapSize + self.mapSize / 2 + self.canvasOffX,
                        self.robotPos[1] * self.mapSize + self.mapSize / 2 + self.canvasOffY)
 
-        robotWidth = self.mapSize
-        robotHeight = self.mapSize / 2
-        robotOffset = (0, -self.mapSize / 1.5)
+        robotWidth = self.mapSize / 2
+        robotHeight = self.mapSize / 4 
+        robotOffset = (0, -self.mapSize / 2)
         rOff2 = (0, -self.mapSize / 3)
         xOffset = self.canvasOffX
         yOffset = self.canvasOffY
@@ -500,7 +509,8 @@ Esc - Exit the program'
         self.draw3d(rRightUpUp, rLeftUp, rOff2)
         self.draw3d(rLeftUp, rLeftDown, rOff2)
 
-        """d
+        """
+        Uncomment to display "laser-beams"
         tempLaser = copy.deepcopy(laserList)
         for i in range(len(tempLaser)):
             step = -2 * math.pi / len(tempLaser)
@@ -511,6 +521,7 @@ Esc - Exit the program'
             self.mapCanvas.create_line(robotCenter[0], robotCenter[1], p[0], p[1])
             # self.drawLine(40, 40, p[0], p[1], False)
         """
+        
     def draw3d(self, p1, p2, offset):
         # self.drawLine(p1[0], p1[1], p1[0] + offset[0], p1[1] - offset[1], False)
         #print("hello", p1, p2)

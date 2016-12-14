@@ -1,5 +1,5 @@
 /*
- * SensorModule1284P.c
+ * SensorModule1284P.h
  *
  * Updated: 29/11/2016
  * Author: Fredrik Iselius, Jacob Lundberg, Niklas Nilsson

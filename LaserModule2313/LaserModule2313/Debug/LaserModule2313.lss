@@ -1,0 +1,776 @@
+
+LaserModule2313.elf:     file format elf32-avr
+
+Sections:
+Idx Name          Size      VMA       LMA       File off  Algn
+  0 .text         000002be  00000000  00000000  00000094  2**1
+                  CONTENTS, ALLOC, LOAD, READONLY, CODE
+  1 .data         00000002  00800060  000002be  00000352  2**0
+                  CONTENTS, ALLOC, LOAD, DATA
+  2 .bss          00000005  00800062  00800062  00000354  2**0
+                  ALLOC
+  3 .stab         00000024  00000000  00000000  00000354  2**2
+                  CONTENTS, READONLY, DEBUGGING
+  4 .stabstr      0000001e  00000000  00000000  00000378  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  5 .comment      00000030  00000000  00000000  00000396  2**0
+                  CONTENTS, READONLY
+  6 .debug_aranges 00000068  00000000  00000000  000003c8  2**3
+                  CONTENTS, READONLY, DEBUGGING
+  7 .debug_info   0000066c  00000000  00000000  00000430  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  8 .debug_abbrev 0000022a  00000000  00000000  00000a9c  2**0
+                  CONTENTS, READONLY, DEBUGGING
+  9 .debug_line   000002e0  00000000  00000000  00000cc6  2**0
+                  CONTENTS, READONLY, DEBUGGING
+ 10 .debug_frame  0000007c  00000000  00000000  00000fa8  2**2
+                  CONTENTS, READONLY, DEBUGGING
+ 11 .debug_str    0000028c  00000000  00000000  00001024  2**0
+                  CONTENTS, READONLY, DEBUGGING
+ 12 .debug_loc    000000ca  00000000  00000000  000012b0  2**0
+                  CONTENTS, READONLY, DEBUGGING
+ 13 .debug_ranges 00000038  00000000  00000000  0000137a  2**0
+                  CONTENTS, READONLY, DEBUGGING
+
+Disassembly of section .text:
+
+00000000 <__vectors>:
+   0:	12 c0       	rjmp	.+36     	; 0x26 <__ctors_end>
+   2:	2a c0       	rjmp	.+84     	; 0x58 <__bad_interrupt>
+   4:	29 c0       	rjmp	.+82     	; 0x58 <__bad_interrupt>
+   6:	28 c0       	rjmp	.+80     	; 0x58 <__bad_interrupt>
+   8:	27 c0       	rjmp	.+78     	; 0x58 <__bad_interrupt>
+   a:	26 c0       	rjmp	.+76     	; 0x58 <__bad_interrupt>
+   c:	25 c0       	rjmp	.+74     	; 0x58 <__bad_interrupt>
+   e:	24 c0       	rjmp	.+72     	; 0x58 <__bad_interrupt>
+  10:	23 c0       	rjmp	.+70     	; 0x58 <__bad_interrupt>
+  12:	22 c0       	rjmp	.+68     	; 0x58 <__bad_interrupt>
+  14:	21 c0       	rjmp	.+66     	; 0x58 <__bad_interrupt>
+  16:	20 c0       	rjmp	.+64     	; 0x58 <__bad_interrupt>
+  18:	1f c0       	rjmp	.+62     	; 0x58 <__bad_interrupt>
+  1a:	1e c0       	rjmp	.+60     	; 0x58 <__bad_interrupt>
+  1c:	1d c0       	rjmp	.+58     	; 0x58 <__bad_interrupt>
+  1e:	1c c0       	rjmp	.+56     	; 0x58 <__bad_interrupt>
+  20:	1b c0       	rjmp	.+54     	; 0x58 <__bad_interrupt>
+  22:	1a c0       	rjmp	.+52     	; 0x58 <__bad_interrupt>
+  24:	19 c0       	rjmp	.+50     	; 0x58 <__bad_interrupt>
+
+00000026 <__ctors_end>:
+  26:	11 24       	eor	r1, r1
+  28:	1f be       	out	0x3f, r1	; 63
+  2a:	cf ed       	ldi	r28, 0xDF	; 223
+  2c:	cd bf       	out	0x3d, r28	; 61
+
+0000002e <__do_copy_data>:
+  2e:	10 e0       	ldi	r17, 0x00	; 0
+  30:	a0 e6       	ldi	r26, 0x60	; 96
+  32:	b0 e0       	ldi	r27, 0x00	; 0
+  34:	ee eb       	ldi	r30, 0xBE	; 190
+  36:	f2 e0       	ldi	r31, 0x02	; 2
+  38:	02 c0       	rjmp	.+4      	; 0x3e <__SP_L__+0x1>
+  3a:	05 90       	lpm	r0, Z+
+  3c:	0d 92       	st	X+, r0
+  3e:	a2 36       	cpi	r26, 0x62	; 98
+  40:	b1 07       	cpc	r27, r17
+  42:	d9 f7       	brne	.-10     	; 0x3a <__do_copy_data+0xc>
+
+00000044 <__do_clear_bss>:
+  44:	20 e0       	ldi	r18, 0x00	; 0
+  46:	a2 e6       	ldi	r26, 0x62	; 98
+  48:	b0 e0       	ldi	r27, 0x00	; 0
+  4a:	01 c0       	rjmp	.+2      	; 0x4e <.do_clear_bss_start>
+
+0000004c <.do_clear_bss_loop>:
+  4c:	1d 92       	st	X+, r1
+
+0000004e <.do_clear_bss_start>:
+  4e:	a7 36       	cpi	r26, 0x67	; 103
+  50:	b2 07       	cpc	r27, r18
+  52:	e1 f7       	brne	.-8      	; 0x4c <.do_clear_bss_loop>
+  54:	af d0       	rcall	.+350    	; 0x1b4 <main>
+  56:	31 c1       	rjmp	.+610    	; 0x2ba <_exit>
+
+00000058 <__bad_interrupt>:
+  58:	d3 cf       	rjmp	.-90     	; 0x0 <__vectors>
+
+0000005a <i2c_delay_T2>:
+	brne 1b      ; 2 or 1 cycle, 4 cycles per loop
+	pop  r24     ; 2 ycle
+	ret          ; 4 cycle = total 52 cycles ~ 5.0 microsec with 14.7456 Mhz crystal
+*/
+#elif F_CPU <= 14745600UL
+	rjmp 1f      ; 2   "
+  5a:	00 c0       	rjmp	.+0      	; 0x5c <i2c_delay_T2+0x2>
+1:	rjmp 2f      ; 2   "
+  5c:	00 c0       	rjmp	.+0      	; 0x5e <i2c_delay_T2+0x4>
+2:	rjmp 3f      ; 2   "
+  5e:	00 c0       	rjmp	.+0      	; 0x60 <i2c_delay_T2+0x6>
+3:	rjmp 4f      ; 2   "
+  60:	00 c0       	rjmp	.+0      	; 0x62 <i2c_delay_T2+0x8>
+4:	rjmp 5f      ; 2   "
+  62:	00 c0       	rjmp	.+0      	; 0x64 <i2c_delay_T2+0xa>
+5:	nop          ; 1   "
+  64:	00 00       	nop
+	nop			 ; 1   "
+  66:	00 00       	nop
+	ret          ; 4   "  total 20 cyles = 5.0 microsec with 4 Mhz crystal 
+  68:	08 95       	ret
+
+0000006a <i2c_init>:
+; extern void i2c_init(void)
+;*************************************************************************
+	.global i2c_init
+	.func i2c_init
+i2c_init:
+	cbi SDA_DDR,SDA		;release SDA
+  6a:	bd 98       	cbi	0x17, 5	; 23
+	cbi SCL_DDR,SCL		;release SCL
+  6c:	bf 98       	cbi	0x17, 7	; 23
+	cbi SDA_OUT,SDA
+  6e:	c5 98       	cbi	0x18, 5	; 24
+	cbi SCL_OUT,SCL
+  70:	c7 98       	cbi	0x18, 7	; 24
+	ret
+  72:	08 95       	ret
+
+00000074 <i2c_start>:
+;*************************************************************************
+
+	.global i2c_start
+	.func   i2c_start
+i2c_start:
+	sbi 	SDA_DDR,SDA	;force SDA low
+  74:	bd 9a       	sbi	0x17, 5	; 23
+	rcall 	i2c_delay_T2	;delay T/2
+  76:	f1 df       	rcall	.-30     	; 0x5a <i2c_delay_T2>
+	
+	rcall 	i2c_write	;write address
+  78:	1d d0       	rcall	.+58     	; 0xb4 <i2c_write>
+	ret
+  7a:	08 95       	ret
+
+0000007c <i2c_rep_start>:
+;*************************************************************************
+
+	.global i2c_rep_start
+	.func	i2c_rep_start
+i2c_rep_start:
+	sbi	SCL_DDR,SCL	;force SCL low
+  7c:	bf 9a       	sbi	0x17, 7	; 23
+	rcall 	i2c_delay_T2	;delay  T/2
+  7e:	ed df       	rcall	.-38     	; 0x5a <i2c_delay_T2>
+	cbi	SDA_DDR,SDA	;release SDA
+  80:	bd 98       	cbi	0x17, 5	; 23
+	rcall	i2c_delay_T2	;delay T/2
+  82:	eb df       	rcall	.-42     	; 0x5a <i2c_delay_T2>
+	cbi	SCL_DDR,SCL	;release SCL
+  84:	bf 98       	cbi	0x17, 7	; 23
+	rcall 	i2c_delay_T2	;delay  T/2
+  86:	e9 df       	rcall	.-46     	; 0x5a <i2c_delay_T2>
+	sbi 	SDA_DDR,SDA	;force SDA low
+  88:	bd 9a       	sbi	0x17, 5	; 23
+	rcall 	i2c_delay_T2	;delay	T/2
+  8a:	e7 df       	rcall	.-50     	; 0x5a <i2c_delay_T2>
+	
+	rcall	i2c_write	;write address
+  8c:	13 d0       	rcall	.+38     	; 0xb4 <i2c_write>
+	ret
+  8e:	08 95       	ret
+
+00000090 <i2c_start_wait>:
+;*************************************************************************
+
+	.global i2c_start_wait
+	.func   i2c_start_wait
+i2c_start_wait:
+	mov	__tmp_reg__,r24
+  90:	08 2e       	mov	r0, r24
+
+00000092 <i2c_start_wait1>:
+i2c_start_wait1:
+	sbi 	SDA_DDR,SDA	;force SDA low
+  92:	bd 9a       	sbi	0x17, 5	; 23
+	rcall 	i2c_delay_T2	;delay T/2
+  94:	e2 df       	rcall	.-60     	; 0x5a <i2c_delay_T2>
+	mov	r24,__tmp_reg__
+  96:	80 2d       	mov	r24, r0
+	rcall 	i2c_write	;write address
+  98:	0d d0       	rcall	.+26     	; 0xb4 <i2c_write>
+	tst	r24		;if device not busy -> done
+  9a:	88 23       	and	r24, r24
+	breq	i2c_start_wait_done
+  9c:	11 f0       	breq	.+4      	; 0xa2 <i2c_start_wait_done>
+	rcall	i2c_stop	;terminate write operation
+  9e:	02 d0       	rcall	.+4      	; 0xa4 <i2c_stop>
+	rjmp	i2c_start_wait1	;device busy, poll ack again
+  a0:	f8 cf       	rjmp	.-16     	; 0x92 <i2c_start_wait1>
+
+000000a2 <i2c_start_wait_done>:
+i2c_start_wait_done:
+	ret
+  a2:	08 95       	ret
+
+000000a4 <i2c_stop>:
+;*************************************************************************
+
+	.global	i2c_stop
+	.func	i2c_stop
+i2c_stop:
+	sbi	SCL_DDR,SCL	;force SCL low
+  a4:	bf 9a       	sbi	0x17, 7	; 23
+	sbi	SDA_DDR,SDA	;force SDA low
+  a6:	bd 9a       	sbi	0x17, 5	; 23
+	rcall	i2c_delay_T2	;delay T/2
+  a8:	d8 df       	rcall	.-80     	; 0x5a <i2c_delay_T2>
+	cbi	SCL_DDR,SCL	;release SCL
+  aa:	bf 98       	cbi	0x17, 7	; 23
+	rcall	i2c_delay_T2	;delay T/2
+  ac:	d6 df       	rcall	.-84     	; 0x5a <i2c_delay_T2>
+	cbi	SDA_DDR,SDA	;release SDA
+  ae:	bd 98       	cbi	0x17, 5	; 23
+	rcall	i2c_delay_T2	;delay T/2
+  b0:	d4 df       	rcall	.-88     	; 0x5a <i2c_delay_T2>
+	ret
+  b2:	08 95       	ret
+
+000000b4 <i2c_write>:
+;	data = r24,  return = r25(=0):r24
+;*************************************************************************
+	.global i2c_write
+	.func	i2c_write
+i2c_write:
+	sec			;set carry flag
+  b4:	08 94       	sec
+	rol 	r24		;shift in carry and out bit one
+  b6:	88 1f       	adc	r24, r24
+	rjmp	i2c_write_first
+  b8:	01 c0       	rjmp	.+2      	; 0xbc <i2c_write_first>
+
+000000ba <i2c_write_bit>:
+i2c_write_bit:
+	lsl	r24		;if transmit register empty
+  ba:	88 0f       	add	r24, r24
+
+000000bc <i2c_write_first>:
+i2c_write_first:
+	breq	i2c_get_ack
+  bc:	59 f0       	breq	.+22     	; 0xd4 <i2c_get_ack>
+	sbi	SCL_DDR,SCL	;force SCL low
+  be:	bf 9a       	sbi	0x17, 7	; 23
+	brcc	i2c_write_low
+  c0:	18 f4       	brcc	.+6      	; 0xc8 <i2c_write_low>
+	nop
+  c2:	00 00       	nop
+	cbi	SDA_DDR,SDA	;release SDA
+  c4:	bd 98       	cbi	0x17, 5	; 23
+	rjmp	i2c_write_high
+  c6:	02 c0       	rjmp	.+4      	; 0xcc <i2c_write_high>
+
+000000c8 <i2c_write_low>:
+i2c_write_low:
+	sbi	SDA_DDR,SDA	;force SDA low
+  c8:	bd 9a       	sbi	0x17, 5	; 23
+	rjmp	i2c_write_high
+  ca:	00 c0       	rjmp	.+0      	; 0xcc <i2c_write_high>
+
+000000cc <i2c_write_high>:
+i2c_write_high:
+	rcall 	i2c_delay_T2	;delay T/2
+  cc:	c6 df       	rcall	.-116    	; 0x5a <i2c_delay_T2>
+	cbi	SCL_DDR,SCL	;release SCL
+  ce:	bf 98       	cbi	0x17, 7	; 23
+	rcall	i2c_delay_T2	;delay T/2
+  d0:	c4 df       	rcall	.-120    	; 0x5a <i2c_delay_T2>
+	rjmp	i2c_write_bit
+  d2:	f3 cf       	rjmp	.-26     	; 0xba <i2c_write_bit>
+
+000000d4 <i2c_get_ack>:
+	
+i2c_get_ack:
+	sbi	SCL_DDR,SCL	;force SCL low
+  d4:	bf 9a       	sbi	0x17, 7	; 23
+	cbi	SDA_DDR,SDA	;release SDA
+  d6:	bd 98       	cbi	0x17, 5	; 23
+	rcall	i2c_delay_T2	;delay T/2
+  d8:	c0 df       	rcall	.-128    	; 0x5a <i2c_delay_T2>
+	cbi	SCL_DDR,SCL	;release SCL
+  da:	bf 98       	cbi	0x17, 7	; 23
+
+000000dc <i2c_ack_wait>:
+i2c_ack_wait:
+	sbis	SCL_IN,SCL	;wait SCL high (in case wait states are inserted)
+  dc:	b7 9b       	sbis	0x16, 7	; 22
+	rjmp	i2c_ack_wait
+  de:	fe cf       	rjmp	.-4      	; 0xdc <i2c_ack_wait>
+	
+	clr	r24		;return 0
+  e0:	88 27       	eor	r24, r24
+	sbic	SDA_IN,SDA	;if SDA high -> return 1
+  e2:	b5 99       	sbic	0x16, 5	; 22
+	ldi	r24,1
+  e4:	81 e0       	ldi	r24, 0x01	; 1
+	rcall	i2c_delay_T2	;delay T/2
+  e6:	b9 df       	rcall	.-142    	; 0x5a <i2c_delay_T2>
+	clr	r25
+  e8:	99 27       	eor	r25, r25
+	ret
+  ea:	08 95       	ret
+
+000000ec <i2c_readNak>:
+	.global i2c_readAck
+	.global i2c_readNak
+	.global i2c_read		
+	.func	i2c_read
+i2c_readNak:
+	clr	r24
+  ec:	88 27       	eor	r24, r24
+	rjmp	i2c_read
+  ee:	01 c0       	rjmp	.+2      	; 0xf2 <i2c_read>
+
+000000f0 <i2c_readAck>:
+i2c_readAck:
+	ldi	r24,0x01
+  f0:	81 e0       	ldi	r24, 0x01	; 1
+
+000000f2 <i2c_read>:
+i2c_read:
+	ldi	r23,0x01	;data = 0x01
+  f2:	71 e0       	ldi	r23, 0x01	; 1
+
+000000f4 <i2c_read_bit>:
+i2c_read_bit:
+	sbi	SCL_DDR,SCL	;force SCL low
+  f4:	bf 9a       	sbi	0x17, 7	; 23
+	cbi	SDA_DDR,SDA	;release SDA (from previous ACK)
+  f6:	bd 98       	cbi	0x17, 5	; 23
+	rcall	i2c_delay_T2	;delay T/2
+  f8:	b0 df       	rcall	.-160    	; 0x5a <i2c_delay_T2>
+	
+	cbi	SCL_DDR,SCL	;release SCL
+  fa:	bf 98       	cbi	0x17, 7	; 23
+	rcall	i2c_delay_T2	;delay T/2
+  fc:	ae df       	rcall	.-164    	; 0x5a <i2c_delay_T2>
+
+000000fe <i2c_read_stretch>:
+	
+i2c_read_stretch:
+    sbis SCL_IN, SCL        ;loop until SCL is high (allow slave to stretch SCL)
+  fe:	b7 9b       	sbis	0x16, 7	; 22
+    rjmp	i2c_read_stretch
+ 100:	fe cf       	rjmp	.-4      	; 0xfe <i2c_read_stretch>
+    	
+	clc			;clear carry flag
+ 102:	88 94       	clc
+	sbic	SDA_IN,SDA	;if SDA is high
+ 104:	b5 99       	sbic	0x16, 5	; 22
+	sec			;  set carry flag
+ 106:	08 94       	sec
+	
+	rol	r23		;store bit
+ 108:	77 1f       	adc	r23, r23
+	brcc	i2c_read_bit	;while receive register not full
+ 10a:	a0 f7       	brcc	.-24     	; 0xf4 <i2c_read_bit>
+
+0000010c <i2c_put_ack>:
+	
+i2c_put_ack:
+	sbi	SCL_DDR,SCL	;force SCL low	
+ 10c:	bf 9a       	sbi	0x17, 7	; 23
+	cpi	r24,1
+ 10e:	81 30       	cpi	r24, 0x01	; 1
+	breq	i2c_put_ack_low	;if (ack=0)
+ 110:	11 f0       	breq	.+4      	; 0x116 <i2c_put_ack_low>
+	cbi	SDA_DDR,SDA	;      release SDA
+ 112:	bd 98       	cbi	0x17, 5	; 23
+	rjmp	i2c_put_ack_high
+ 114:	01 c0       	rjmp	.+2      	; 0x118 <i2c_put_ack_high>
+
+00000116 <i2c_put_ack_low>:
+i2c_put_ack_low:                ;else
+	sbi	SDA_DDR,SDA	;      force SDA low
+ 116:	bd 9a       	sbi	0x17, 5	; 23
+
+00000118 <i2c_put_ack_high>:
+i2c_put_ack_high:
+	rcall	i2c_delay_T2	;delay T/2
+ 118:	a0 df       	rcall	.-192    	; 0x5a <i2c_delay_T2>
+	cbi	SCL_DDR,SCL	;release SCL
+ 11a:	bf 98       	cbi	0x17, 7	; 23
+
+0000011c <i2c_put_ack_wait>:
+i2c_put_ack_wait:
+	sbis	SCL_IN,SCL	;wait SCL high
+ 11c:	b7 9b       	sbis	0x16, 7	; 22
+	rjmp	i2c_put_ack_wait
+ 11e:	fe cf       	rjmp	.-4      	; 0x11c <i2c_put_ack_wait>
+	rcall	i2c_delay_T2	;delay T/2
+ 120:	9c df       	rcall	.-200    	; 0x5a <i2c_delay_T2>
+	mov	r24,r23
+ 122:	87 2f       	mov	r24, r23
+	clr	r25
+ 124:	99 27       	eor	r25, r25
+	ret
+ 126:	08 95       	ret
+
+00000128 <FireFly_Init>:
+#include "LaserModule2313.h"
+
+void FireFly_Init() 
+{
+	unsigned int baud = 15;
+	UBRRH = 0;
+ 128:	12 b8       	out	0x02, r1	; 2
+	
+	// Port 1, FireFly
+	UCSRA |= (1 << U2X);
+ 12a:	59 9a       	sbi	0x0b, 1	; 11
+	UCSRB |= (1 << RXEN) | (1 << TXEN); // enables rx and tx
+ 12c:	8a b1       	in	r24, 0x0a	; 10
+ 12e:	88 61       	ori	r24, 0x18	; 24
+ 130:	8a b9       	out	0x0a, r24	; 10
+	
+	UBRRL = baud;
+ 132:	8f e0       	ldi	r24, 0x0F	; 15
+ 134:	89 b9       	out	0x09, r24	; 9
+ 136:	08 95       	ret
+
+00000138 <FireFly_Transmit>:
+}
+
+void FireFly_Transmit(unsigned int data) 
+{
+	/* Wait for empty transmit buffer */
+	while ( !( UCSRA & (1<<UDRE)) )
+ 138:	5d 9b       	sbis	0x0b, 5	; 11
+ 13a:	fe cf       	rjmp	.-4      	; 0x138 <FireFly_Transmit>
+	;
+	/* Put data into buffer, sends the data */
+	UDR = data;
+ 13c:	8c b9       	out	0x0c, r24	; 12
+ 13e:	08 95       	ret
+
+00000140 <Initiate_Measurement>:
+}
+
+void Initiate_Measurement()
+{
+	i2c_start_wait(LASER+I2C_WRITE);
+ 140:	84 ec       	ldi	r24, 0xC4	; 196
+ 142:	a6 df       	rcall	.-180    	; 0x90 <i2c_start_wait>
+	i2c_write(0x00);
+ 144:	80 e0       	ldi	r24, 0x00	; 0
+ 146:	b6 df       	rcall	.-148    	; 0xb4 <i2c_write>
+	i2c_write(0x04);
+ 148:	84 e0       	ldi	r24, 0x04	; 4
+ 14a:	b4 df       	rcall	.-152    	; 0xb4 <i2c_write>
+	i2c_stop();
+ 14c:	ab df       	rcall	.-170    	; 0xa4 <i2c_stop>
+ 14e:	08 95       	ret
+
+00000150 <LIDAR_Init>:
+
+
+void LIDAR_Init(){
+	
+	/* Send Start ack test */
+	i2c_start(LASER+I2C_WRITE);
+ 150:	84 ec       	ldi	r24, 0xC4	; 196
+ 152:	90 df       	rcall	.-224    	; 0x74 <i2c_start>
+	
+	if(mode_ == BUSY_WAITING) {
+ 154:	80 91 60 00 	lds	r24, 0x0060
+ 158:	81 30       	cpi	r24, 0x01	; 1
+ 15a:	41 f4       	brne	.+16     	; 0x16c <LIDAR_Init+0x1c>
+		i2c_write(0x04);
+		i2c_write(0x00);
+		i2c_stop();*/
+				
+		/* Set mode to high speed but short range */
+		i2c_start_wait(LASER+I2C_WRITE);
+ 15c:	84 ec       	ldi	r24, 0xC4	; 196
+ 15e:	98 df       	rcall	.-208    	; 0x90 <i2c_start_wait>
+		i2c_write(0x02);
+ 160:	82 e0       	ldi	r24, 0x02	; 2
+ 162:	a8 df       	rcall	.-176    	; 0xb4 <i2c_write>
+		i2c_write(0x1c);
+ 164:	8c e1       	ldi	r24, 0x1C	; 28
+ 166:	a6 df       	rcall	.-180    	; 0xb4 <i2c_write>
+		i2c_stop();		
+ 168:	9d df       	rcall	.-198    	; 0xa4 <i2c_stop>
+ 16a:	13 c0       	rjmp	.+38     	; 0x192 <LIDAR_Init+0x42>
+	}
+	
+	else {
+		
+		/* Set Free Running Mode */
+		i2c_write(0x11);
+ 16c:	81 e1       	ldi	r24, 0x11	; 17
+ 16e:	a2 df       	rcall	.-188    	; 0xb4 <i2c_write>
+		i2c_write(0xFF);
+ 170:	8f ef       	ldi	r24, 0xFF	; 255
+ 172:	a0 df       	rcall	.-192    	; 0xb4 <i2c_write>
+		i2c_stop();
+ 174:	97 df       	rcall	.-210    	; 0xa4 <i2c_stop>
+				
+		/* Set use "MEASURE_DELAY" */
+		i2c_start_wait(LASER+I2C_WRITE);
+ 176:	84 ec       	ldi	r24, 0xC4	; 196
+ 178:	8b df       	rcall	.-234    	; 0x90 <i2c_start_wait>
+		i2c_write(0x04);
+ 17a:	84 e0       	ldi	r24, 0x04	; 4
+ 17c:	9b df       	rcall	.-202    	; 0xb4 <i2c_write>
+		i2c_write(0x28);
+ 17e:	88 e2       	ldi	r24, 0x28	; 40
+ 180:	99 df       	rcall	.-206    	; 0xb4 <i2c_write>
+		i2c_stop();
+ 182:	90 df       	rcall	.-224    	; 0xa4 <i2c_stop>
+				
+		/* Set new Free Running delay */
+		i2c_start_wait(LASER+I2C_WRITE);
+ 184:	84 ec       	ldi	r24, 0xC4	; 196
+ 186:	84 df       	rcall	.-248    	; 0x90 <i2c_start_wait>
+		i2c_write(0x45);
+ 188:	85 e4       	ldi	r24, 0x45	; 69
+ 18a:	94 df       	rcall	.-216    	; 0xb4 <i2c_write>
+		i2c_write(LASER_SPEED);		// <- Actual delay
+ 18c:	81 e0       	ldi	r24, 0x01	; 1
+ 18e:	92 df       	rcall	.-220    	; 0xb4 <i2c_write>
+		i2c_stop();
+ 190:	89 df       	rcall	.-238    	; 0xa4 <i2c_stop>
+		
+	}
+	/* Initiate measurement */
+	Initiate_Measurement();
+ 192:	d6 df       	rcall	.-84     	; 0x140 <Initiate_Measurement>
+ 194:	08 95       	ret
+
+00000196 <Busy_Wait>:
+}
+
+/* Polls the LIDAR register 0x01 until the measurement is done */
+void Busy_Wait()
+{
+ 196:	cf 93       	push	r28
+	
+	unsigned i = 1;
+	
+	do {
+		
+		i2c_start_wait(LASER+I2C_WRITE);
+ 198:	84 ec       	ldi	r24, 0xC4	; 196
+ 19a:	7a df       	rcall	.-268    	; 0x90 <i2c_start_wait>
+		i2c_write(0x01);
+ 19c:	81 e0       	ldi	r24, 0x01	; 1
+ 19e:	8a df       	rcall	.-236    	; 0xb4 <i2c_write>
+		i2c_stop();
+ 1a0:	81 df       	rcall	.-254    	; 0xa4 <i2c_stop>
+		
+		i2c_start_wait(LASER+I2C_READ);
+ 1a2:	85 ec       	ldi	r24, 0xC5	; 197
+ 1a4:	75 df       	rcall	.-278    	; 0x90 <i2c_start_wait>
+		i = i2c_readNak();
+ 1a6:	a2 df       	rcall	.-188    	; 0xec <i2c_readNak>
+ 1a8:	c8 2f       	mov	r28, r24
+		i2c_stop();
+ 1aa:	7c df       	rcall	.-264    	; 0xa4 <i2c_stop>
+		i &= 0x01;
+		
+	} while (i == 1);	
+ 1ac:	c0 fd       	sbrc	r28, 0
+ 1ae:	f4 cf       	rjmp	.-24     	; 0x198 <Busy_Wait+0x2>
+
+}
+ 1b0:	cf 91       	pop	r28
+ 1b2:	08 95       	ret
+
+000001b4 <main>:
+
+
+
+int main(void) {
+	
+	DDRB |= (1 << DDB1);
+ 1b4:	b9 9a       	sbi	0x17, 1	; 23
+	
+	FireFly_Init();
+ 1b6:	b8 df       	rcall	.-144    	; 0x128 <FireFly_Init>
+	i2c_init();
+ 1b8:	58 df       	rcall	.-336    	; 0x6a <i2c_init>
+	#else
+		//round up by default
+		__ticks_dc = (uint32_t)(ceil(fabs(__tmp)));
+	#endif
+
+	__builtin_avr_delay_cycles(__ticks_dc);
+ 1ba:	2f ef       	ldi	r18, 0xFF	; 255
+ 1bc:	8f ef       	ldi	r24, 0xFF	; 255
+ 1be:	96 e8       	ldi	r25, 0x86	; 134
+ 1c0:	21 50       	subi	r18, 0x01	; 1
+ 1c2:	80 40       	sbci	r24, 0x00	; 0
+ 1c4:	90 40       	sbci	r25, 0x00	; 0
+ 1c6:	e1 f7       	brne	.-8      	; 0x1c0 <main+0xc>
+ 1c8:	00 c0       	rjmp	.+0      	; 0x1ca <main+0x16>
+ 1ca:	00 00       	nop
+
+	_delay_ms(3000);	
+	
+	LIDAR_Init();
+ 1cc:	c1 df       	rcall	.-126    	; 0x150 <LIDAR_Init>
+		
+
+		/* Sense Hall Sensor */ 
+		if (!(PIND & 0b00001000) && (state_ == STATE_RUNNING))
+		{
+			state_ = STATE_HALL;
+ 1ce:	cc 24       	eor	r12, r12
+ 1d0:	c3 94       	inc	r12
+	LIDAR_Init();
+	
+    while(1)
+    {		
+		
+		if(mode_ == FREE_RUNNING)
+ 1d2:	80 91 60 00 	lds	r24, 0x0060
+ 1d6:	81 11       	cpse	r24, r1
+ 1d8:	07 c0       	rjmp	.+14     	; 0x1e8 <main+0x34>
+ 1da:	8c ec       	ldi	r24, 0xCC	; 204
+ 1dc:	9c e1       	ldi	r25, 0x1C	; 28
+ 1de:	01 97       	sbiw	r24, 0x01	; 1
+ 1e0:	f1 f7       	brne	.-4      	; 0x1de <main+0x2a>
+ 1e2:	00 c0       	rjmp	.+0      	; 0x1e4 <main+0x30>
+ 1e4:	00 00       	nop
+ 1e6:	01 c0       	rjmp	.+2      	; 0x1ea <main+0x36>
+			_delay_ms(2);
+		else
+			Busy_Wait();			
+ 1e8:	d6 df       	rcall	.-84     	; 0x196 <Busy_Wait>
+			
+		i2c_start_wait(LASER+I2C_WRITE);
+ 1ea:	84 ec       	ldi	r24, 0xC4	; 196
+ 1ec:	51 df       	rcall	.-350    	; 0x90 <i2c_start_wait>
+        i2c_write(0x8f);
+ 1ee:	8f e8       	ldi	r24, 0x8F	; 143
+ 1f0:	61 df       	rcall	.-318    	; 0xb4 <i2c_write>
+		i2c_stop();
+ 1f2:	58 df       	rcall	.-336    	; 0xa4 <i2c_stop>
+		
+		i2c_start_wait(LASER+I2C_READ);	
+ 1f4:	85 ec       	ldi	r24, 0xC5	; 197
+ 1f6:	4c df       	rcall	.-360    	; 0x90 <i2c_start_wait>
+		unsigned first = i2c_readAck();
+ 1f8:	7b df       	rcall	.-266    	; 0xf0 <i2c_readAck>
+ 1fa:	d8 2e       	mov	r13, r24
+ 1fc:	c8 2f       	mov	r28, r24
+ 1fe:	d0 e0       	ldi	r29, 0x00	; 0
+		unsigned second = i2c_readNak();
+ 200:	75 df       	rcall	.-278    	; 0xec <i2c_readNak>
+ 202:	08 2f       	mov	r16, r24
+ 204:	10 e0       	ldi	r17, 0x00	; 0
+		i2c_stop();
+ 206:	4e df       	rcall	.-356    	; 0xa4 <i2c_stop>
+		
+		if(mode_ == BUSY_WAITING)
+ 208:	80 91 60 00 	lds	r24, 0x0060
+ 20c:	81 30       	cpi	r24, 0x01	; 1
+ 20e:	09 f4       	brne	.+2      	; 0x212 <main+0x5e>
+			Initiate_Measurement();
+ 210:	97 df       	rcall	.-210    	; 0x140 <Initiate_Measurement>
+			
+		if (!(PIND & 0b00001000) && (state_ == STATE_HALL))
+ 212:	83 99       	sbic	0x10, 3	; 16
+ 214:	07 c0       	rjmp	.+14     	; 0x224 <main+0x70>
+ 216:	80 91 62 00 	lds	r24, 0x0062
+ 21a:	81 30       	cpi	r24, 0x01	; 1
+ 21c:	19 f4       	brne	.+6      	; 0x224 <main+0x70>
+			first |= 0xF0;	
+ 21e:	cd 2d       	mov	r28, r13
+ 220:	c0 6f       	ori	r28, 0xF0	; 240
+ 222:	d0 e0       	ldi	r29, 0x00	; 0
+	
+		FireFly_Transmit(START_LASER);
+ 224:	8d e5       	ldi	r24, 0x5D	; 93
+ 226:	90 e0       	ldi	r25, 0x00	; 0
+ 228:	87 df       	rcall	.-242    	; 0x138 <FireFly_Transmit>
+		FireFly_Transmit(first);
+ 22a:	ce 01       	movw	r24, r28
+ 22c:	85 df       	rcall	.-246    	; 0x138 <FireFly_Transmit>
+		FireFly_Transmit(second);
+ 22e:	c8 01       	movw	r24, r16
+ 230:	83 df       	rcall	.-250    	; 0x138 <FireFly_Transmit>
+		counter++;
+ 232:	80 91 65 00 	lds	r24, 0x0065
+ 236:	90 91 66 00 	lds	r25, 0x0066
+ 23a:	01 96       	adiw	r24, 0x01	; 1
+ 23c:	90 93 66 00 	sts	0x0066, r25
+ 240:	80 93 65 00 	sts	0x0065, r24
+		
+
+		/* Sense Hall Sensor */ 
+		if (!(PIND & 0b00001000) && (state_ == STATE_RUNNING))
+ 244:	83 99       	sbic	0x10, 3	; 16
+ 246:	2d c0       	rjmp	.+90     	; 0x2a2 <main+0xee>
+ 248:	80 91 62 00 	lds	r24, 0x0062
+ 24c:	81 11       	cpse	r24, r1
+ 24e:	29 c0       	rjmp	.+82     	; 0x2a2 <main+0xee>
+		{
+			state_ = STATE_HALL;
+ 250:	c0 92 62 00 	sts	0x0062, r12
+			PORTB |= (1 << PORTB1);
+ 254:	c1 9a       	sbi	0x18, 1	; 24
+			counterHigh |= (counter >> 8);
+ 256:	e0 90 66 00 	lds	r14, 0x0066
+ 25a:	f1 2c       	mov	r15, r1
+ 25c:	80 91 63 00 	lds	r24, 0x0063
+ 260:	90 91 64 00 	lds	r25, 0x0064
+ 264:	8e 29       	or	r24, r14
+ 266:	9f 29       	or	r25, r15
+ 268:	90 93 64 00 	sts	0x0064, r25
+ 26c:	80 93 63 00 	sts	0x0063, r24
+			
+			FireFly_Transmit(START_LASER);
+ 270:	8d e5       	ldi	r24, 0x5D	; 93
+ 272:	90 e0       	ldi	r25, 0x00	; 0
+ 274:	61 df       	rcall	.-318    	; 0x138 <FireFly_Transmit>
+			FireFly_Transmit(0xFF);
+ 276:	8f ef       	ldi	r24, 0xFF	; 255
+ 278:	90 e0       	ldi	r25, 0x00	; 0
+ 27a:	5e df       	rcall	.-324    	; 0x138 <FireFly_Transmit>
+			FireFly_Transmit(counterHigh);
+ 27c:	80 91 63 00 	lds	r24, 0x0063
+ 280:	90 91 64 00 	lds	r25, 0x0064
+ 284:	59 df       	rcall	.-334    	; 0x138 <FireFly_Transmit>
+			FireFly_Transmit(counter);
+ 286:	80 91 65 00 	lds	r24, 0x0065
+ 28a:	90 91 66 00 	lds	r25, 0x0066
+ 28e:	54 df       	rcall	.-344    	; 0x138 <FireFly_Transmit>
+			
+			counter = 0;
+ 290:	10 92 66 00 	sts	0x0066, r1
+ 294:	10 92 65 00 	sts	0x0065, r1
+			counterHigh = 0;			
+ 298:	10 92 64 00 	sts	0x0064, r1
+ 29c:	10 92 63 00 	sts	0x0063, r1
+ 2a0:	98 cf       	rjmp	.-208    	; 0x1d2 <main+0x1e>
+			
+		}
+		
+		else if ((PIND & 0b00001000) && (state_ == STATE_HALL))  
+ 2a2:	83 9b       	sbis	0x10, 3	; 16
+ 2a4:	96 cf       	rjmp	.-212    	; 0x1d2 <main+0x1e>
+ 2a6:	80 91 62 00 	lds	r24, 0x0062
+ 2aa:	81 30       	cpi	r24, 0x01	; 1
+ 2ac:	09 f0       	breq	.+2      	; 0x2b0 <main+0xfc>
+ 2ae:	91 cf       	rjmp	.-222    	; 0x1d2 <main+0x1e>
+		{
+			state_ = STATE_RUNNING;
+ 2b0:	10 92 62 00 	sts	0x0062, r1
+			PORTB &= (0 << PORTB1);
+ 2b4:	88 b3       	in	r24, 0x18	; 24
+ 2b6:	18 ba       	out	0x18, r1	; 24
+ 2b8:	8c cf       	rjmp	.-232    	; 0x1d2 <main+0x1e>
+
+000002ba <_exit>:
+ 2ba:	f8 94       	cli
+
+000002bc <__stop_program>:
+ 2bc:	ff cf       	rjmp	.-2      	; 0x2bc <__stop_program>

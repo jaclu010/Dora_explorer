@@ -4,7 +4,7 @@ from tkinter import *
 # from scipy.optimize import curve_fit
 # import numpy as np
 
-offsetX = 300
+offsetX = 200
 offsetY = 200
 
 active_gui = True
@@ -56,14 +56,35 @@ def rounds2(val, base):
 def pickDir(dir_x, dir_y, dist_x, dist_y):
     print(dist_x, dist_y)
     if dir_y == 1:
-        x = math.ceil(dist_x)
-        y = rounds2(dist_y, 0.7)
+        if dist_y < 0:
+            y = rounds2(dist_y, 0.9)
+        else:
+            y = rounds2(dist_y, 0)
+        x = rounds2(dist_x, 0.9)
     elif dir_y == -1:
-        x = math.ceil(dist_x)
-        y = rounds2(dist_y, 0.7)
-    elif dir_x != 0:
-        x = math.ceil(dist_x)
-        y = rounds2(dist_y, 0.5)
+        if dist_y < 0:
+            y = rounds2(dist_y, 0.9)
+        else:
+            y = rounds2(dist_y, 0.1)
+        if dist_x > 0:
+            x = rounds2(dist_x, 0.1)
+        else:
+            x = rounds2(dist_x, 0.9)
+    elif dir_x == 1:
+        if dist_x < 0:
+            x = rounds2(dist_x, 0.9)
+        else:
+            x = rounds2(dist_x, 0.1)
+        if dist_y < 0:
+            y = rounds2(dist_y, 0.9)
+        else:
+            y = rounds2(dist_y, 0.1)
+    elif dir_x == -1:
+        if dist_x < 0:
+            x = rounds2(dist_x, 0.9)
+        else:
+            x = rounds2(dist_x, 0.1)
+        y = rounds2(dist_y, 1)
 
     print(x, y)
     return (int(x), int(y))
@@ -101,7 +122,7 @@ c2.pack(side=RIGHT)
 
 read = read_list[3]
 
-curr_index = 0
+curr_index = 13
 automode = False
 
 
@@ -585,7 +606,7 @@ def mapper():
         #if 30 <= abs(line_angle)-abs(rob_rot) <= 60:
         #    closest_points.append((closest_1, closest_2, l))
         #    line_score.append(-1)
-        if (line_len < 20 and d_readings < 1) or (line_len > 30 and d_readings < 4) or (line_len > 40 and d_readings <5) or (line_len > 60 and d_readings < 6) or (line_len > 80 and d_readings < 6) or (line_len > 100 and d_readings < 9):
+        if (line_len < 20 and d_readings < 1) or (line_len > 25 and d_readings < 3) or (line_len > 40 and d_readings <5) or (line_len > 60 and d_readings < 6) or (line_len > 80 and d_readings < 6) or (line_len > 100 and d_readings < 9):
             closest_points.append((closest_1, closest_2, l))
             line_score.append(-1)
         else:
@@ -875,15 +896,15 @@ def mapper():
                     rl_score = 3
 
                 score = rounds((2 + merged_lines[i][7] - rl_score) / bad_score_cnt)
-                print(merged_lines[i][5], score, line_dist)
+                #print(merged_lines[i][5], score, line_dist)
                 if line_scr_n == -1 or line_scr_p == -1:
                     score -= 1
 
                 score += 5 - round(line_dist / 2)
                 if score < 1:
                     score = 1
-                print(l_len)
-                if l_len < 25:
+                print(l_len, cnt)
+                if l_len < 30:
                     score = 1
                 # Draw backwards if first line
                 if i == 0:

@@ -15,6 +15,7 @@ from time import gmtime, strftime
 from bluetooth import *
 import threading
 import ast
+import slam_gui as slam
 import copy
 
 
@@ -44,7 +45,10 @@ m1DownPos = (0, 0)
 m1UpPos = m1DownPos
 
 root = Tk()
-root.geometry("1280x720")
+width = root.winfo_screenwidth()
+height = root.winfo_screenheight()
+root.geometry(str(width) +"x"+str(height))
+#root.geometry("1280x720")
 
 # Lists with data from Dora
 mapList = []
@@ -56,9 +60,11 @@ class Window(Frame):
     def __init__(self, master=None):
         Frame.__init__(self, master)
 
+        self.height = height
+        self.width = width
         self.frame = Frame
-        self.canvasWidth = 780
-        self.canvasHeight = 720
+        self.canvasWidth = self.width*0.64 #780
+        self.canvasHeight = self.height
         self.mapArray = []
 
         self.mDown = False
@@ -90,8 +96,11 @@ class Window(Frame):
         self.canvasOffY = self.mapSize
 
         self.textBox = self.initText()
+        self.slam_box = self.init_slam_canvas()
+        self.slam_grid_box = self.init_slam_grid_canvas()
+
         self.initButtons()
-        self.cbSensor, self.cbMovement, self.cb_sensor_overview = self.initCheckboxes()
+        self.cbSensor, self.cbMovement, self.cb_sensor_overview, self.cb_slam_overview = self.initCheckboxes()
         self.canvUpdate()
 
     def showHelp(self):
@@ -118,6 +127,8 @@ Esc - Exit the program'
         self.cbSensorVar = IntVar()
         cbSensor = Checkbutton(self, text="Show sensor data", variable=self.cbSensorVar,
                                command=self.cbSensorToggle)
+        print(str(self.height))
+        print(str(self.width))
         cbSensor.place(x=0, y=460)
 
         self.cbMovementVar = IntVar()
@@ -130,13 +141,28 @@ Esc - Exit the program'
                                          command=self.cb_sensor_overview_toggle)
         cb_sensor_overview.place(x=263, y=460)
 
-        return cbSensor, cbMovement, cb_sensor_overview
+        self.cb_slam_overview_var = IntVar()
+        cb_slam_overview = Checkbutton(self, text="Show laser calculations", variable=self.cb_slam_overview_var,
+                                           command=self.cb_slam_overview_toggle)
+        cb_slam_overview.place(x=0, y=480)
+        return cbSensor, cbMovement, cb_sensor_overview, cb_slam_overview
 
     def initCanvas(self):
         mapCanvas = Canvas(self, bg="white", width=str(self.canvasWidth), height=str(self.canvasHeight))
         mapCanvas.place(x=500, y=0)
         self.debugInitMapArray()
         return mapCanvas
+
+    def init_slam_canvas(self):
+        slam_box = Canvas(self, state = NORMAL, bg="white", width="495", height="455")
+        #slam_box.create_rectangle(10,10,100,100,fill = "blue")
+        # button = Button(dataTextBox, text="Click")
+        # dataTextBox.window_create(INSERT, window=button)
+        return slam_box
+
+    def init_slam_grid_canvas(self):
+        slam_grid_box = Canvas(self, bg="white", width="300", height="300")
+        return slam_grid_box
 
     def initText(self):
         dataTextBox = Text(self, state=DISABLED, bg="gray62", width="62", height="30")
@@ -146,8 +172,8 @@ Esc - Exit the program'
         return dataTextBox
 
     def initButtons(self):
-        buttonHeight = 5
-        buttonWidth = 10
+        buttonHeight = int(self.height*0.0054)
+        buttonWidth = int(self.width*0.00695)
         buttonColor = "gray42"
         buttonActiveColor = "gray58"
 
@@ -177,19 +203,27 @@ Esc - Exit the program'
                                   activebackground=buttonActiveColor,
                                   text="Tower Speed", width=buttonWidth, height=buttonHeight)
 
-        buttonY = 600
+        print(str(buttonRight.winfo_reqwidth()))
 
-        buttonRight.place(x=365, y=buttonY)
-        buttonLeft.place(x=195, y=buttonY)
-        buttonForward.place(x=280, y=510)
-        buttonBack.place(x=280, y=buttonY)
-        button_forward_left.place(x=195,y=510)
-        button_forward_right.place(x=365, y=510)
+        button_first_row = self.height*0.70
+        button_second_row = self.height*0.80
 
-        buttonBothSpeeds.place(x=10, y=buttonY)
-        buttonLeftSpeed.place(x=10, y=510)
-        buttonRightSpeed.place(x=95, y=510)
-        buttonTowerSpeed.place(x=95, y=buttonY)
+        button_size_x = buttonLeft.winfo_reqwidth()
+        button_size_y = buttonLeft.winfo_reqheight()
+
+
+        buttonForward.place(x=self.width * 0.14, y=button_first_row)
+        button_forward_left.place(x=self.width*0.2, y=button_first_row)
+        button_forward_right.place(x=self.width * 0.26, y=button_first_row)
+
+        buttonRight.place(x=self.width * 0.26, y=button_second_row)
+        buttonLeft.place(x=self.width*0.14, y=button_second_row)
+        buttonBack.place(x=self.width*0.2, y=button_second_row)
+
+        buttonBothSpeeds.place(x=self.width*0.007, y=button_second_row)
+        buttonLeftSpeed.place(x=self.width*0.007, y=button_first_row)
+        buttonRightSpeed.place(x=self.width*0.066, y=button_first_row)
+        buttonTowerSpeed.place(x=self.width*0.066, y=button_second_row)
 
     def setSpeed(self, side):
         global commandQueue
@@ -228,6 +262,18 @@ Esc - Exit the program'
             self.textBox.delete("0.0", END)
             self.textBox.config(state=DISABLED)
             print("Movement Value is 0")
+
+    def cb_slam_overview_toggle(self):
+        if self.cb_slam_overview.getvar(str(self.cb_slam_overview_var)) == "1":
+            self.slam_box = self.init_slam_canvas()
+            self.slam_box.place(x=0, y=0)
+            self.slam_grid_box = self.init_slam_grid_canvas()
+            self.slam_grid_box.place(x=500, y=0)
+            read= [97, 97, 96, 96, 97, 96, 95, 96, 97, 96, 97, 99, 98, 94, 90, 86, 82, 76, 69, 63, 58, 54, 51, 49, 48, 47, 47, 44, 42, 40, 37, 37, 37, 38, 39, 38, 33, 35, 34, 30, 37, 39, 38, 40, 44, 45, 45, 45, 47, 48, 49, 52, 54, 60, 64, 70, 77, 87, 89, 97, 99, 99, 97, 96, 97, 96, 96, 98, 98, 98, 97, 96, 96, 96, 96, 96, 93, 89, 88, 84, 81, 75, 69, 67, 61, 58, 55, 53, 51, 48, 48, 47, 47, 45, 45, 47, 43, 43, 40, 40, 37, 39, 38, 34, 35, 34, 35, 35, 37, 42, 42, 44, 47, 47, 47, 49, 50, 52, 54, 57, 62, 69, 76, 83, 83, 86, 91, 98, 106, 128, 141, 140, 139, 138, 138, 138, 139, 139, 139, 139, 139, 139, 140, 140, 141, 141, 97, 89, 87, 83, 79, 71, 67, 60, 57, 54, 52, 49, 48, 45, 45, 45, 44, 44, 42, 40, 40, 37, 38, 38, 37, 38, 34, 34, 34, 38, 35, 38, 39, 42, 42, 44, 44, 45, 47, 48, 49, 51, 55, 57, 61, 65, 71, 74, 83, 86, 90, 96, 113, 140, 140, 140, 141, 140, 139, 139, 139, 139, 139, 140, 140, 141, 142, 140, 123, 104, 97, 91, 88, 80, 72, 66, 59, 55, 53, 49, 48, 47, 47, 44, 44, 44, 42, 39, 39, 35, 38, 33, 34, 32, 35, 38, 39, 39, 38, 39, 40, 42, 43, 43, 43, 45, 45, 48, 51, 53, 56, 62, 66, 72, 78, 84, 87, 89, 93, 98, 97, 96]
+            #self.update_slam(read)
+        elif self.cb_slam_overview.getvar(str(self.cb_slam_overview_var)) == "0":
+            self.slam_box.destroy()
+            self.slam_grid_box.destroy()
 
     def close_window(self):
         self.sensor_window.destroy()
@@ -346,6 +392,12 @@ Esc - Exit the program'
         global commandQueue
         commandQueue += ["stop"]
 
+    def update_slam(self, laser_values):
+        #print(laser_values)
+        #self.slam_box.create_rectangle(50,50,10,10, fill ="black")
+        slam.mapper(self.slam_box, self.slam_grid_box, laser_values)
+
+
     def printToLog(self):
         with open('robotLog.txt', 'a') as file:
             file.write(self.messages[-1][0] + "\t" + self.messages[-1][1])
@@ -370,6 +422,9 @@ Esc - Exit the program'
             # Take only the list of values from the message string
             parts = message.split('[')
             self.update_sensor_values(ast.literal_eval('[' + parts[2]))
+        elif type == "LASER" and self.cb_slam_overview.getvar(str(self.cb_slam_overview_var)) == "1":
+            parts = message.split('[')
+            self.update_slam(ast.literal_eval('[' + parts[2]))
 
         self.messages.append((type, strftime("%H:%M:%S", gmtime()) + "\t" + message + "\n"))
         self.printToLog()
@@ -403,7 +458,7 @@ Esc - Exit the program'
         xOffset = self.canvasOffX
         yOffset = self.canvasOffY
         boxWidth = boxHeight = self.mapSize
-        ezDraw = False
+        ezDraw = True
         # rotation in rad, rotate around map center
         rotation = self.mapRotation
         if ezDraw:
@@ -628,6 +683,7 @@ def blue():
                             # Strip [laser] and parse as list
                             cmd = cmd[7:]
                             laserList = ast.literal_eval(cmd)
+
                         elif "move" in cmd:
                             newMessageQueue += [("MOVE", cmd)]
                         elif "rob" in cmd:

@@ -269,8 +269,6 @@ Esc - Exit the program'
             self.slam_box.place(x=0, y=0)
             self.slam_grid_box = self.init_slam_grid_canvas()
             self.slam_grid_box.place(x=500, y=0)
-            read= [97, 97, 96, 96, 97, 96, 95, 96, 97, 96, 97, 99, 98, 94, 90, 86, 82, 76, 69, 63, 58, 54, 51, 49, 48, 47, 47, 44, 42, 40, 37, 37, 37, 38, 39, 38, 33, 35, 34, 30, 37, 39, 38, 40, 44, 45, 45, 45, 47, 48, 49, 52, 54, 60, 64, 70, 77, 87, 89, 97, 99, 99, 97, 96, 97, 96, 96, 98, 98, 98, 97, 96, 96, 96, 96, 96, 93, 89, 88, 84, 81, 75, 69, 67, 61, 58, 55, 53, 51, 48, 48, 47, 47, 45, 45, 47, 43, 43, 40, 40, 37, 39, 38, 34, 35, 34, 35, 35, 37, 42, 42, 44, 47, 47, 47, 49, 50, 52, 54, 57, 62, 69, 76, 83, 83, 86, 91, 98, 106, 128, 141, 140, 139, 138, 138, 138, 139, 139, 139, 139, 139, 139, 140, 140, 141, 141, 97, 89, 87, 83, 79, 71, 67, 60, 57, 54, 52, 49, 48, 45, 45, 45, 44, 44, 42, 40, 40, 37, 38, 38, 37, 38, 34, 34, 34, 38, 35, 38, 39, 42, 42, 44, 44, 45, 47, 48, 49, 51, 55, 57, 61, 65, 71, 74, 83, 86, 90, 96, 113, 140, 140, 140, 141, 140, 139, 139, 139, 139, 139, 140, 140, 141, 142, 140, 123, 104, 97, 91, 88, 80, 72, 66, 59, 55, 53, 49, 48, 47, 47, 44, 44, 44, 42, 39, 39, 35, 38, 33, 34, 32, 35, 38, 39, 39, 38, 39, 40, 42, 43, 43, 43, 45, 45, 48, 51, 53, 56, 62, 66, 72, 78, 84, 87, 89, 93, 98, 97, 96]
-            #self.update_slam(read)
         elif self.cb_slam_overview.getvar(str(self.cb_slam_overview_var)) == "0":
             self.slam_box.destroy()
             self.slam_grid_box.destroy()
@@ -467,7 +465,7 @@ Esc - Exit the program'
                     if self.getMapValue(x, y) == 2:
                         self.drawBox(x * boxWidth + xOffset, y * boxHeight + yOffset, boxWidth, boxHeight, True)
                     if self.getMapValue(x, y) == 1:
-                        self.drawBox(x * boxWidth + xOffset, y * boxHeight + yOffset, boxWidth, boxHeight, True, "white")
+                        self.drawBox(x * boxWidth + xOffset, y * boxHeight + yOffset, boxWidth, boxHeight, True, "peachpuff")
                     if robot_pos == [x, y]:
                         self.drawBox(x * boxWidth + xOffset, y * boxHeight + yOffset, boxWidth, boxHeight, True, "red")
         else:

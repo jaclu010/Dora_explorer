@@ -24,7 +24,7 @@ import path
 import copy
 from path import *
 from position import *
-import submap3 as sm
+import slam_merger as sm
 import slam_submapper as slammer 
 from multiprocessing import Process, Value, Array
 from multiprocessing.queues import SimpleQueue

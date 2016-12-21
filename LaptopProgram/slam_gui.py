@@ -2,7 +2,7 @@
 #
 # slam_gui.py
 # Updated: 20/12 2016
-# Authors: Jacob Lundberg, Johan Nilsson
+# Authors: Jacob Lundberg
 #
 # This code does the exact same as SLAM_SUBMAPPER.py
 # with the difference of TKinter drawings to the laptop
@@ -20,14 +20,18 @@ def pointlength(p1, p2):
     return (math.sqrt(((p1[0] - p2[0]) * (p1[0] - p2[0])) + (p1[1] - p2[1]) * (p1[1] - p2[1])))
 
 
-# Always round .5 up
 def rounds(val):
+    """
+    Always round .5 up
+    """
     return rounds2(val, 0.5)
 
 
-# Rounds input value up if equal to base
-# Opposite direction for negative values
 def rounds2(val, base):
+    """
+    Round VAL up if equal to BASE.
+    Opposite direction for negative VAL.
+    """
     if abs(val) % 1 >= base:
         return int(math.ceil(abs(val)) * math.copysign(1, val))
     else:
@@ -35,7 +39,9 @@ def rounds2(val, base):
 
 
 def pickDir(dir_x, dir_y, dist_x, dist_y):
-    #print(dist_x, dist_y)
+    """
+    Direction compensation for calculating robot grid position
+    """
     if dir_y == 1:
         if dist_y < 0:
             y = rounds2(dist_y, 1)
@@ -71,8 +77,10 @@ def pickDir(dir_x, dir_y, dist_x, dist_y):
     return (int(x), int(y))
     
 
-# Returns point of intersection between two vectors
 def vectorIntersection(x1, y1, x2, y2, x3, y3, x4, y4):
+    """
+    Returns point of intersection between two vectors
+    """
     px = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / \
          ((x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4))
     py = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / \
@@ -81,42 +89,115 @@ def vectorIntersection(x1, y1, x2, y2, x3, y3, x4, y4):
 
 
 def getIndex(item):
+    """
+    Help function for sorting intersection array
+    """
     return item[2]
 
 
 def roundHalf(val):
+    """
+    Round VAL to nearest .5 value
+    """
     return round(val * 2.0) / 2.0
 
 
 def mapper(c, c3, read):
+    """
+    Main algorithm to convert an array of measurements to a 2D grid array
+    Input: [Laser readings]
+    Returns: subb - 2D array
+
+    !!Note!!: This 'script' is not designed for performance. Various unnecessary for loops
+              exist. Unnecessary calculations may occur.
+
+    c, c3 - Canvas items from laptop program
+    """
     c.delete(ALL)
     c3.delete(ALL)
+
+    # Hard coded values for canvas sizes
     height = 495
     width = 455
     box_height = 300
     offsetX = 222
     offsetY = 242
 
+    # Print some debug information
+    print_debug = False
+
+    # If set to TRUE, stop calculations
     bad_reading = False
 
-    # Variables
+    # Use extra intersections at the start and end of each good reading
+    # May enhace results when a lot of corners exist
+    set_extra_intersections = False
+
+    # Size of array of measurements
     size = len(read)
-    corr = 7.0  # degrees
-    cell_size = 40
+
+    # ----------
+    # VARIABLES - to configure and enhance the result of a reading
+    # ----------
+
+    # No. tiles is rounded up if line length is larger than TILE_AVERAGE
+    tile_average = 0.5
+
+    # Se TILE_AVERAGE, but different value for first tile
+    first_tile_average = 0.45
+
+    # Compensate for hall-sensor triggering to early, # degrees
+    corr = 7.0
+
+    # Size of wall segments
+    tile_size = 40
+
+    # Mark reading as unreliable if less than MIN_DIST
     min_dist = 40
+
+    # Maximum allowed reading value
+    max_dist = 10000
+
+    # Mark reading as bad if larger than D_MEAN_COVAR
     d_mean_covar = 11
+
+    # Mark reading as bad if larger than D_DELTA_COVAR
     d_delta_covar = 1.65
+
+    # Mark reading as possible corner if less than TWO_DELTA_COVAR
     two_delta_covar = 45
+
+    # Trigger line estimation if no. good readings in a row is larger than GOOD_READING_COUNT
     good_reading_count = 3
+
+    # Keep vectors if angle less than ANGLE_DEVIATION_FILTER from average angle
     angle_deviation_filter = 8
+
+    # Average 'interections' if less than DOT_FILTER_VALUE cm from each other
     dot_filter_value = 18
+
+    # Keep 'intersections' less than DOT_MIN_DIST from nearest measurement
     dot_min_dist = 7
-    dot_score_dist = 6
-    dot_dist_cut = 20 # 30
+
+    # Add score to line if measurement is less than LINE_SCORE_DIST cm from line
+    line_score_dist = 6
+
+    # Add intersection next or previous measurement is larger than DOT_DIST_CUT cm from current measurement
+    dot_dist_cut = 20  # 30
+
+    # Set line to bad line if between these values (degrees)
+    lower_bound_angle = 30
+    upper_bound_angle = 60
+
+    # Discard reading if no. bad measurments is greater than SIZE / UNCERTAIN_THRESHOLD
+    uncertain_threshold = 1.5
+
+    #-----
+
+
     res = []
 
-    uncertain_threshold = 1
-    
+    # Legitimacy check 1
     if size > 0:
         step = 360.0 / size
     else:
@@ -146,9 +227,9 @@ def mapper(c, c3, read):
         sin_cos.append((x, y))
 
     # Calculate delta values
+    # Calculate angle between reading + 2 and reading - 2
     delta = []
     two_delta = []
-
     for i in range(size):
         x = sin_cos[i][0]
         y = sin_cos[i][1]
@@ -161,7 +242,6 @@ def mapper(c, c3, read):
         if d_next_i > size - 2:
             d_next_i -= size
 
-        # len2d = math.hypot(f2x - b2x, f2y - b2y)
         v1x = sin_cos[i - 2][0] - x
         v1y = sin_cos[i - 2][1] - y
         v2x = sin_cos[d_next_i][0] - x
@@ -178,6 +258,7 @@ def mapper(c, c3, read):
             intersections.append((sin_cos[i][0], sin_cos[i][1], i))
 
     # Calculate delta of delta values
+    # Check distance to next and previous measurement
     double_delta = []
 
     for i in range(size):
@@ -204,6 +285,7 @@ def mapper(c, c3, read):
                 intersections.append((x, y, i))
 
     # Calculate average delta of deltas
+    # Sloppy, no loop closing
     delta_mean = []
 
     for i in range(size):
@@ -223,11 +305,11 @@ def mapper(c, c3, read):
         delta_mean.append((change_x, change_y))
 
     # Draw grid (just for show)
-    for i in range(cell_size):
-        c.create_line(0, i * cell_size, height, i * cell_size, dash=1)
-        c.create_line(0, i * cell_size, height, i * cell_size, dash=1)
-        c.create_line(cell_size * i, 0, i * cell_size, width, dash=1)
-        c.create_line(cell_size * i, 0, i * cell_size, width, dash=1)
+    for i in range(tile_size):
+        c.create_line(0, i * tile_size, height, i * tile_size, dash=1)
+        c.create_line(0, i * tile_size, height, i * tile_size, dash=1)
+        c.create_line(tile_size * i, 0, i * tile_size, width, dash=1)
+        c.create_line(tile_size * i, 0, i * tile_size, width, dash=1)
         c.create_oval(offsetX - 5, offsetY - 5, offsetX + 5, offsetY + 5, fill='black')
 
     # Give each point values
@@ -237,7 +319,7 @@ def mapper(c, c3, read):
     # Yellow - delta_mean triggered
     # Orange - Too high delta values
     # Purple - invalid measurement
-        dots = [None] * size
+    dots = [None] * size
     bad_readings_cnt = 0
     uncertain_values = 0
     for i in range(size):
@@ -245,8 +327,6 @@ def mapper(c, c3, read):
         y = sin_cos[i][1]
         if i == 0:
             c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='green')
-        # elif 5 < i < 20:
-        #    c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2, fill='red')
         else:
             c.create_oval(x + offsetX - 2, y + offsetY - 2, x + offsetX + 2, y + offsetY + 2)
         d = 0
@@ -271,13 +351,12 @@ def mapper(c, c3, read):
 
         dots[i] = d
 
-    # Legitimacy check 1
+    # Legitimacy check 2
     if not bad_reading:
         if uncertain_values > (size / uncertain_threshold):
             bad_reading = True
 
-    # Dot value 0 == good value
-    # Appended to list
+    # Traverse readings and find good readings in a row
     good_readings = []
     i = 0
 
@@ -299,11 +378,12 @@ def mapper(c, c3, read):
                             good_readings[-1][2] + good_readings[0][2])
         good_readings.pop()
 
-    # -----
+    # STEP 2 : lines and vectors
+    # ----------
     # Calculate lines from good readings
     # Calculate vectors from lines
     # Remove bad lines and get rotation
-    # -----
+    # ----------
     lines = []
     vectors = []
     angles = []
@@ -351,12 +431,14 @@ def mapper(c, c3, read):
         _y0 = sin_cos[good_readings[i][0]][1]
         _y1 = sin_cos[good_readings[i][1]][1]
         c.create_line(_x0 + offsetX, _y0 + offsetY, _x1 + offsetX, _y1 + offsetY, fill='cyan')
-        #intersections.append((_x0, _y0, good_readings[i][0]))
-        #intersections.append((_x1, _y1, good_readings[i][1]))
+        if set_extra_intersections:
+            intersections.append((_x0, _y0, good_readings[i][0]))
+            intersections.append((_x1, _y1, good_readings[i][1]))
 
         vectors.append((x0, y0, x1, y1))
         angles.append((math.degrees(math.atan2(-lines[i][1], lines[i][0])), i, 0))
 
+    # Angle is counted from nearest x/y-axis
     if angles:
         for alpha in angles:
             angle = alpha[0]
@@ -382,17 +464,16 @@ def mapper(c, c3, read):
                 c.create_line(vectors[i][0] + offsetX, vectors[i][1] + offsetY,
                               vectors[i][2] + offsetX, vectors[i][3] + offsetY, fill='red')
 
+    # LEgitimacy check 3
     if angle_deviation:
         rob_rot /= len(angle_deviation)
     else:
         rob_rot = 0
 
-    # print(avg_angle, rob_rot)
-
-    # -----
+    # STEP 3 : intersections
+    # ----------
     # Calculate intersection points for all vectors
-    #
-    # -----
+    # ----------
     filtered_len = len(filtered_vectors)
     for v in range(filtered_len):
         x1 = filtered_vectors[v][0]
@@ -409,8 +490,8 @@ def mapper(c, c3, read):
             if v != w:
                 intersection = vectorIntersection(x1, y1, x2, y2, x3, y3, x4, y4)
 
-            best_len = 10000  # Big number, to be safe
-            cur_nr = -10000
+            best_len = max_dist
+            cur_nr = -max_dist
             for i in range(size):
                 x = sin_cos[i][0]
                 y = sin_cos[i][1]
@@ -424,8 +505,8 @@ def mapper(c, c3, read):
             intersections.append((intersection[0], intersection[1], cur_nr))
 
     # -----
-    # Do some filtering of the intersections to remove bad ones
-    #
+    # Ignore intersections away from measurements
+    # Average out intersections near each other
     # -----
     filtered_intersections = []
     used = []
@@ -478,6 +559,7 @@ def mapper(c, c3, read):
                               dot_averaging[next_i][0], dot_averaging[next_i][1],
                               (dot_averaging[i][2], dot_averaging[next_i][2])))
 
+    # STEP 4: new lines and score
     # -----
     # Draw all new lines
     # Calculate hit percent of dots on every line
@@ -491,13 +573,10 @@ def mapper(c, c3, read):
 
     closest_points = []
     line_score = []
-    # print(new_lines)
+
     for i in range(len(new_lines)):
         l = new_lines[i]
         score = 0
-        line_len = 0
-        min_score_per_wall = 0
-
         closest_1 = l[4][0]
         closest_2 = l[4][1]
         dx = sin_cos[closest_2][0] - sin_cos[closest_1][0]
@@ -524,37 +603,33 @@ def mapper(c, c3, read):
             dist = abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) / math.sqrt(
                 (y2 - y1) * (y2 - y1) + (x2 - x1) * (x2 - x1))
 
-            if dist < dot_score_dist:
+            if dist < line_score_dist:
                 score += 1
 
-        #print(score, d_readings, min_score_per_wall, line_len)
-        # if score > score_filter:
-        #print(i, closest_1, closest_2, d_readings, line_len)
-        #if 30 <= abs(line_angle)-abs(rob_rot) <= 60:
-        #    closest_points.append((closest_1, closest_2, l))
-        #    line_score.append(-1)
-        if (line_len < 20 and d_readings < 1) or (line_len > 25 and d_readings < 3) or (line_len > 40 and d_readings <5) or (line_len > 60 and d_readings < 6) or (line_len > 80 and d_readings < 6) or (line_len > 100 and d_readings < 9):
+        # Check no. readings between intersections
+        # Otherwise some 'not walls' may be interpreted as walls
+        # Line score: -1 - Probably not a wall along this line
+        if (line_len < 20 and d_readings < 1) or (line_len > 25 and d_readings < 5) or (
+                line_len > 40 and d_readings < 5) or (line_len > 60 and d_readings < 6) or (
+                line_len > 80 and d_readings < 6) or (line_len > 100 and d_readings < 9):
             closest_points.append((closest_1, closest_2, l))
             line_score.append(-1)
         else:
             closest_points.append((closest_1, closest_2, l))
             line_score.append(score)
-        #print(closest_points[-1])
 
+    # Hit percent
+    # May be higher than 100% in some cases, depends on LINE_SCORE_DIST
     final_score = []
-
     for i in range(len(closest_points)):
         if closest_points[i][0] != closest_points[i][1]:
             final_score.append((line_score[i] / (closest_points[i][1] - closest_points[i][0]), closest_points[i]))
         else:
             final_score.append((-1, closest_points[i]))
-        #print(i, final_score[-1])
 
-    # Draw score vectors
-
-    #c2.create_oval(offsetX - 5, offsetY - 5, 5 + offsetX, 5 + offsetY, fill='black')
+    # Rotate lines, depends on ROB_ROT
+    # Thickness is used for scoring
     c3.create_oval(box_height/2 - 5, box_height/2 - 5, 5 + box_height/2, 5 + box_height/2, fill='black')
-    # print(final_score)
 
     rotated_lines = []
 
@@ -564,8 +639,6 @@ def mapper(c, c3, read):
         if thickness > 10:
             thickness = 4
         color = 'red'
-        #print(thickness)
-        # rob_rot = 30
         ncos = math.cos(math.radians(rob_rot))
         nsin = math.sin(math.radians(rob_rot))
         x1n = fs[1][2][0] * ncos - fs[1][2][1] * nsin
@@ -577,18 +650,21 @@ def mapper(c, c3, read):
             thickness = 1
             color = '#ACACAC'
 
-        #c2.create_line(x1n + offsetX, y1n + offsetY, x2n + offsetX, y2n + offsetY, fill=color, width=thickness)
         rotated_lines.append((thickness, x1n, y1n, x2n, y2n))
-        #print(rotated_lines[-1])
 
+    # Create the submap
     nr = 31
     submap = [[0 for x in range(nr)] for y in range(nr)]
     straightened_lines = []
 
-    # -----
+    # STEP 5: Aligning and scoring
+    # ----------
     # Actual grid aligning
+    # Determine direction based on (dx + dy) value.
+    # Should output (!=0, 0) or (0, !=0) in (x, y) direction
     # dx_dy Value closer to 1 is more aligned to x- or y- axis
-    # -----
+    # Calculate best corner to be used if later checks fails
+    # ----------
     found_start = False
     starting_point = 0
     best_angle = 90
@@ -654,7 +730,6 @@ def mapper(c, c3, read):
                 dir_y_n = rounds(dy)
                 dir_x_n = 0
 
-        #if not found_start:
         if line_scr == -1 and line_scr_n != -1:
             possible_starting_points.append(next_i)
             found_start = True
@@ -675,8 +750,8 @@ def mapper(c, c3, read):
 
         straightened_lines.append((dir_x, dir_y, dx_dy, l_len, rotated_lines[i][0]))
 
-    best_dist = 10000
-    #print(found_start, starting_point)
+    # Pick the closest intersection as a start of draw
+    best_dist = max_dist
     for i in possible_starting_points:
         x = rotated_lines[i][1]
         y = rotated_lines[i][2]
@@ -688,30 +763,28 @@ def mapper(c, c3, read):
     if not found_start:
         starting_point = best_angle_pos
 
+    # Rotate arrays so starting line is first
     for i in range(starting_point):
         straightened_lines.append(straightened_lines.pop(0))
         line_score.append(line_score.pop(0))
 
+    # ----------
     # Merge concecutive lines in the same direction
+    # ----------
     merged_lines = []
-    #print(starting_point)
     s_line_size = len(straightened_lines)
     i = 0
-    #print("START DOT, END DOT, DIR X, DIR Y, dx_dy, LENGTH, GOOD/BAD, START DOT, END DOT")
     while i < s_line_size:
-        temp_list = []
         cnt = 0
         new_len = straightened_lines[i][3]
         dx = straightened_lines[i][0]
         dy = straightened_lines[i][1]
         line_scr = line_score[i]
-        new_score = 0
         percent_score = straightened_lines[i][0]
         
         for j in range(i + 1, s_line_size + 1, 1):
             k = j
             if k >= s_line_size: k = 0
-            #print(i, k)
             dx_n = straightened_lines[k][0]
             dy_n = straightened_lines[k][1]
             l_len_n = straightened_lines[k][3]
@@ -725,9 +798,7 @@ def mapper(c, c3, read):
                     percent_score += percent_score_n
                 elif line_scr_n != -1:
                     score = math.ceil(math.sqrt(line_scr*abs(percent_score)*20 / new_len + cnt + 3))
-                    #print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, line_scr*abs(percent_score), new_len/40, percent_score, score)
                     merged_lines.append((dx, dy, straightened_lines[i][2], new_len, 1, (i + starting_point) % s_line_size, (k + starting_point) % s_line_size, score))
-                    # print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, merged_lines[-1])
                     break
             elif line_scr == -1:
                 if dx == dx_n and dy == dy_n and line_scr_n == -1:
@@ -735,20 +806,17 @@ def mapper(c, c3, read):
                     cnt += 1
                 else:
                     merged_lines.append((dx, dy, straightened_lines[i][2], new_len, -1, (i + starting_point) % s_line_size, (k + starting_point) % s_line_size, -1))
-                    #print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, merged_lines[-1])
                     break
             else:
                 score = math.ceil(math.sqrt(line_scr*abs(percent_score)*20 / new_len + cnt + 3))
-                #print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, line_scr*abs(percent_score), new_len/40, percent_score, score)
                 merged_lines.append((dx, dy, straightened_lines[i][2], new_len, 1, (i + starting_point) % s_line_size, (k + starting_point) % s_line_size, score))
-                #print((i + starting_point) % s_line_size, (k + starting_point) % s_line_size, merged_lines[-1])
                 break
 
         i += cnt + 1
 
     # -----
-    # Extract block of lines not containing bad ones
-    #
+    # Add concecutive good lines to new lists
+    # Fully ignores lines calculated as bad
     # -----
     merged_lines_again = []
     merged_lines_size = len(merged_lines)
@@ -780,12 +848,15 @@ def mapper(c, c3, read):
     for i in line_score:
         if i < 0:
             bad_score_cnt += 1
+
+    # Legitimacy check 4
     if not bad_reading:
         if bad_score_cnt / size > 0.65:
             bad_reading = True
 
     offset_grid = box_height / nr
-    
+
+    # Draw the aligned lines and fill grid based on their position
     if not bad_reading:
         first_line = merged_lines_again[0][0]
         start_dir = (first_line[0], first_line[1])
@@ -796,8 +867,10 @@ def mapper(c, c3, read):
         first_x = x = 15 + pos_corr[0]
         first_y = y = 15 + pos_corr[1]
  
-        print("----START DIR: " + str(start_dir) + ", FIRST DOT POS " + str(f_line_end_dot) + ", ROUNDED TO: " + str(pos_corr))
+        if print_debug:
+            print("----START DIR: " + str(start_dir) + ", FIRST DOT POS " + str(f_line_end_dot) + ", ROUNDED TO: " + str(pos_corr))
 
+        # Start drawing from the end dot of the first line, this is most probably a corner
         for lines in merged_lines_again:
             line_end_dot_nr = lines[0][6]
             line_end_dot = (rotated_lines[line_end_dot_nr][1], rotated_lines[line_end_dot_nr][2])
@@ -806,11 +879,10 @@ def mapper(c, c3, read):
                 if next_i >= len(lines): next_i = 0
 
                 line_dist = roundHalf(math.hypot(rotated_lines[lines[i][5]][0] / 40, rotated_lines[lines[i][5]][1] / 40))
-                #print(i, lines[i][5], line_dist)
                 dir_x = lines[i][0]
                 dir_y = lines[i][1]
                 l_len = lines[i][3]
-                cnt = rounds2(l_len / 40, 0.25)
+                cnt = rounds2(l_len / 40, tile_average)
 
                 # Reduce score with this value
                 if dx_dy < 1.1:
@@ -823,14 +895,14 @@ def mapper(c, c3, read):
                     rl_score = 3
 
                 score = rounds((2 + merged_lines[i][7] - rl_score) / bad_score_cnt)
-                #print(merged_lines[i][5], score, line_dist)
+
                 if line_scr_n == -1 or line_scr_p == -1:
                     score -= 1
 
                 score += 5 - round(line_dist / 2)
                 if score < 1:
                     score = 1
-                #print(l_len, cnt)
+
                 if l_len < 30:
                     score = 1
                 # Draw backwards if first line
@@ -841,12 +913,13 @@ def mapper(c, c3, read):
                         extra = (1, 1)
                     else:
                         extra = (0, 0)
-                    x = first_x + rounds2((line_end_dot[0] - start_pos_x) / 40, 0.45)
-                    y = first_y + rounds2((line_end_dot[1] - start_pos_y) / 40, 0.45)
-                    print("----New line seg: " + str(line_end_dot[0] - start_pos_x)+
-                          ", " + str(line_end_dot[1] - start_pos_y) + " Rounded: " + 
-                          str(rounds((line_end_dot[0] - start_pos_x) / 40)) + ", " +
-                          str(rounds((line_end_dot[1] - start_pos_y) / 40)) + ", X/Y: " + str(x) + ", " + str(y))
+                    x = first_x + rounds2((line_end_dot[0] - start_pos_x) / 40, first_tile_average)
+                    y = first_y + rounds2((line_end_dot[1] - start_pos_y) / 40, first_tile_average)
+                    if print_debug:
+                        print("----New line seg: " + str(line_end_dot[0] - start_pos_x)+
+                              ", " + str(line_end_dot[1] - start_pos_y) + " Rounded: " +
+                              str(rounds((line_end_dot[0] - start_pos_x) / 40)) + ", " +
+                              str(rounds((line_end_dot[1] - start_pos_y) / 40)) + ", X/Y: " + str(x) + ", " + str(y))
                     for j in range(cnt):
                         cnt_x = j * dir_x + dir_x + extra[0]
                         cnt_y = j * dir_y + extra[1]
@@ -909,6 +982,7 @@ def mapper(c, c3, read):
 
     if bad_reading:
         print("--------------------WARNING BAD READING--------------------")
-    print("List size: " + str(size) + ", No. bad readings: " +
-          str(bad_readings_cnt) + ", No. bad lines: " + str(bad_score_cnt) + ", No. invalid measures: " + str(uncertain_values))
-    print(rob_rot)
+    if print_debug:
+        print("List size: " + str(size) + ", No. bad readings: " +
+              str(bad_readings_cnt) + ", No. bad lines: " + str(bad_score_cnt) + ", No. invalid measures: " + str(uncertain_values))
+        print(rob_rot)

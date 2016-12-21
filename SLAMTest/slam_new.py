@@ -4,8 +4,8 @@ from tkinter import *
 # from scipy.optimize import curve_fit
 # import numpy as np
 
-offsetX = 200
-offsetY = 200
+offsetX = 300
+offsetY = 300
 
 active_gui = True
 
@@ -110,11 +110,11 @@ def roundHalf(val):
 root = Tk()
 root.title("Submapping")
 
-width = 400
-height = 400
-c = Canvas(root, width=400, height=400)
-c2 = Canvas(root, width=400, height=400)
-c3 = Canvas(root, width=400, height=400)
+width = 600
+height = 600
+c = Canvas(root, width=600, height=600)
+c2 = Canvas(root, width=600, height=600)
+c3 = Canvas(root, width=600, height=600)
 
 c.pack(side=LEFT)
 c3.pack(side=RIGHT)

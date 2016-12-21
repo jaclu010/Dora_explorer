@@ -114,6 +114,12 @@ def mapper(read):
     # ----------
     # VARIABLES - to configure and enhance the result of a reading
     # ----------
+
+    # No. tiles is rounded up if line length is larger than TILE_AVERAGE
+    tile_average = 0.5
+
+    # Se TILE_AVERAGE, but different value for first tile
+    first_tile_average = 0.45
     
     # Compensate for hall-sensor triggering to early, # degrees
     corr = 7.0
@@ -154,12 +160,15 @@ def mapper(read):
     # Add intersection next or previous measurement is larger than DOT_DIST_CUT cm from current measurement
     dot_dist_cut = 20  # 30
 
-    # Set line to bad line if between these values
+    # Set line to bad line if between these values (degrees)
     lower_bound_angle = 30
     upper_bound_angle = 60
 
     # Discard reading if no. bad measurments is greater than SIZE / UNCERTAIN_THRESHOLD  
     uncertain_threshold = 1.5
+
+    #-----
+
 
     res = []
     sin_cos = []
@@ -433,7 +442,7 @@ def mapper(read):
                 intersection = vectorIntersection(x1, y1, x2, y2, x3, y3, x4, y4)
 
             best_len = max_dist
-            cur_nr = -10000 # Big number, to be safe
+            cur_nr = -max_dist
             for i in range(size):
                 x = sin_cos[i][0]
                 y = sin_cos[i][1]
@@ -512,7 +521,6 @@ def mapper(read):
     for i in range(len(new_lines)):
         l = new_lines[i]
         score = 0
-        line_len = 0
         closest_1 = l[4][0]
         closest_2 = l[4][1]
         dx = sin_cos[closest_2][0] - sin_cos[closest_1][0]
@@ -696,13 +704,11 @@ def mapper(read):
     s_line_size = len(straightened_lines)
     i = 0
     while i < s_line_size:
-        temp_list = []
         cnt = 0
         new_len = straightened_lines[i][3]
         dx = straightened_lines[i][0]
         dy = straightened_lines[i][1]
         line_scr = line_score[i]
-        new_score = 0
         percent_score = straightened_lines[i][0]
 
         for j in range(i + 1, s_line_size + 1, 1):
@@ -780,7 +786,6 @@ def mapper(read):
             bad_reading = True
 
     # Draw the aligned lines and fill grid based on their position
-    #
     if not bad_reading:
         first_line = merged_lines_again[0][0]
         start_dir = (first_line[0], first_line[1])
@@ -804,7 +809,7 @@ def mapper(read):
                 dir_x = lines[i][0]
                 dir_y = lines[i][1]
                 l_len = lines[i][3]
-                cnt = rounds2(l_len / 40, 0.5)
+                cnt = rounds2(l_len / 40, tile_average)
 
                 # Reduce score with this value
                 if dx_dy < 1.1:
@@ -831,8 +836,8 @@ def mapper(read):
                         extra = (1, 1)
                     else:
                         extra = (0, 0)
-                    x = first_x + rounds2((line_end_dot[0] - start_pos_x) / 40, 0.45)
-                    y = first_y + rounds2((line_end_dot[1] - start_pos_y) / 40, 0.45)
+                    x = first_x + rounds2((line_end_dot[0] - start_pos_x) / 40, first_tile_average)
+                    y = first_y + rounds2((line_end_dot[1] - start_pos_y) / 40, first_tile_average)
 
                     for j in range(cnt):
                         cnt_x = j * dir_x + dir_x + extra[0]

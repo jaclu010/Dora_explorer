@@ -50,10 +50,9 @@ void LIDAR_Init(){
 		i2c_write(0x02);
 		i2c_write(0x1c);
 		i2c_stop();		
-		
-	}
 	
-	else {
+	    
+	} else {
 		
 		/* Set Free Running Mode */
 		i2c_write(0x11);
@@ -71,9 +70,7 @@ void LIDAR_Init(){
 		i2c_write(0x45);
 		i2c_write(LASER_SPEED);		// <- Actual delay
 		i2c_stop();
-		
 	}
-
 	Initiate_Measurement();
 }
 
@@ -95,7 +92,6 @@ void Busy_Wait()
 		i &= 0x01;
 		
 	} while (i == 1);	
-
 }
 
 
@@ -114,7 +110,6 @@ int main(void) {
 	
     while(1)
     {		
-		
 		if(mode_ == FREE_RUNNING)
 			_delay_ms(2);
 		else
@@ -148,7 +143,7 @@ int main(void) {
 		if (!(PIND & 0b00001000) && (state_ == STATE_RUNNING))
 		{
 			state_ = STATE_HALL;
-			PORTB |= (1 << PORTB1);
+			PORTB |= (1 << PORTB1); // Light LED
 			counterHigh |= (counter >> 8);
 			
 			/* Send stop byte and number of laser readings */

@@ -2,7 +2,7 @@
 
 #####
 #
-# main.py
+# core.py
 # Updated: 20/12 2016
 # Authors: Fredrik Iselius, Niklas Nilsson, Johan Nilsson, Jacob Lundberg, Martin Lundberg, Jonathan Johansson 
 #
@@ -965,6 +965,7 @@ def slam(ir_values, laser_values, mode, steering_cmd_man, pid_cons, gyro_value, 
 
 if __name__ == "__main__":
     # Variables shared between processes
+    print("-- INITIALIZING DORA CORE --")
     ir_values = Array('i', 6)
     laser_values = Array('i', 520)
     num_laser_values = Value('i', 0)
@@ -995,7 +996,7 @@ if __name__ == "__main__":
     sensor_process.start()
     slam_process.start()
     bluetooth_process.start()
-
+    print("-- INIT COMPLETE --")
     prev_laser = []
 
     sensor_process.join()

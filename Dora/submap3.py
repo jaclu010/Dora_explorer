@@ -24,8 +24,8 @@ def returnFinal(final, sub, subpos, pos):
     best_p = 0
     best_fit = (0, 0)
 
-    for y_ in range(-2, 3):
-        for x_ in range(-2, 3):
+    for y_ in range(-1, 2):
+        for x_ in range(-1, 2):
             innerp = 0
             for y in range(len(sub)):
                 for x in range(len(sub[0])):
@@ -53,7 +53,7 @@ def returnFinal(final, sub, subpos, pos):
             if (xx >= 0 and yy >= 0 and xx < len(l) and yy < len(l)):
                 prevval = l[yy][xx]
                 val = sub[y][x]
-                if not val:
+                if (val) > 0:
                     l[yy][xx] = val
 
     return l
@@ -81,7 +81,7 @@ def slice_submap(grid, pos):
                 if x > maxx: maxx = x
                 if y > maxy: maxy = y
 
-    print(minx,maxx, miny, maxy, pos)
+    #print(minx,maxx, miny, maxy, pos)
 
     if (pos[0] < minx): minx = pos[0]
     if (pos[1] < miny): miny = pos[1]
@@ -106,9 +106,111 @@ def slice_submap(grid, pos):
     return [sub, subpos]
 
 
+def raycast_seen(grid, robot_position, numsub):
+    gridder = [[1 for x in range(31)] for y in range(31)]
+    for y in range(len(grid)):
+        for x in range(len(grid)):
+            val = float(grid[y][x]) / numsub
+
+            #print(grid[y][x],numsub, val, robot_position)
+
+            if (val >= 0.3):
+                line = bresenham([robot_position[0], robot_position[1]], [x,y], True)
+
+                #gridder[y][x] = 0
+
+                for p in line.path:
+                    valler = float(grid[p[1]][p[0]]) / numsub
+
+                    if not (x == p[0] and y == p[1]):
+                        if (valler <= 0.4):
+                            gridder[p[1]][p[0]] = 0
+                        else:
+                            break
+    #print(robot_position)
+    #print("______________")
+    #for r in grid:
+    #    print(r)
+    #print("________filter")
+    #for r in gridder:
+    #    print(r)                        
+    #print("____")
+    return gridder
+
+
 
 #Returns new grid with floors, input grid is 2d-array is size m*n
 def raycast_floor(grid, robot_position):
+    newgrid = copy.deepcopy(grid)
+    for y in range(len(newgrid)):
+        for x in range(len(newgrid[0])):
+            val = newgrid[y][x]
+
+            if (val >= 2):
+                line = bresenham([robot_position[0], robot_position[1]], [x, y])
+                if (line.path):
+                    if not(line.path[0][0] == robot_position[0] and line.path[0][1] == robot_position[1]):
+                        line.path.reverse()
+                for p in line.path:
+                    valler = newgrid[p[1]][p[0]]
+                    
+                    if not (x == p[0] and y == p[1]):
+                        if (valler == 0):
+                            newgrid[p[1]][p[0]] = 1
+                        if (valler >= 2):
+                            break
+
+                #print("THIS PATH", line.path)
+
+            elif (val == 0 or val == 1):
+                up = (x, y-1)
+                down = (x,y+1)
+                left = (x-1, y)
+                right = (x+1,y)
+                count = 0
+                if (check_t_range(up, 31, 31)):
+                    vals = newgrid[up[1]][up[0]]
+                    if (vals >= 2):
+                        count += 1
+                if (check_t_range(down, 31, 31)):
+                    vals = newgrid[down[1]][down[0]]
+                    if (vals >= 2):
+                        count += 1
+                if (check_t_range(left, 31, 31)):
+                    vals = newgrid[left[1]][left[0]]
+                    if (vals >= 2):
+                        count += 1
+                if (check_t_range(right, 31, 31)):
+                    vals = newgrid[right[1]][right[0]]
+                    if (vals >= 2):
+                        count += 1
+
+                #if x == 15 and y == 12:
+                #    print(x, y, val, count)
+
+                if (count >= 2):
+                    line = bresenham([robot_position[0], robot_position[1]], [x, y])
+                    if (line.path):
+                        if not(line.path[0][0] == robot_position[0] and line.path[0][1] == robot_position[1]):
+                            line.path.reverse()
+                        
+                    for p in line.path:
+                        valler = newgrid[p[1]][p[0]]
+
+                        if not (x == p[0] and y == p[1]):
+                            if (valler == 0):
+                                newgrid[p[1]][p[0]] = 1
+                            if (valler >= 2):
+                                break
+                    #print("That path", line.path)
+    return newgrid
+
+
+#Returns new grid with floors, input grid is 2d-array is size m*n
+def raycast_floor2(grid, robot_position, inputGrid, offset):
+
+
+
     newgrid = copy.deepcopy(grid)
     for y in range(len(newgrid)):
         for x in range(len(newgrid[0])):
@@ -152,8 +254,8 @@ def raycast_floor(grid, robot_position):
                     if (vals >= 2):
                         count += 1
 
-                if x == 15 and y == 12:
-                    print(x, y, val, count)
+                #if x == 15 and y == 12:
+                #    print(x, y, val, count)
 
                 if (count >= 2):
                     line = bresenham([robot_position[0], robot_position[1]], [x, y])
@@ -167,15 +269,34 @@ def raycast_floor(grid, robot_position):
                             if (valler >= 2):
                                 break
 
+    newgrid2 = copy.deepcopy(inputGrid)
 
-    return newgrid
+    #print()
+
+    offset = (0,0)
+
+
+    print(offset)
+    for y in range(len(newgrid)):
+        for x in range(len(newgrid[0])):
+            realxy = (x+offset[0], y + offset[1])
+
+            if (realxy[0] >= 0 and realxy[1] >= 0 and realxy[1] < len(newgrid2) and realxy[0] < len(newgrid2[0])):
+                a = 0
+                val2 = newgrid[y][x]
+                val = newgrid2[realxy[1]][realxy[0]]
+                if (val2 == 1):
+                    if (val != 2):
+                        newgrid2[realxy[1]][realxy[0]] = 1
+
+    return newgrid2
 
 
 # class bresenham generates points (x,y) containing points of a line between start-point and end-point.
 # The class uses bresenhams line-drawing algorithm to generate these points.
 # The class i mainly used for raycasting.
 class bresenham:
-    def __init__(self, start, end):
+    def __init__(self, start, end, walls=False):
         self.start = list(start)
         self.end = list(end)
         self.path = []
@@ -225,7 +346,9 @@ class bresenham:
             if error >= 0.5:
                 y += ystep
                 error -= 1.0
-
+                
+        if walls:
+            self.path.append((end[0], end[1]))
         #print (start)
         #print(end)
         #print()
@@ -246,7 +369,15 @@ class SubMap:
         self.grid = []
         self.center_p = (0,0)
         self.position = (0,0)
+        self.direction = 0
 
+        
+        #0 north
+        #1 east
+        #2 south
+        #3 west
+
+        
     def get_grid(self):
         return self.grid
 
@@ -258,10 +389,11 @@ class SubMap:
     def height(self):
         return (len(self.grid))
 
-    def set_sub_map(self, sub, center_p, real_pos):
+    def set_sub_map(self, sub, center_p, real_pos, direction=0):
         self.grid = copy.deepcopy(sub)
         self.center_p = center_p
         self.position = real_pos
+        self.direction = direction
 
     def print_(self):
         print("______")
@@ -282,16 +414,24 @@ class Mapping:
         # The laser_array contains data of laser readings.
         self.grid = []
         self.finalmap = []
+
+        self.finalmapholder = []
+        #self.finalsubmapholder = []
+
+        self.finalmapholder = [[0 for x in range(31)] for y in range(31)]
+
         self.subfinal = []
         self.init_grid()
         self.init_final()
         self.init_subfinal()
         self.rot = 0
         self.map_center = (10, 10)
-
-        self.maxiter = 5
+        
+        self.maxiter = 6
         self.curriter = 0
 
+        self.currfilter = [[0 for x in range(31)] for y in range(31)]
+        
         self.num_readings = 0
 
         self.first = True
@@ -309,18 +449,41 @@ class Mapping:
 
     # This function removes "bad" walls from the final map.
     def remove_bad_values(self):
+        #print("Before remove")
+        #for row in self.finalmap:
+        #    print(row)
+
+        print("____________")
         for y in range(len(self.finalmap)):
             for x in range(len(self.finalmap)):
+
+                if (self.currfilter[y][x] == 1):
+                    continue
+                
                 val = 0
                 if (len(self.submaps)):
                     val = self.finalmap[y][x] / len(self.submaps)
-
-                if val <= 0.6:
+                
+                if val <= 0.5:
                     self.finalmap[y][x] = 0
                 else:
-                    val2 = val * 15
+                    self.finalmap[y][x] = val * (3*len(self.submaps) /4 )
+                #else:
+                """
+                    val2 = val * 7
                     self.finalmap[y][x] = val2
+                """
+        #if(len(self.submaps) >= self.maxiter):
         self.submaps = []
+
+        #print("After remove:")
+        #for row in self.finalmap:
+        #    print(row)
+        #print("____")
+        
+
+    def init_map(self, grid):
+        grid = [[0 for x in range(31)] for y in range(31)]
 
     def init_final(self):
         # Init grid
@@ -344,19 +507,16 @@ class Mapping:
     #This function generates a submap and stores it.
     #Input: submap is a 2D-grid, center_p is the robot-position in the submap, and global_pos is
     # the position of the robot in the final_grid
-    def add_submap(self, submap, center_p, global_pos):
+    def add_submap(self, submap, center_p, global_pos, direction=0):
 
         sub = SubMap()
-        sub.set_sub_map(submap, center_p, global_pos)
+        sub.set_sub_map(submap, center_p, global_pos, direction)
         self.submaps.append(sub)
 
 
     # Given a 2D-grid lst, this function rotates the grid clock-wise and return the rotated grid
     # along with the center_point for the grid
     def rotate_2d_array(self, lst, center_p):
-
-
-
 
         m = len(lst)
         if (m > 0):
@@ -368,7 +528,7 @@ class Mapping:
 
             n = len(lst[0])
             # Creates a list containing 5 lists, each of 8 items, all set to 0
-            w, h = 8, 5.
+            w, h = 8, 5
             roted = [[0 for x in range(m)] for y in range(n)]
 
             for r in range(m):
@@ -400,15 +560,20 @@ class Mapping:
 
 
     #This function generates the final map by adding a submaps to it.
-    def generate_map(self):
+    def generate_map(self, ir_grid):
 
         self.init_subfinal()
+        
+        #self.init_map(self.finalmapholder)
+        robot_poss = (0,0)
+
         if len(self.submaps) > 0:
             i = len(self.submaps) - 1
             sub = self.submaps[i]
-
+            self.first = False
+            
             if (self.first):
-
+                print("NEVER? YES")
                 #If the final grid is empty, add the first submap to the middle of the
                 #final grid
 
@@ -416,12 +581,36 @@ class Mapping:
                 final_center = sub.position
 
                 s1 = sub.grid
+                newgrid = [sub.grid, cent]
 
-                newgrid = self.rotate_2d_array(sub.grid, cent)
 
+                #print("NOW WE NOT ROTATED")
+                #for row in s1:
+                #    print(row)
+                #print("POS", cent)
+
+                
+                if sub.direction == 0:
+                    #north, rotate once
+                    newgrid = self.rotate_2d_array(sub.grid, cent)
+                elif sub.direction == 1:
+                    #east, rotate twice
+                    firstrot = self.rotate_2d_array(sub.grid, cent) 
+                    newgrid = self.rotate_2d_array(firstrot[0], firstrot[1])
+                elif sub.direction == 2:
+                    #south
+                    firstrot = self.rotate_2d_array(sub.grid, cent) 
+                    secrot = self.rotate_2d_array(firstrot[0], firstrot[1])
+                    newgrid = self.rotate_2d_array(secrot[0], secrot[1])
                 s1 = newgrid[0]
                 cent = newgrid[1]
+                #print("rotated: direction: ", sub.direction)
+                #for row in s1:
+                #    print(row)
+                #print(cent)
+                #print("JOHAN go here")
 
+                
                 for y in range(len(s1)):
                     for x in range(len(s1[0])):
                         startp = subtract(final_center, cent)
@@ -433,29 +622,80 @@ class Mapping:
                             val = s1[y][x]
                             self.finalmap[yy][xx] = val
                             self.subfinal[yy][xx] = val
+                            self.finalmapholder[yy][xx] = val
                 self.first = False
             else:
 
                 # If we are adding a submap to the final_grid, we need to find the best
                 # rotation of the submap, and the best place to place it in the final grid.
-
+                #print("YEBANYO DIRECTION", sub.direction)
                 s1 = sub.grid
                 cent = sub.center_p
+                init1 = copy.deepcopy(s1)
+                initcent = sub.center_p
                 rotated_grids = []
                 best_rot = 0
                 best_points = 0
                 best_offset = (0,0)
+                
                 if (s1):
                     #First of all, we need to store all the rotated grids, along with the rotated
                     #robot position.
+                    
+                    
                     for l in range(4):
-
+                        
                         points = 0
-                        if l != 0:
-                            for k in range(l):
+                        if True:
+                            #print("HELLO IT'S JOHAN")
+                            #for row in s1:
+                            #    print(row)
+                            #print(cent)
+                            #print("___yeb", sub.direction)
+
+                            s1 = copy.deepcopy(init1)
+                            cent = initcent
+
+                            if sub.direction == 0:
                                 rot = self.rotate_2d_array(s1,cent)
                                 s1 = rot[0]
                                 cent = rot[1]
+                            elif (sub.direction == 1):
+                                rot = self.rotate_2d_array(s1,cent)
+                                s1 = rot[0]
+                                cent = rot[1]
+                                rot = self.rotate_2d_array(s1,cent)
+                                s1 = rot[0]
+                                cent = rot[1]
+                            elif (sub.direction == 2):
+                                rot = self.rotate_2d_array(s1,cent)
+                                s1 = rot[0]
+                                cent = rot[1]
+                                rot = self.rotate_2d_array(s1,cent)
+                                s1 = rot[0]
+                                cent = rot[1]
+                                rot = self.rotate_2d_array(s1,cent)
+                                s1 = rot[0]
+                                cent = rot[1]
+
+                                
+                            #print("__")
+                            #for row in s1:
+                            #    print(row)
+                            #print(cent)
+                            #print("____")
+                
+                            
+                            
+                            
+
+                            #for k in range(l):
+                            #    rot = self.rotate_2d_array(s1,cent)
+                            #    s1 = rot[0]
+                            #    cent = rot[1]
+
+                        
+                                
 
                         rotated_grids.append((s1, cent))
 
@@ -464,13 +704,13 @@ class Mapping:
 
                         best_o = (0,0)
                         best_inner = 0
-
+                        
                         # Since we are uncertain about the robot's position in the final_grid
                         # We need to loop through around that point to see where the submap fits
                         # the best. When we found the best rotation of the grid and best position
                         # we store what rotation and offset, to later be inserted into the final grid
-                        for y_ in range(-2,3):
-                            for x_ in range(-2,3):
+                        for y_ in range(-1,2):
+                            for x_ in range(-1,2):
                                 innerp = 0
                                 for y in range(len(s1)):
                                     for x in range(len(s1[0])):
@@ -478,12 +718,14 @@ class Mapping:
                                         startp = subtract(final_center, cent)
                                         xx = x + startp[0] + x_
                                         yy = y + startp[1] + y_
-                                        if (xx >= 0 and yy >= 0 and xx < len(self.finalmap) and yy < len(self.finalmap)):
+                                        if (xx >= 0 and yy >= 0 and xx < len(ir_grid) and yy < len(ir_grid)):
 
-                                            prevval = self.finalmap[yy][xx]
+                                            prevval = ir_grid[yy][xx]
+                                            prevval2 = self.finalmap[yy][xx]
                                             val = s1[y][x]
                                             #if (abs(val) <= 0.5 and abs(prevval) <= 0.5): innerp +=1
-                                            if (abs(val) >= 0.3 and abs(prevval) >= 0.3): innerp += 1
+                                            if (abs(val) >= 0.3 and abs(prevval) == 2): innerp += 2
+                                            #if (abs(val) >= 0.3 and abs(prevval2) >= 0.3): innerp += 1
                                 #print("l",l ,"x",x_,"y", y_,"point", innerp)
                                 if innerp > best_inner:
                                     best_inner = innerp
@@ -502,6 +744,12 @@ class Mapping:
                     s1 = rotated_grids[best_rot][0]
                     cent = rotated_grids[best_rot][1]
 
+                    #print(len(self.submaps), "BAJS", best_offset)
+                    #for row in s1:
+                    #    print(row)
+                    #print("____")
+
+                    
                     for y in range(len(s1)):
                         for x in range(len(s1[0])):
                             startp = subtract(final_center, cent)
@@ -511,10 +759,37 @@ class Mapping:
                             if (xx >= 0 and yy >= 0 and xx < len(self.finalmap) and yy < len(self.finalmap)):
                                 prevval = self.finalmap[yy][xx]
                                 val = s1[y][x]
+                                holdprevval = self.finalmapholder[yy][xx]
+
 
                                 self.subfinal[yy][xx] = val
                                 self.finalmap[yy][xx] = val + prevval
+                                self.finalmapholder[yy][xx] = val + holdprevval
+                    
+                    
 
+            #magic
+            if (len(self.submaps) == self.maxiter):
+            #if (True):
+                filt = raycast_seen(self.finalmapholder, sub.position,len(self.submaps))
+                #print("filter xD")
+                #for fr in filt:
+                #    print(fr)
+                #print("_____")
+
+                self.currfilter = filt
+                
+                #for y in range(31):
+                #    for x in range(31):
+                #        filtval = filt[y][x]
+                #        if (filtval == 1):
+                #            finalval = self.finalmap[y][x]
+                #            newval = len(self.submaps)
+                #            if (finalval > 3):
+                #                self.finalmap[y][x] = finalval * len(self.submaps)
+                #self.finalmapholder = [[0 for x in range(31)] for y in range(31)]
+                
+            
 
     def get_grid_value(self, x, y):
         if (x >= 0 and y >= 0 and x < len(self.grid) and y < len(self.grid)):

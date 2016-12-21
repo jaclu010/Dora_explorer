@@ -56,7 +56,7 @@ class Mapping:
         self.rot = 0
         self.map_center = (10, 10)
 
-        self.maxiter = 10
+        self.maxiter = 5
         self.curriter = 0
 
         self.num_readings = 0
@@ -83,9 +83,9 @@ class Mapping:
                 if val <= 0.6:
                     self.finalmap[y][x] = 0
                 else:
-                    val2 = val * 3
+                    val2 = val * 4
                     self.finalmap[y][x] = val2
-
+        self.submaps = []
 
 
     def init_final(self):
@@ -98,11 +98,6 @@ class Mapping:
             self.finalmap.append(inner)
 
     def add_submap(self, submap, center_p, global_pos):
-
-        if len(self.submaps) > self.maxiter:
-            self.remove_bad_values()
-            self.submaps = []
-        #    self.submaps.pop(0)
 
         sub = SubMap()
         sub.set_sub_map(submap, center_p, global_pos)
@@ -165,8 +160,7 @@ class Mapping:
                         yy = y + startp[1]
                         prevval = self.finalmap[yy][xx]
                         val = sub.get_grid_value(x, y)
-                        if(xx >= 0 and yy >= 0 and xx < len(self.finalmap) and yy < len(self.finalmap)):
-                            self.finalmap[yy][xx] = val
+                        self.finalmap[yy][xx] = val
                 self.first = False
             else:
                 #We need to find best rotation
@@ -178,53 +172,50 @@ class Mapping:
                 best_points = 0
                 best_offset = (0,0)
 
-                if (s1):
-                
-                    for l in range(4):
-                        
-                        points = 0
-                        if l != 0:
-                            for k in range(l):
-                                rot = self.rotate_2d_array(s1,cent)
-                                s1 = rot[0]
-                                cent = rot[1]
+                for l in range(4):
 
-                        rotated_grids.append((s1, cent))
+                    points = 0
+                    if l != 0:
+                        for k in range(l):
+                            rot = self.rotate_2d_array(s1,cent)
+                            s1 = rot[0]
+                            cent = rot[1]
 
-                        final_center = sub.position
-                        points = 0
+                    rotated_grids.append((s1, cent))
 
-                        best_o = (0,0)
-                        best_inner = 0
+                    final_center = sub.position
+                    points = 0
 
-                        for y_ in range(-2,3):
-                            for x_ in range(-2,3):
-                                innerp = 0
-                                for y in range(len(s1)):
-                                    for x in range(len(s1[0])):
-                                        
-                                        #FIX -check from -1,1, -1,1
+                    best_o = (0,0)
+                    best_inner = 0
 
-                                        startp = subtract(final_center, cent)
-                                        xx = x + startp[0] + x_
-                                        yy = y + startp[1] + y_
-                                        if(xx >= 0 and yy >= 0 and xx < len(self.finalmap) and yy < len(self.finalmap)):
-                                            prevval = self.finalmap[yy][xx]
-                                            val = s1[y][x]
-                                            #if (abs(val) <= 0.5 and abs(prevval) <= 0.5): innerp +=1
-                                            if (abs(val) >= 0.3 and abs(prevval) >= 0.3): innerp += 1
-                                            #print("l",l ,"x",x_,"y", y_,"point", innerp)
-                                            if innerp > best_inner:
-                                                best_inner = innerp
-                                                best_o = (x_, y_)
+                    for y_ in range(-2,3):
+                        for x_ in range(-2,3):
+                            innerp = 0
+                            for y in range(len(s1)):
+                                for x in range(len(s1[0])):
+
+                                    #FIX -check from -1,1, -1,1
+
+                                    startp = subtract(final_center, cent)
+                                    xx = x + startp[0] + x_
+                                    yy = y + startp[1] + y_
+
+                                    prevval = self.finalmap[yy][xx]
+                                    val = s1[y][x]
+                                    #if (abs(val) <= 0.5 and abs(prevval) <= 0.5): innerp +=1
+                                    if (abs(val) >= 0.3 and abs(prevval) >= 0.3): innerp += 1
+                            #print("l",l ,"x",x_,"y", y_,"point", innerp)
+                            if innerp > best_inner:
+                                best_inner = innerp
+                                best_o = (x_, y_)
 
 
-                        if (best_inner > best_points):
-                            best_points = best_inner
-                            best_rot = l
-                            best_offset = best_o
-
-                #To hereprint(i,best_rot, best_points)
+                    if (best_inner > best_points):
+                        best_points = best_inner
+                        best_rot = l
+                        best_offset = best_o
+                #ƒprint(i,best_rot, best_points)
 
                 #print("best off", best_offset, "best Rot", best_rot)
 

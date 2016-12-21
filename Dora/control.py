@@ -1,3 +1,11 @@
+#####
+#
+# control.py
+# Updated: 19/12 2016
+# Authors: Martin Lundberg
+#
+#####
+
 import time
 import global_vars as gv
 
@@ -42,13 +50,21 @@ class PID():
         if not self.enabled:
             return 0
 
+        ir_list = []
+
         if isinstance(input, float):
             error = self.setpoint - input
-        else:
+
+        elif isinstance(input, list):
+            ir_list = input
+            dist  = float(ir_list[forward_sensor])
+            error = float(self.setpoint) - dist
+            
+        else:  #input is a synchronized array of ir values
             with input.get_lock():
-                # test this code:
-                dist  = float(input[forward_sensor])
+                ir_list = [ir for ir in input]
                 
+            dist  = float(ir_list[forward_sensor])
             error = float(self.setpoint) - dist
             
         # Add to current error to total error sum
@@ -66,8 +82,11 @@ class PID():
         if isinstance(input, float):
             output = self.Kp * error + self.error_sum
         else:
-            with input.get_lock():
-                output = self.Kp * error + self.error_sum - self.Kd * (int(input[forward_sensor]) - int(input[backward_sensor]))
+            if ir_list[forward_sensor] == 25:
+                output = 0.0
+                print("PID detecting no value on front sensor")
+            else:
+                output = self.Kp * error + self.error_sum - self.Kd * (int(ir_list[forward_sensor]) - int(ir_list[backward_sensor]))
             
         # Adjust output to be within the bounds
         if output < self.min:
@@ -80,7 +99,7 @@ class PID():
             
         return output
     
-    # Method for settings the max and min values of the output
+    # Method for setting the max and min values of the output
     def set_output_limits(self, out_min, out_max):
         if out_min > out_max:
             return

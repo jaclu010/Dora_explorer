@@ -1,3 +1,11 @@
+#####
+#
+# common.py
+# Updated: 14/12 2016
+# Authors: Fredrik Iselius, Martin Lundberg, Niklas Nilsson
+#
+#####
+from __future__ import print_function
 import os
 from multiprocessing import Array
 from global_vars import *
@@ -6,6 +14,9 @@ from path import *
 
 
 def find_usb(port_id):
+    """
+    Returns the full path to the serial port that contains 'port_id' in its name
+    """
     port = ""
     for file in os.listdir("/dev/serial/by-id"):
         if port_id in file:
@@ -18,34 +29,65 @@ def set_grid_value(col, row, value, grid):
     with grid.get_lock():
         grid[(row*MAP_SIZE)+col] = value
 
-        
+def get_grid_value(col, row, grid):
+    with grid.get_lock():
+       return grid[(row*MAP_SIZE+col)]
+
+def set_grid_value_2d(col, row, value, grid):
+    grid[row][col] = value
+
+def get_grid_value_2d(col, row, grid):
+    return grid[row][col]
+
 def reset_neighbors(robot_pos, tile_wall_count):
+    """
+    Resets the counter value for all neighbours of the current tile
+    if they exist in the 'tile_wall_count' dictionary
+    """
     int_pos = tuple(int_robot_pos(robot_pos))
     current_node = Node(int_pos[0], int_pos[1])
     for node in current_node.neighbors():
         neighbour_pos = (node.x, node.y)
         if neighbour_pos in tile_wall_count.keys():
             tile_wall_count[neighbour_pos][0] = 0
+"""
+def add_walls(grid, int_pos, tile_wall_count, neighbours):
+    # Check if the neighbour tile should be drawn as a wall or empty tile
+    for n in neighbours:
+        
+"""
 
+def set_wall(grid, pos, tile_wall_count):
+    if tile_wall_count[pos][1] == tile_wall_count[pos][2]:
+        tile_wall_count[pos] = [0, 0, 0] # reset counter
+    elif tile_wall_count[pos][1] < tile_wall_count[pos][2]:
+        set_grid_value_2d(pos[0], pos[1], EMPTY_TILE, grid)
+    else:
+        set_grid_value_2d(pos[0], pos[1], WALL_TILE, grid)
 
-def map_ir_neighbors(grid, robot_pos, robot_dir, ir_values, tile_wall_count):
+    
+def map_ir_neighbors(grid, robot_pos, robot_dir, current_ir_values, tile_wall_count, has_new_ir):
+    """
+    Updates the map on the current tile and all its neighbours.
+    """
     int_pos = tuple(int_robot_pos(robot_pos))
     current_node = Node(int_pos[0], int_pos[1])
     neighbours = []
 
     tile_wall_count[int_pos] = [11,0,0]  # Fix current tile as checked
+    
+    # Get all neighbours of the current tile and add them to tile_wall_count
     for node in current_node.neighbors():
         neighbour_pos = (node.x, node.y)
         neighbours.append(neighbour_pos)
         if neighbour_pos not in tile_wall_count.keys():
-            tile_wall_count[neighbour_pos] = [0,0,0]
-
-    current_ir_values = []
-    with ir_values.get_lock():
-        current_ir_values = [ir_values[i] for i in range(NUM_SENSORS)]
+            tile_wall_count[neighbour_pos] = [0,0,0]    
             
-        
+    # Add the number of times a tile was identified as a wall/empty tile
+    # to the tile_wall_count dict
     for i in range(NUM_SENSORS):
+        if i == 1 or i == 2 or i == 4:
+            continue
         index = i
         if i == 2 or i == 3:
             index = 2
@@ -54,31 +96,32 @@ def map_ir_neighbors(grid, robot_pos, robot_dir, ir_values, tile_wall_count):
             
         _x, _y = GRID_INDEX_VALUES[robot_dir][index]
         temp_pos = (int_pos[0] + _x, int_pos[1] + _y)
-        if temp_pos in tile_wall_count.keys() and tile_wall_count[temp_pos][0] < 10:
-            tile_wall_count[temp_pos][0] += 1
-            if current_ir_values[i] == 25:
-                tile_wall_count[temp_pos][2] += 1
+        if temp_pos in tile_wall_count.keys():
+            if tile_wall_count[temp_pos][0] < 3:
+                tile_wall_count[temp_pos][0] += 1
+                if current_ir_values[i] == 25:
+                    tile_wall_count[temp_pos][2] += 1
+                else:
+                    tile_wall_count[temp_pos][1] += 1
             else:
-                tile_wall_count[temp_pos][1] += 1
+                set_wall(grid, temp_pos, tile_wall_count)
 
-    for n in neighbours:
-        if tile_wall_count[n][1] == tile_wall_count[n][2]:
-            tile_wall_count[n] = [0, 0, 0] # reset counter
-        elif tile_wall_count[n][1] < tile_wall_count[n][2]:
-            set_grid_value(n[0], n[1], EMPTY_TILE, grid)
-        else:
-            set_grid_value(n[0], n[1], WALL_TILE, grid)
-
-    set_grid_value(int_pos[0], int_pos[1], EMPTY_TILE, grid)
-
+    set_grid_value_2d(int_pos[0], int_pos[1], EMPTY_TILE, grid)
+   
         
 def calc_distance(time_driven):
-    #return 43.79*time_driven-3.185
+    """
+    ---Deprecated---
+    Function to calculate driven distance
+    """
     return 51.5*time_driven-3.185
 
 
 def update_robot_pos(robot_pos, robot_dir, num_tiles):
-    # Update robot position
+    """
+    Updates the robot position with num_file in direction robot_dir
+    """
+    
     if robot_dir % 4 == NORTH:
         robot_pos[1] -= num_tiles
     elif robot_dir % 4 == EAST:
@@ -91,6 +134,10 @@ def update_robot_pos(robot_pos, robot_dir, num_tiles):
 
 
 def convert_array_to_2d(grid):
+    """
+    Converts an array with size MAP_SIZE**2
+    to a 2d array of the same size
+    """
     grid_2d = []
     for row in range(MAP_SIZE):
         grid_2d.append([])
@@ -106,52 +153,52 @@ def copy_list(o_list):
     return n_list
 
 
-def detect_walls(ir_values):
+def detect_walls(ir_values, prev_pid_side=None):
+    """
+    Used to determine which side to use for the PID.
+    Returns None if there are no walls in range
+    """
+    ir = ir_values
     reverse_pid = None
-    if ir_values[IR_ID[FORWARD_LEFT]] < EMPTY_CHECK and ir_values[IR_ID[BACKWARD_LEFT]] < EMPTY_CHECK:
-        # Wall detected on left side
-        reverse_pid = LEFT
-        control.forward_sensor = IR_ID[FORWARD_LEFT]
-        control.backward_sensor = IR_ID[BACKWARD_LEFT]
-    elif ir_values[IR_ID[FORWARD_RIGHT]] < EMPTY_CHECK and ir_values[IR_ID[BACKWARD_RIGHT]] < EMPTY_CHECK:
-        # Wall detected on right side
-        reverse_pid = RIGHT
-        control.forward_sensor = IR_ID[FORWARD_RIGHT]
-        control.backward_sensor = IR_ID[BACKWARD_RIGHT]
+
+    if prev_pid_side == LEFT or prev_pid_side == None:
+        if ir_values[IR_ID[FORWARD_LEFT]] < EMPTY_CHECK and ir_values[IR_ID[BACKWARD_LEFT]] < EMPTY_CHECK:
+            # Wall detected on left side
+            reverse_pid = LEFT
+            control.forward_sensor = IR_ID[FORWARD_LEFT]
+            control.backward_sensor = IR_ID[BACKWARD_LEFT]
+        elif ir_values[IR_ID[FORWARD_RIGHT]] < EMPTY_CHECK and ir_values[IR_ID[BACKWARD_RIGHT]] < EMPTY_CHECK:
+            # Wall detected on right side
+            reverse_pid = RIGHT
+            control.forward_sensor = IR_ID[FORWARD_RIGHT]
+            control.backward_sensor = IR_ID[BACKWARD_RIGHT]
+    elif prev_pid_side == RIGHT:
+        if ir_values[IR_ID[FORWARD_RIGHT]] < EMPTY_CHECK and ir_values[IR_ID[BACKWARD_RIGHT]] < EMPTY_CHECK:
+            # Wall detected on right side
+            reverse_pid = RIGHT
+            control.forward_sensor = IR_ID[FORWARD_RIGHT]
+            control.backward_sensor = IR_ID[BACKWARD_RIGHT]
+        elif ir_values[IR_ID[FORWARD_LEFT]] < EMPTY_CHECK and ir_values[IR_ID[BACKWARD_LEFT]] < EMPTY_CHECK:
+            # Wall detected on left side
+            reverse_pid = LEFT
+            control.forward_sensor = IR_ID[FORWARD_LEFT]
+            control.backward_sensor = IR_ID[BACKWARD_LEFT]
     return reverse_pid
 
 def int_robot_pos(robot_pos):
     return [int(robot_pos[0]), int(robot_pos[1])]
 
-"""
-def get_grid_pos(laser_values):
-    global current_tile_pos
-    num_values = len(laser_values)
-    if num_values == 0:
-        return
-    step = math.radians(360.0) / num_values
-    temp_x = []
-    temp_y = []
-    for i in range(num_values):
+def print_submap(submap):
+    green = '\033[92m'
+    blue = '\033[94m'
+    endc = '\033[0m'
 
-        #Laser read starts pointing backwards i.e 270 degrees
-        x = laser_values[i] * math.cos((math.radians(270) + step * i))
-        y = laser_values[i] * math.sin((math.radians(270) + step * 1))
-
-        if i == 2:
-            current_tile_pos[1] = round(abs(y) % TILE_SIZE)
-        elif i == ((num_values // 4) * 3)+2:
-            current_tile_pos[0] = round(abs(x) % TILE_SIZE)
-
-    if len(temp_x) > 0:
-        current_tile_pos[0] = sum(temp_x) / len(temp_x)
-    if len(temp_y) > 0:
-        current_tile_pos[1] = sum(temp_y) / len(temp_y)
-"""
-
-
-if __name__ == '__main__':
-    # Test set_grid_value
-    grid = Array('i', 10)
-    set_grid_value(1,0,2,grid)
-    print([grid[i] for i in range(len(grid))])
+    for y in submap:
+        for x in y:
+            if int(x) == 1:
+                print(blue + str(x) + endc, end='')
+            elif int(x) == 2:
+                print(green + str(x) + endc, end='')
+            else:
+                print(str(x), end='')
+            print('')

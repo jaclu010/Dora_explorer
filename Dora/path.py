@@ -1,5 +1,27 @@
+#####
+#
+# path.py
+# Updated: 17/12 2016
+# Authors: Jonathan Johansson, Martin Lundberg
+#
+#####
 from global_vars import *
 import math
+import Queue
+
+
+class PQueue(Queue.PriorityQueue):
+    def __init__(self):
+        Queue.PriorityQueue.__init__(self)
+        self.counter = 0
+        
+    def put(self, item, priority):
+        Queue.PriorityQueue.put(self, (priority, self.counter, item))
+        self.counter += 1
+        
+    def get(self, *args, **kwargs):
+        _, _, item = Queue.PriorityQueue.get(self, *args, **kwargs)
+        return item
 
 
 class Node:
@@ -7,6 +29,7 @@ class Node:
         self.x = x
         self.y = y
         self.previous = None
+        self.cost = float("inf")
 
     def equals(self, other):
         return self.x == other.x and self.y == other.y
@@ -25,8 +48,92 @@ class Node:
             
         return neighbors
 
+    def heuristic(self, other):
+        return abs(self.x - other.x) + abs(self.y - other.y)
 
-def find_path(grid, start_pos, end_pos=None, find_unidentified=False):
+    def tuple(self):
+        return (self.x, self.y)
+
+    
+def generate_costs(grid):
+    """
+    Generate costs for tiles so that A-star search favors driving next to walls
+    rather than through the room.
+    """
+    costs = []
+
+    for y in range(MAP_SIZE):
+        for x in range(MAP_SIZE):
+            current = Node(x, y)
+            wall_neighbors = 0
+            
+            if grid[y * MAP_SIZE + x] == 0:
+                costs += [100]
+                continue
+            
+            for n in current.neighbors():
+                if grid[n.y * MAP_SIZE + n.x] == 2:
+                    wall_neighbors += 1
+                    break
+                
+            if wall_neighbors == 2:
+                costs += [1]
+            elif wall_neighbors == 1:
+                costs += [3]
+            else:
+                costs += [8]
+                
+    return costs
+
+
+def a_star(grid, start_pos, end_pos, costs=None):
+    """
+    Uses A-star to find the cheapest path from start_pos to end_pos in grid.
+    Costs is an array of the same size as grid and defines the cost to travel on
+    a specific tile. If costs=None, costs are generated so that tiles next to walls
+    are cheaper to travel.
+    """
+    pqueue = PQueue()
+    visited = set()
+    
+    start = Node(int(start_pos[0]), int(start_pos[1]))
+    end = Node(int(end_pos[0]), int(end_pos[1]))
+    
+    if not costs:
+        costs = generate_costs(grid)
+        
+    start.cost = 0.0
+    pqueue.put(start, start.heuristic(end))
+        
+    v = None
+        
+    while not pqueue.empty():
+        v = pqueue.get()
+        visited.add(v.tuple())
+            
+        if v.equals(end):
+            break
+            
+        for n in v.neighbors():
+            if n.tuple() not in visited and \
+               (grid[int(n.y * MAP_SIZE + n.x)] == 1 or (grid[int(n.y * MAP_SIZE + n.x)] == 0 and n.equals(end))):
+                cost = v.cost + costs[int(n.y * MAP_SIZE + n.x)]
+                if cost < n.cost:
+                    n.cost = cost
+                    n.previous = v
+                    pqueue.put(n, cost + n.heuristic(end))
+
+    path = []
+    if not (grid[int(v.y * MAP_SIZE + v.x)] == 0 and v.equals(end)):
+        path += [[v.x, v.y]]
+    while not v.equals(start):
+        path += [[v.previous.x, v.previous.y]]
+        v = v.previous
+        
+    path.reverse()
+    return path
+
+def bfs(grid, start_pos, end_pos=None, find_unidentified=False):
     """
     Performs a BFS-search of the grid to find a shortest route from start_pos to end_pos.
     MAP_SIZE must be set to the correct size.
@@ -58,7 +165,7 @@ def find_path(grid, start_pos, end_pos=None, find_unidentified=False):
                 current = current.previous
             break
 
-        if end and end_pos in unidentified_nodes:
+        if end and end_pos in unidentified_nodes and current.equals(end):
             # We found an end that is unidentified, go to next closest node
             current = current.previous
             break
@@ -171,7 +278,7 @@ def closed_room(grid, pos):
     """
     Returns True if grid is a closed room around pos, False otherwise.
     """
-    if find_path(grid, pos, find_unidentified=True):
+    if bfs(grid, pos, find_unidentified=True):
         return False
     return True
 
@@ -181,11 +288,11 @@ def find_closest_unexplored(grid, pos):
     Returns a path to the node next to the closest uneplored node.
     Returns empty list if no such path is found.
     """
-    unexplored = find_path(grid, pos, find_unidentified=True)
-#    unexplored.sort(key=lambda x: math.sqrt((x[0] - pos[0])**2 + (x[1] - pos[1])**2))
+    unexplored = bfs(grid, pos, find_unidentified=True)
+    #unexplored.sort(key=lambda x: math.sqrt((x[0] - pos[0])**2 + (x[1] - pos[1])**2))
 
     if unexplored:
-        return find_path(grid, pos, unexplored[0], find_unidentified=True)
+        return a_star(grid, pos, unexplored[0])
     return []
 
 
@@ -219,26 +326,19 @@ def line_of_sight(grid, start_pos, end_pos):
     return True
 
 
-def place_walls(grid, start_pos):
-    pos_counter = 0
-    for cell in grid:
-        if line_of_sight(grid, start_pos, cell):
-            set_grid(pos_counter, pos_counter*MAP_SIZE, 1, grid)
-            pos_counter += 1
-
-
 def find_line_of_sight(grid, pos):
     """
     Returns a path to a node which is close to the closest unexplored node, is at least 2 squares away from the unexplored
     node and has line of sight to the unexplored node
     Returns empty list if no such path is found.
+    Note: currently does not work well, avoid using.
     """
-    unexplored = find_path(grid, pos, find_unidentified=True)
+    unexplored = bfs(grid, pos, find_unidentified=True)
     unexplored.sort(key=lambda x: math.sqrt((x[0] - pos[0]) ** 2 + (x[1] - pos[1]) ** 2))
 
     if unexplored:
         end = unexplored[0]
-        path = find_path(grid, pos, unexplored[0], find_unidentified=True)
+        path = bfs(grid, pos, unexplored[0], find_unidentified=True)
 
         while not (math.sqrt((path[-1][0] - end[0])**2 + (path[-1][1] - end[1])**2) > 2 and line_of_sight(grid, path[-1], end)):
             path.pop()
@@ -248,19 +348,19 @@ def find_line_of_sight(grid, pos):
 
 
 if __name__ == "__main__":
-    gr = [2, 0, 0, 2, 2, 2, 2, 2, 2,
+    gr = [2, 2, 2, 2, 2, 2, 2, 2, 2,
           2, 2, 2, 2, 2, 2, 2, 2, 2,
-          2, 1, 2, 0, 0, 0, 2, 2, 2,
-          2, 1, 2, 0, 0, 0, 2, 2, 2,
-          2, 1, 2, 2, 0, 0, 2, 2, 2,
-          2, 2, 2, 2, 0, 0, 2, 2, 2,
-          2, 1, 2, 2, 0, 0, 2, 2, 2,
           2, 1, 1, 2, 2, 2, 2, 2, 2,
+          2, 1, 2, 2, 2, 2, 2, 2, 2,
+          2, 1, 2, 2, 0, 2, 2, 2, 2,
+          2, 1, 1, 1, 1, 2, 2, 2, 2,
+          2, 1, 2, 2, 2, 2, 2, 2, 2,
+          2, 1, 2, 2, 2, 2, 2, 2, 2,
           2, 2, 2, 2, 2, 2, 2, 2, 2]
 
-    place_walls(gr, [4,3])
+    print(find_closest_unexplored(gr, [1,5]))
+    
 
-    #for 
     
     #p = find_line_of_sight(gr, [1, 3])
     #print(p)

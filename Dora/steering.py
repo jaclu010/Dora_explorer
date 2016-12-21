@@ -1,32 +1,42 @@
+#####
+#
+# steering.py
+# Updated: 14/12 2016
+# Authors: Fredrik Iselius, Martin Lundberg
+#
+#####
+
 import serial
 from global_vars import *
 from common import *
 
 
-speeds = {LEFT: 0, RIGHT: 0, TOWER: 80, DEFAULT: 75}
-man_speeds = {LEFT: 125, RIGHT: 125, TOWER: 80, DEFAULT: 125}
+speeds = {LEFT: 0, RIGHT: 0, TOWER: 80, DEFAULT: 60}  # Speed dict for autonomous mode
+man_speeds = {LEFT: 125, RIGHT: 125, TOWER: 80, DEFAULT: 125}  # Speed dict for manual mode
 steering_port = None
 
 
 def set_speed(mode, spd = 0, side = "both"):
     """
-    spd must be an integer value 0-255
+    Sends a command to the steering module which will set
+    the wheek pair on side 'side' to speed 'spd'
     """
-    #  print('NEW SPEED: %i %s' % (int(spd), side))
     global speeds, man_speeds
-
+    
     temp = {}
     if mode:
         temp =  speeds
     else:
         temp = man_speeds
-        
+
+    # Make sure that spd is between 0-255
     spd = int(spd)
     if spd > 255:
         spd = 255
     elif spd < 0:
         spd = 0
 
+    # Send command to the steering module
     if side == "both":
         if mode and spd == speeds[LEFT] and spd == speeds[LEFT]:
             return
@@ -66,6 +76,9 @@ def right():
 
 
 def open_port():
+    """
+    Opens the port returned from find_usb() for serial communication
+    """
     global steering_port
 
     try:
@@ -77,12 +90,14 @@ def open_port():
     
 def steering_serial(steering_cmd_man, mode, ir):
     """
-    Send commands to the steering module
+    Fetches manual commands from a queue shared with the bluetooth process
+    and executes them
     """
+    
     prev_command = ""
-    print("Manual mode")
     while mode.value == 0:
         try:
+            # Execute only if there is a new command
             command = steering_cmd_man.get()
             if command != prev_command:
                 if command == "forward":

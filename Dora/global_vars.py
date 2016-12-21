@@ -1,3 +1,11 @@
+#####
+#
+# global_vars.py
+# Updated: 14/12 2016
+# Authors: Fredrik Iselius, Jonathan Johansson, Martin Lundberg, Johan Nilsson, Niklas Nilsson
+#
+#####
+
 import time
 import math
 

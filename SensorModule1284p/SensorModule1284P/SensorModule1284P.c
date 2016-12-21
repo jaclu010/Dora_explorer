@@ -45,7 +45,6 @@ void SPI_MasterInit()
 	
 	/* Enable SPI, Master, set clock rate */
 	SPCR = 0b01011101;
-	
 }
 
 void FireFly_Init() {
@@ -75,7 +74,6 @@ void SPI_MasterTransmit(unsigned output)
 	/* Wait for transmission complete */
 	while(!(SPSR & (1<<SPIF))) {
 		
-		
 	}
 }
 
@@ -85,7 +83,6 @@ void FireFly_Transmit(unsigned data) {
 	;
 	/* Put data into buffer, sends the data */
 	UDR1 = data;
-	
 }
 
 unsigned char FireFly_Receive()
@@ -97,6 +94,7 @@ unsigned char FireFly_Receive()
 	/* Get and return received data from buffer */
 	return UDR1;
 }
+
 /* Sends IR values in cm over UART */
 void Send_IR() {	
 	
@@ -109,7 +107,6 @@ void Send_IR() {
 	UART_Transmit(irArray[5]);
 	
 	sensor = GYRO_GO; // set sensor state to gyro
-	
 }
 
 /* Iterate through sensors and save readings */
@@ -124,7 +121,6 @@ void Read_IR() {
 			irArray[ir] = round((-4.935*AD_VALUE + 804.5) / (AD_VALUE + 9.051)); //convert sensor data to cm		
 		else
 			irArray[ir] = 25; // if invalid ir value set distance to 25cm
-			
 	}
 	
 	ADMUX &= 0xF8; // reset ADMUX
@@ -165,24 +161,19 @@ void Read_IR() {
 		break;
 		default:
 		break;
-		
 	}
-	
-	
 }
 
 /* Pull SS low */
 void StartSignal_Gyro() {
 	
 	PORTB &= (0 << PORTB4);
-	
 }
 
 /* Pull SS high */
 void StopSignal_Gyro() {
 	
 	PORTB |= (1 << PORTB4);
-	
 }
 
 /* Starts Gyro conversation and saves the result */
@@ -290,9 +281,7 @@ void Read_Gyro()
 		break;		
 		default:
 		break;
-		
 	}
-	
 }
 
 void Sync_Laser()
@@ -304,7 +293,6 @@ void Sync_Laser()
 			
 			if (sync == START_LASER)				
 				break;
-			
 		}
 }
 
@@ -333,9 +321,7 @@ void Read_Laser() {
 		
 		counter = 0;
 		sensor = NONE; // disable ir or gyro sensor reading for next loop to avoid missing first laser value
-		
-	}
-	else {
+	} else {
 		
 		unsigned char low = FireFly_Receive();
 	
@@ -346,7 +332,6 @@ void Read_Laser() {
 			ir = IR_ONE;
 		}
 	}
-
 }
 
 
@@ -370,7 +355,5 @@ int main(void)
 		if(sensor == IR_GO)
 			Read_IR();
 
-
 	}			
-				
 }

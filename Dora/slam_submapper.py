@@ -1,7 +1,7 @@
 #####
 #
 # slam_submapper.py
-# Updated: 14/12 2016
+# Updated: 20/12 2016
 # Authors: Jacob Lundberg, Johan Nilsson
 #
 #####

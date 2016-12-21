@@ -1,3 +1,16 @@
+#######
+#
+# slam_gui.py
+# Updated: 20/12 2016
+# Authors: Jacob Lundberg, Johan Nilsson
+#
+# This code does the exact same as SLAM_SUBMAPPER.py
+# with the difference of TKinter drawings to the laptop
+# program canvas. 
+#
+#######
+
+
 import math
 from tkinter import *
 

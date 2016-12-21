@@ -1,3 +1,15 @@
+#######
+#
+# slam_gui.py
+# Updated: 20/12 2016
+# Authors: Jacob Lundberg
+#
+# This code does the exact same as SLAM_SUBMAPPER.py
+# with the difference of TKinter drawings.
+# See src/dora_core/SLAM_SUBMAPPER.py for comments
+#
+#######
+
 import math
 from tkinter import *
 
@@ -29,11 +41,6 @@ for e in a:
 
 def clearCanvas(canvas):
     canvas.delete(ALL)
-
-
-def pointlength(p1, p2):
-    # returns the length between two points
-    return (math.sqrt(((p1[0] - p2[0]) * (p1[0] - p2[0])) + (p1[1] - p2[1]) * (p1[1] - p2[1])))
 
 
 def drawText(canvas, x, y, text, color):
@@ -268,8 +275,8 @@ def mapper():
         x = sin_cos[i][0]
         y = sin_cos[i][1]
 
-        prev_p = pointlength((x_b, y_b), (x, y))
-        next_p = pointlength((x_f, y_f), (x, y))
+        prev_p = math.hypot(x_b - x, y_b - y)
+        next_p = math.hypot(x_f - x, y_f - y)
 
         
         if not (next_p > dot_dist_cut and prev_p > dot_dist_cut):

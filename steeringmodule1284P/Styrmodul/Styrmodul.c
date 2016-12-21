@@ -12,7 +12,7 @@
 #include <avr/interrupt.h>
 #include <stdbool.h>
 
-#include "steering.h"
+#include "Styrmodul.h"
 #include "uart.h"
 
 typedef enum {LEFT_SIDE, RIGHT_SIDE, BOTH_SIDES, TOWER, NONE} sideState;

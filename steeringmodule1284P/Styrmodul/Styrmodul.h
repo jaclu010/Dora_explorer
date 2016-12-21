@@ -1,5 +1,5 @@
 ﻿/*
- * steering.h
+ * Styrmodul.h
  *
  *  Updated: 14/12/2016
  *  Author: Fredrik Iselius, Martin Lundberg

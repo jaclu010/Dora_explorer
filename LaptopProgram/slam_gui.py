@@ -15,11 +15,6 @@ import math
 from tkinter import *
 
 
-def pointlength(p1, p2):
-    # returns the length between two points
-    return (math.sqrt(((p1[0] - p2[0]) * (p1[0] - p2[0])) + (p1[1] - p2[1]) * (p1[1] - p2[1])))
-
-
 def rounds(val):
     """
     Always round .5 up
@@ -276,8 +271,8 @@ def mapper(c, c3, read):
         x = sin_cos[i][0]
         y = sin_cos[i][1]
 
-        prev_p = pointlength((x_b, y_b), (x, y))
-        next_p = pointlength((x_f, y_f), (x, y))
+        prev_p = math.hypot(x_b - x, y_b - y)
+        next_p = math.hypot(x_f - x, y_f - y)
 
         
         if not (next_p > dot_dist_cut and prev_p > dot_dist_cut):

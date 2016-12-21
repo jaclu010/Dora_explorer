@@ -9,7 +9,7 @@ offsetY = 300
 
 active_gui = True
 
-with open("slamfixed2.txt", "r") as f:
+with open("log_output.txt", "r") as f:
     a = f.readlines()
 
 read_list = []

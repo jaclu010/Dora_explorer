@@ -6,7 +6,7 @@ for e in a:
 		index = e.find("[l")
 		newlist.append(e[index+len("[laser]"):])
 
-with open("slamfixed2.txt", "w") as f2:
+with open("log_output.txt", "w") as f2:
 	for e in newlist:
 		f2.write(e)
 

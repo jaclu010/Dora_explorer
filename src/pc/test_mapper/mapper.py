@@ -1,6 +1,6 @@
 #######
 #
-# test_mapper.py
+# mapper.py
 # Updated: 20/12 2016
 # Authors: Jacob Lundberg
 #

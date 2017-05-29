@@ -1,6 +1,6 @@
 #######
 #
-# slam_gui.py
+# test_mapper.py
 # Updated: 20/12 2016
 # Authors: Jacob Lundberg
 #
